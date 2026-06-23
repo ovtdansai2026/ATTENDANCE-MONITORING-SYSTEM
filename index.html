@@ -217,15 +217,15 @@
                     <td class="px-2 py-3 md:px-4 md:py-4 text-center w-10">
                         <span class="w-6 h-6 md:w-8 md:h-8 mx-auto flex items-center justify-center rounded-full bg-slate-800 text-[10px] md:text-xs font-bold border border-slate-700">${index + 1}</span>
                     </td>
-                    <td class="px-2 py-3 md:px-6 md:py-4 whitespace-nowrap">
-                        <div class="font-medium text-slate-200 text-[11px] md:text-sm truncate max-w-[120px] sm:max-w-none" title="${student.studentName}">${student.studentName}</div>
-                        <div class="text-[10px] md:text-xs text-slate-400 mt-0.5 truncate max-w-[120px] sm:max-w-none">${student.pureLevel} แผนก${student.pureDept}</div>
+                    <td class="px-2 py-3 md:px-6 md:py-4 whitespace-normal break-words">
+                        <div class="font-medium text-slate-200 text-[11px] md:text-sm">${student.studentName}</div>
+                        <div class="text-[10px] md:text-xs text-slate-400 mt-0.5">${student.pureLevel} แผนก${student.pureDept}</div>
                     </td>
                     <td class="px-2 py-3 md:px-6 md:py-4 text-center">
                         <span class="inline-block px-2 py-1 md:px-2.5 md:py-1 rounded-md text-[10px] md:text-xs font-bold ${badgeStyle}">${student.percent}%</span>
                     </td>
-                    <td class="px-2 py-3 md:px-6 md:py-4 text-[10px] md:text-xs text-slate-400 font-mono whitespace-nowrap">
-                        <div class="truncate max-w-[90px] sm:max-w-none" title="${student.teacherEmail}">${student.teacherEmail}</div>
+                    <td class="px-2 py-3 md:px-6 md:py-4 text-[10px] md:text-xs text-slate-400 font-mono whitespace-normal break-all">
+                        <div>${student.teacherEmail}</div>
                     </td>
                 `;
                 tbody.appendChild(tr);
