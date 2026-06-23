@@ -65,71 +65,56 @@
         <div id="dashboardContent" class="hidden">
             <section class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
                 <div class="glass-card p-6 rounded-2xl bg-gradient-to-br from-slate-900/80 to-blue-950/20 shadow-lg relative overflow-hidden group">
-                    <div class="absolute -right-4 -bottom-4 text-blue-500/10 text-7xl font-bold group-hover:scale-110 transition-transform">ALL</div>
-                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">นักเรียนทั้งหมดที่ตรวจสอบ</p>
+                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">นักเรียนทั้งหมด</p>
                     <p id="totalCount" class="text-3xl font-bold text-blue-400 mt-2">0 <span class="text-sm font-normal text-slate-400">คน</span></p>
                 </div>
-                <div class="glass-card p-6 rounded-2xl bg-gradient-to-br from-slate-900/80 to-red-950/20 shadow-lg border-l-4 border-red-500/50 relative overflow-hidden group shadow-[0_0_20px_rgba(239,68,68,0.05)]">
-                    <div class="absolute -right-4 -bottom-4 text-red-500/10 text-7xl font-bold group-hover:scale-110 transition-transform">RISK</div>
-                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">กลุ่มเสี่ยงตกกิจกรรม (&lt; 80%)</p>
+                <div class="glass-card p-6 rounded-2xl bg-gradient-to-br from-slate-900/80 to-red-950/20 shadow-lg border-l-4 border-red-500/50">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">กลุ่มเสี่ยงตกกิจกรรม</p>
                     <p id="totalRiskCard" class="text-3xl font-bold text-red-400 mt-2">0 <span class="text-sm font-normal text-slate-400">คน</span></p>
                 </div>
-                <div class="glass-card p-6 rounded-2xl bg-gradient-to-br from-slate-900/80 to-emerald-950/20 shadow-lg border-l-4 border-emerald-500/50 relative overflow-hidden group shadow-[0_0_20px_rgba(16,185,129,0.05)]">
-                    <div class="absolute -right-4 -bottom-4 text-emerald-500/10 text-7xl font-bold group-hover:scale-110 transition-transform">PASS</div>
-                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">กลุ่มผ่านเกณฑ์ปกติ (≥ 80%)</p>
+                <div class="glass-card p-6 rounded-2xl bg-gradient-to-br from-slate-900/80 to-emerald-950/20 shadow-lg border-l-4 border-emerald-500/50">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">กลุ่มผ่านเกณฑ์ปกติ</p>
                     <p id="totalExcellentCard" class="text-3xl font-bold text-emerald-400 mt-2">0 <span class="text-sm font-normal text-slate-400">คน</span></p>
                 </div>
             </section>
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div class="glass-card rounded-2xl overflow-hidden border border-red-500/10 shadow-2xl shadow-red-950/10">
-                    <div class="p-5 bg-gradient-to-r from-red-950/40 to-slate-900/40 border-b border-slate-800 flex justify-between items-center">
-                        <div class="flex items-center gap-2.5">
-                            <div class="p-2 rounded-lg bg-red-500/10 text-red-400">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                            </div>
-                            <h2 class="text-md font-bold tracking-wide text-red-400">ทำเนียบท็อปเสี่ยง ตกกิจกรรม (&lt; 80%)</h2>
-                        </div>
-                        <span id="riskBadge" class="bg-red-500/20 text-red-400 border border-red-500/30 text-xs font-bold px-3 py-1 rounded-full">0</span>
+                <div class="glass-card rounded-2xl overflow-hidden border border-red-500/10">
+                    <div class="p-5 border-b border-slate-800 flex justify-between items-center bg-red-500/5">
+                        <h2 class="text-md font-bold text-red-400">กลุ่มเสี่ยงเข้าแถวไม่ครบ (&lt; 80%)</h2>
+                        <span id="riskBadge" class="bg-red-500/20 text-red-400 text-xs font-bold px-3 py-1 rounded-full">0</span>
                     </div>
                     <div class="overflow-x-auto custom-scroll" style="max-height: 520px; overflow-y: auto;">
                         <table class="w-full text-sm text-left">
-                            <thead class="text-xs text-slate-400 uppercase bg-slate-900/80 tracking-wider sticky top-0 border-b border-slate-800 z-10">
+                            <thead class="text-xs text-slate-400 bg-slate-900/80 sticky top-0 border-b border-slate-800 z-10">
                                 <tr>
-                                    <th class="px-4 py-4 text-center">อันดับความเสี่ยง</th>
+                                    <th class="px-4 py-4 text-center">ลำดับ</th>
                                     <th class="px-6 py-4">ข้อมูลนักเรียน</th>
                                     <th class="px-6 py-4 text-center">สถิติมา (%)</th>
-                                    <th class="px-6 py-4">ครูที่ปรึกษา / ผู้รับผิดชอบ</th>
+                                    <th class="px-6 py-4">อีเมลครูที่ปรึกษา</th>
                                 </tr>
                             </thead>
-                            <tbody id="riskTableBody" class="divide-y divide-slate-800/50">
-                            </tbody>
+                            <tbody id="riskTableBody" class="divide-y divide-slate-800/50"></tbody>
                         </table>
                     </div>
                 </div>
 
-                <div class="glass-card rounded-2xl overflow-hidden border border-emerald-500/10 shadow-2xl shadow-emerald-950/10">
-                    <div class="p-5 bg-gradient-to-r from-emerald-950/40 to-slate-900/40 border-b border-slate-800 flex justify-between items-center">
-                        <div class="flex items-center gap-2.5">
-                            <div class="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
-                            </div>
-                            <h2 class="text-md font-bold tracking-wide text-emerald-400">ทำเนียบจัดอันดับการเข้าแถว (≥ 80%)</h2>
-                        </div>
-                        <span id="excellentBadge" class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-bold px-3 py-1 rounded-full">0</span>
+                <div class="glass-card rounded-2xl overflow-hidden border border-emerald-500/10">
+                    <div class="p-5 border-b border-slate-800 flex justify-between items-center bg-emerald-500/5">
+                        <h2 class="text-md font-bold text-emerald-400">กลุ่มเข้าแถวตามเกณฑ์ (≥ 80%)</h2>
+                        <span id="excellentBadge" class="bg-emerald-500/20 text-emerald-400 text-xs font-bold px-3 py-1 rounded-full">0</span>
                     </div>
                     <div class="overflow-x-auto custom-scroll" style="max-height: 520px; overflow-y: auto;">
                         <table class="w-full text-sm text-left">
-                            <thead class="text-xs text-slate-400 uppercase bg-slate-900/80 tracking-wider sticky top-0 border-b border-slate-800 z-10">
+                            <thead class="text-xs text-slate-400 bg-slate-900/80 sticky top-0 border-b border-slate-800 z-10">
                                 <tr>
-                                    <th class="px-4 py-4 text-center">อันดับมาดี</th>
+                                    <th class="px-4 py-4 text-center">ลำดับ</th>
                                     <th class="px-6 py-4">ข้อมูลนักเรียน</th>
                                     <th class="px-6 py-4 text-center">สถิติมา (%)</th>
-                                    <th class="px-6 py-4">ครูที่ปรึกษา / ผู้รับผิดชอบ</th>
+                                    <th class="px-6 py-4">อีเมลครูที่ปรึกษา</th>
                                 </tr>
                             </thead>
-                            <tbody id="excellentTableBody" class="divide-y divide-slate-800/50">
-                            </tbody>
+                            <tbody id="excellentTableBody" class="divide-y divide-slate-800/50"></tbody>
                         </table>
                     </div>
                 </div>
@@ -139,17 +124,13 @@
 
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbyOPje4XI9lkKYLwnp8kvBi3BjL6th-nOPkopcWNBiC_WkRPvDnfXFglzfHkgfdgibf7A/exec"; 
-        
         let rawStudents = [];
         let structuredData = [];
 
         function parseDepartmentAndLevel(deptStr) {
             const match = deptStr.match(/(ปวช\.\d|ปวส\.\d)\s*(.*)/);
             if (match) {
-                return {
-                    level: match[1].trim(),
-                    department: match[2].replace(/แผนกวิชา/g, "").trim()
-                };
+                return { level: match[1].trim(), department: match[2].replace(/แผนกวิชา/g, "").trim() };
             }
             return { level: "ไม่ระบุปี", department: deptStr.trim() };
         }
@@ -158,39 +139,26 @@
             try {
                 const response = await fetch(API_URL);
                 const result = await response.json();
-                
                 if (result.status === "success") {
                     rawStudents = result.data;
-                    
                     structuredData = rawStudents.map(item => {
                         const parsed = parseDepartmentAndLevel(item.department);
-                        return {
-                            ...item,
-                            pureDept: parsed.department,
-                            pureLevel: parsed.level
-                        };
+                        return { ...item, pureDept: parsed.department, pureLevel: parsed.level };
                     });
-
                     buildCascadingFilters();
                     filterData();
-                    
                     document.getElementById('loading').classList.add('hidden');
                     document.getElementById('dashboardContent').classList.remove('hidden');
                 }
-            } catch (error) {
-                console.error(error);
-                alert("ระบบเชื่อมต่อ API ขัดข้อง กรุณากด Refresh อีกครั้ง");
-            }
+            } catch (error) { console.error(error); }
         }
 
         function buildCascadingFilters() {
             const deptSelect = document.getElementById('deptFilter');
             const uniqueDepts = [...new Set(structuredData.map(item => item.pureDept))].sort();
-            
             uniqueDepts.forEach(dept => {
                 const opt = document.createElement('option');
-                opt.value = dept;
-                opt.textContent = "แผนก" + dept;
+                opt.value = dept; opt.textContent = "แผนก" + dept;
                 deptSelect.appendChild(opt);
             });
         }
@@ -198,22 +166,14 @@
         function onDeptChange() {
             const selectedDept = document.getElementById('deptFilter').value;
             const levelSelect = document.getElementById('levelFilter');
-            
             levelSelect.innerHTML = '<option value="ALL">ทุกชั้นปี</option>';
-            
-            let targetData = structuredData;
-            if (selectedDept !== "ALL") {
-                targetData = structuredData.filter(item => item.pureDept === selectedDept);
-            }
-            
+            let targetData = selectedDept === "ALL" ? structuredData : structuredData.filter(item => item.pureDept === selectedDept);
             const uniqueLevels = [...new Set(targetData.map(item => item.pureLevel))].sort();
             uniqueLevels.forEach(lvl => {
                 const opt = document.createElement('option');
-                opt.value = lvl;
-                opt.textContent = lvl;
+                opt.value = lvl; opt.textContent = lvl;
                 levelSelect.appendChild(opt);
             });
-
             filterData();
         }
 
@@ -222,24 +182,14 @@
             const selectedLevel = document.getElementById('levelFilter').value;
             const searchKeyword = document.getElementById('searchBar').value.trim().toLowerCase();
 
-            let result = structuredData;
-
-            if (selectedDept !== "ALL") {
-                result = result.filter(item => item.pureDept === selectedDept);
-            }
-            if (selectedLevel !== "ALL") {
-                result = result.filter(item => item.pureLevel === selectedLevel);
-            }
-            if (searchKeyword !== "") {
-                result = result.filter(item => item.studentName.toLowerCase().includes(searchKeyword));
-            }
+            let result = structuredData
+                .filter(item => selectedDept === "ALL" || item.pureDept === selectedDept)
+                .filter(item => selectedLevel === "ALL" || item.pureLevel === selectedLevel)
+                .filter(item => searchKeyword === "" || item.studentName.toLowerCase().includes(searchKeyword));
 
             document.getElementById('totalCount').innerHTML = `${result.length} <span class="text-sm font-normal text-slate-400">คน</span>`;
-
-            // แยกกลุ่มส่งเข้าตารางตามเกณฑ์ใหม่
-            // ฝั่งซ้าย: ขาดเรียนเยอะสุด (เปอร์เซ็นต์น้อยสุด) ขึ้นก่อนเพื่อจัดอันดับท็อปเสี่ยง
+            
             const riskGroup = result.filter(s => s.percent < 80).sort((a,b) => a.percent - b.percent);
-            // ฝั่งขวา: มาเรียนเยอะสุด (เปอร์เซ็นต์มากสุด) ขึ้นก่อนเพื่อจัดอันดับคะแนนนำ
             const passGroup = result.filter(s => s.percent >= 80).sort((a,b) => b.percent - a.percent);
 
             document.getElementById('totalRiskCard').innerHTML = `${riskGroup.length} <span class="text-sm font-normal text-slate-400">คน</span>`;
@@ -247,76 +197,28 @@
             document.getElementById('riskBadge').textContent = riskGroup.length;
             document.getElementById('excellentBadge').textContent = passGroup.length;
 
-            renderTableRows('riskTableBody', riskGroup, 'text-red-400 bg-red-500/10 border-red-500/20', true);
-            renderTableRows('excellentTableBody', passGroup, 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20', false);
+            renderTableRows('riskTableBody', riskGroup, 'text-red-400 bg-red-500/10 border-red-500/20');
+            renderTableRows('excellentTableBody', passGroup, 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20');
         }
 
-        function renderTableRows(tbodyId, data, badgeStyle, isRisk) {
+        function renderTableRows(tbodyId, data, badgeStyle) {
             const tbody = document.getElementById(tbodyId);
             tbody.innerHTML = '';
-
-            if (data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-12 text-center text-slate-500 font-light">ไม่พบข้อมูลของกลุ่มนี้ในระบบตัวกรอง</td></tr>`;
-                return;
-            }
-
-            // สกัดค่าเปอร์เซ็นต์ที่ไม่ซ้ำกันเพื่อเอาไปคำนวณอันดับร่วม (Dense Ranking)
-            let uniquePercents;
-            if (isRisk) {
-                // ท็อปเสี่ยง: เปอร์เซ็นต์น้อยสุด = อันดับความเสี่ยงที่ 1
-                uniquePercents = [...new Set(data.map(s => s.percent))].sort((a,b) => a - b);
-            } else {
-                // มาดีสุด: เปอร์เซ็นต์มากสุด = อันดับที่ 1
-                uniquePercents = [...new Set(data.map(s => s.percent))].sort((a,b) => b - a);
-            }
-
-            data.forEach(student => {
+            data.forEach((student, index) => {
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-slate-800/30 transition-colors";
-                
-                const displayAdvisor = student.teacherEmail;
-
-                // คำนวณรหัสอันดับ
-                const rankIndex = uniquePercents.indexOf(student.percent) + 1;
-                const countWithSamePercent = data.filter(s => s.percent === student.percent).length;
-                
-                // กำหนดป้ายแสดงอันดับให้เท่ๆ ตามที่คุณบรีฟ
-                let rankText = "";
-                let rankBadgeStyle = "bg-slate-800 text-slate-400";
-                
-                if (isRisk) {
-                    rankText = `เสี่ยงที่ ${rankIndex}`;
-                    if (countWithSamePercent > 1) rankText += " ร่วม";
-                    if (rankIndex === 1) rankBadgeStyle = "bg-red-500/20 text-red-400 border border-red-500/30 font-bold shadow-[0_0_12px_rgba(239,68,68,0.1)]";
-                } else {
-                    rankText = `ที่ ${rankIndex}`;
-                    if (countWithSamePercent > 1) rankText += " ร่วม";
-                    if (rankIndex === 1) rankBadgeStyle = "bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold shadow-[0_0_12px_rgba(245,158,11,0.1)]";
-                }
-
                 tr.innerHTML = `
-                    <td class="px-4 py-4 text-center whitespace-nowrap">
-                        <span class="inline-block px-2.5 py-1 rounded-md text-xs ${rankBadgeStyle}">
-                            ${rankText}
-                        </span>
-                    </td>
+                    <td class="px-4 py-4 text-center"><span class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-800 text-xs font-bold border border-slate-700">${index + 1}</span></td>
                     <td class="px-6 py-4">
                         <div class="font-medium text-slate-200">${student.studentName}</div>
-                        <div class="text-xs text-slate-400 mt-0.5">${student.pureLevel} แผนก${student.pureDept}</div>
+                        <div class="text-xs text-slate-400">${student.pureLevel} แผนก${student.pureDept}</div>
                     </td>
-                    <td class="px-6 py-4 text-center">
-                        <span class="inline-block px-2.5 py-1 rounded-md text-xs font-bold ${badgeStyle}">
-                            ${student.percent}%
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 text-xs text-slate-400 font-mono">
-                        ${displayAdvisor}
-                    </td>
+                    <td class="px-6 py-4 text-center"><span class="px-2.5 py-1 rounded-md text-xs font-bold ${badgeStyle}">${student.percent}%</span></td>
+                    <td class="px-6 py-4 text-xs text-slate-400 font-mono">${student.teacherEmail}</td>
                 `;
                 tbody.appendChild(tr);
             });
         }
-
         fetchData();
     </script>
 </body>
