@@ -17,33 +17,60 @@
         </div>
 
         <form id="attendanceForm" class="space-y-4">
-            <div>
-                <label class="block text-sm font-semibold mb-1">ชื่อ-นามสกุล</label>
-                <input type="text" id="studentName" required class="w-full border border-slate-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+            <div class="grid grid-cols-12 gap-2">
+                <div class="col-span-3">
+                    <label class="block text-[11px] sm:text-xs font-semibold mb-1 text-slate-600">คำนำหน้า</label>
+                    <select id="title" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm bg-white outline-none focus:border-blue-500">
+                        <option value="นาย">นาย</option>
+                        <option value="นางสาว">นางสาว</option>
+                        <option value="นาง">นาง</option>
+                    </select>
+                </div>
+                <div class="col-span-4">
+                    <label class="block text-[11px] sm:text-xs font-semibold mb-1 text-slate-600">ชื่อจริง</label>
+                    <input type="text" id="firstName" required placeholder="ไม่ต้องกรอกคำนำหน้า" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div class="col-span-5">
+                    <label class="block text-[11px] sm:text-xs font-semibold mb-1 text-slate-600">นามสกุล</label>
+                    <input type="text" id="lastName" required placeholder="นามสกุล" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
             </div>
+
             <div class="grid grid-cols-2 gap-3">
                 <div>
-                    <label class="block text-sm font-semibold mb-1">ระดับชั้น</label>
-                    <select id="stuLevel" required class="w-full border border-slate-300 rounded-lg p-3 text-sm">
-                        <option value="">เลือก...</option>
-                        <option value="ปวช.1">ปวช.1</option><option value="ปวช.2">ปวช.2</option><option value="ปวช.3">ปวช.3</option>
-                        <option value="ปวส.1">ปวส.1</option><option value="ปวส.2">ปวส.2</option>
+                    <label class="block text-sm font-semibold mb-1 text-slate-600">ระดับชั้น</label>
+                    <select id="stuLevel" required class="w-full border border-slate-300 rounded-lg p-3 text-sm bg-white outline-none focus:border-blue-500">
+                        <option value="">เลือกชั้นปี...</option>
+                        <option value="ปวช.1">ปวช.1</option>
+                        <option value="ปวช.2">ปวช.2</option>
+                        <option value="ปวช.3">ปวช.3</option>
+                        <option value="ปวส.1">ปวส.1</option>
+                        <option value="ปวส.2">ปวส.2</option>
                     </select>
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold mb-1">แผนก</label>
-                    <select id="stuDept" required class="w-full border border-slate-300 rounded-lg p-3 text-sm">
-                        <option value="">เลือก...</option>
-                        <option value="ช่างยนต์">ช่างยนต์</option><option value="ช่างกลโรงงาน">ช่างกลโรงงาน</option>
-                        <option value="ไฟฟ้ากำลัง">ไฟฟ้ากำลัง</option><option value="คอมพิวเตอร์ธุรกิจ">คอมพิวเตอร์ธุรกิจ</option>
+                    <label class="block text-sm font-semibold mb-1 text-slate-600">แผนกวิชา</label>
+                    <select id="stuDept" required class="w-full border border-slate-300 rounded-lg p-3 text-sm bg-white outline-none focus:border-blue-500">
+                        <option value="">เลือกแผนกวิชา...</option>
+                        <option value="ช่างยนต์">ช่างยนต์</option>
+                        <option value="ช่างกลโรงงาน">ช่างกลโรงงาน</option>
+                        <option value="ช่างเชื่อมโลหะ">ช่างเชื่อมโลหะ</option>
+                        <option value="ไฟฟ้ากำลัง">ไฟฟ้ากำลัง</option>
+                        <option value="ช่างอิเล็กทรอนิกส์">ช่างอิเล็กทรอนิกส์</option>
+                        <option value="เทคโนโลยีธุรกิจดิจิทัล">เทคโนโลยีธุรกิจดิจิทัล</option>
+                        <option value="การบัญชี">การบัญชี</option>
+                        <option value="การตลาด">การตลาด</option>
+						<option value="อาหารและโภชนาการ">อาหารและโภชนาการ</option>
                     </select>
                 </div>
             </div>
+
             <div>
-                <label class="block text-sm font-semibold mb-2">ถ่ายรูปหน้าตนเองในงาน</label>
-                <input type="file" id="imageInput" accept="image/*" capture="user" required class="w-full text-sm">
+                <label class="block text-sm font-semibold mb-2 text-slate-600">ถ่ายรูปหน้าตนเองในงาน</label>
+                <input type="file" id="imageInput" accept="image/*" capture="user" required class="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer">
             </div>
-            <button type="submit" id="submitBtn" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700">ส่งข้อมูล</button>
+
+            <button type="submit" id="submitBtn" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 shadow-md transition-all">ส่งข้อมูลเช็คชื่อ</button>
         </form>
     </div>
 
@@ -55,20 +82,28 @@
 
         document.getElementById('activityTitle').innerText = activity || "ไม่พบชื่อกิจกรรม";
         if (deadline && deadline !== "none") {
-            document.getElementById('deadlineText').innerText = "ปิดรับ: " + new Date(deadline).toLocaleString('th-TH');
+            document.getElementById('deadlineText').innerText = "ปิดรับเช็คชื่อ: " + new Date(deadline).toLocaleString('th-TH');
         }
 
         document.getElementById('attendanceForm').onsubmit = async (e) => {
             e.preventDefault();
             const btn = document.getElementById('submitBtn');
-            btn.disabled = true; btn.innerText = "กำลังส่ง...";
+            
+            // รวมข้อมูลชื่อ-นามสกุลให้อัตโนมัติก่อนส่งหลังบ้าน
+            const title = document.getElementById('title').value;
+            const first = document.getElementById('firstName').value.trim();
+            const last = document.getElementById('lastName').value.trim();
+            const fullName = `${title}${first} ${last}`;
+
+            btn.disabled = true; 
+            btn.innerText = "กำลังส่งข้อมูล...";
 
             const file = document.getElementById('imageInput').files[0];
             const reader = new FileReader();
             reader.readAsDataURL(file);
             reader.onload = async () => {
                 const payload = {
-                    studentName: document.getElementById('studentName').value,
+                    studentName: fullName,
                     pureLevel: document.getElementById('stuLevel').value,
                     pureDept: document.getElementById('stuDept').value,
                     activityName: activity,
@@ -76,13 +111,26 @@
                     imageCode: reader.result
                 };
                 
-                const res = await fetch(API_URL, {
-                    method: "POST",
-                    body: JSON.stringify(payload)
-                });
-                const result = await res.json();
-                alert(result.status === "success" ? "บันทึกข้อมูลเรียบร้อย!" : "เกิดข้อผิดพลาด: " + result.message);
-                btn.disabled = false; btn.innerText = "ส่งข้อมูล";
+                try {
+                    const res = await fetch(API_URL, {
+                        method: "POST",
+                        headers: { "Content-Type": "text/plain;charset=utf-8" },
+                        body: JSON.stringify(payload)
+                    });
+                    const result = await res.json();
+                    
+                    if (result.status === "success") {
+                        alert("✅ บันทึกข้อมูลและอัปโหลดหลักฐานเรียบร้อยแล้ว!");
+                        location.reload();
+                    } else {
+                        alert("❌ เกิดข้อผิดพลาดจากระบบ: " + result.message);
+                    }
+                } catch (err) {
+                    alert("❌ ไม่สามารถเชื่อมต่อระบบได้ กรุณาลองใหม่อีกครั้ง");
+                } finally {
+                    btn.disabled = false; 
+                    btn.innerText = "ส่งข้อมูล";
+                }
             };
         };
     </script>
