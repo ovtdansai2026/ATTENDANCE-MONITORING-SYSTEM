@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบลงทะเบียนกิจกรรม</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Prompt', sans-serif; background: #0f172a; }
+    </style>
+</head>
+<body class="p-6 text-slate-200 min-h-screen flex items-center justify-center">
+
+    <div class="max-w-md w-full glass-card bg-slate-900 border border-slate-700 p-8 rounded-3xl shadow-2xl">
+        <h1 id="actTitle" class="text-2xl font-bold text-blue-400 mb-2 text-center">กำลังโหลดกิจกรรม...</h1>
+        <p id="deadlineText" class="text-xs text-slate-400 text-center mb-6"></p>
+
+        <form id="uploadForm" class="space-y-4">
+            <div>
+                <label class="block text-sm font-semibold mb-1">ชื่อ-นามสกุล</label>
+                <input type="text" id="studentName" required class="w-full bg-slate-800 border border-slate-600 rounded-lg p-3 text-white">
+            </div>
+            <div>
+                <label class="block text-sm font-semibold mb-1">เลือกรูปหลักฐาน (รูปถ่ายตัวเอง)</label>
+                <input type="file" id="fileInput" accept="image/*" required class="w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700">
+            </div>
+            <button type="submit" id="submitBtn" class="w-full bg-blue-600 hover:bg-blue-700 py-3 rounded-xl font-bold transition-all">ส่งข้อมูลลงทะเบียน</button>
+        </form>
+        <div id="status" class="mt-4 text-center text-sm font-bold hidden"></div>
+    </div>
+
+    <script>
+        // ดึงชื่อกิจกรรมและกำหนดเวลาจาก URL ที่ฝังมาใน QR Code
+        const params = new URLSearchParams(window.location.search);
+        const activityName = params.get('activity') || "กิจกรรมทั่วไป";
+        const deadline = params.get('deadline');
+
+        document.getElementById('actTitle').innerText = activityName;
+        if (deadline && deadline !== "none") {
+            document.getElementById('deadlineText').innerText = "ปิดรับ: " + new Date(deadline).toLocaleString('th-TH');
+        }
+
+        const form = document.getElementById('uploadForm');
+        form.onsubmit = async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('submitBtn');
+            const status = document.getElementById('status');
+            
+            btn.disabled = true;
+            btn.innerText = "กำลังอัปโหลด...";
+            status.classList.remove('hidden', 'text-red-400', 'text-green-400');
+            status.innerText = "กำลังประมวลผลข้อมูล... กรุณารอสักครู่";
+
+            const file = document.getElementById('fileInput').files[0];
+            const reader = new FileReader();
+            
+            reader.onload = async (event) => {
+                const payload = {
+                    action: "submit_activity",
+                    activity: activityName,
+                    studentName: document.getElementById('studentName').value,
+                    fileData: event.target.result
+                };
+
+                try {
+                    // ใช้ลิงก์ API เดียวกับหน้า Dashboard (ที่ผูกกับ Google Sheet กิจกรรม)
+                    const res = await fetch("https://script.google.com/macros/s/AKfycbx1i7PNiII3X0aMCOtUoC_4Qg3OrD33J_Hdb2d6VkagGfM1Vxx26pxycla6PKnirxgH/exec", {
+                        method: "POST",
+                        headers: { "Content-Type": "text/plain;charset=utf-8" },
+                        body: JSON.stringify(payload)
+                    });
+                    const result = await res.json();
+                    
+                    if(result.status === "success") {
+                        status.className = "mt-4 text-center text-sm font-bold text-green-400";
+                        status.innerText = "✅ ส่งข้อมูลสำเร็จ!";
+                    } else {
+                        throw new Error();
+                    }
+                } catch (err) {
+                    status.className = "mt-4 text-center text-sm font-bold text-red-400";
+                    status.innerText = "❌ เกิดข้อผิดพลาด ลองอีกครั้งครับ";
+                    btn.disabled = false;
+                    btn.innerText = "ส่งข้อมูลลงทะเบียน";
+                }
+            };
+            reader.readAsDataURL(file);
+        };
+    </script>
+</body>
+</html>
