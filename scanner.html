@@ -148,40 +148,63 @@
             const file = document.getElementById('imageInput').files[0];
             const reader = new FileReader();
             reader.readAsDataURL(file);
-            reader.onload = async () => {
-                const payload = {
-                    studentName: selectedName,
-                    pureLevel: studentObj.pureLevel, 
-                    pureDept: studentObj.department, 
-                    activityName: activity,
-                    deadline: deadline,
-                    imageCode: reader.result
-                };
+            
+            reader.onload = function(event) {
+                // สร้าง Image Object เพื่อเตรียมย่อขนาด
+                const img = new Image();
+                img.src = event.target.result;
                 
-                try {
-                    const res = await fetch(API_URL, {
-                        method: "POST",
-                        headers: { "Content-Type": "text/plain;charset=utf-8" },
-                        body: JSON.stringify(payload)
-                    });
-                    const result = await res.json();
+                img.onload = async function() {
+                    // สร้าง Canvas สำหรับบีบอัด
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 800; // กำหนดความกว้างสูงสุด 800 px (ชัดพอสำหรับดูหน้า)
+                    const scaleSize = MAX_WIDTH / img.width;
                     
-                    if (result.status === "success") {
-                        alert("✅ บันทึกข้อมูลและอัปโหลดหลักฐานเรียบร้อยแล้ว!");
-                        location.reload(); 
-                    } else {
-                        alert("❌ เกิดข้อผิดพลาดจากระบบ: " + result.message);
+                    canvas.width = MAX_WIDTH;
+                    canvas.height = img.height * scaleSize;
+
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                    // บีบอัดรูปเป็น JPEG คุณภาพ 60% (ลดขนาดจาก 2MB เหลือประมาณ 100KB)
+                    const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
+
+                    // เตรียมข้อมูลส่งไปที่ API
+                    const payload = {
+                        studentName: selectedName,
+                        pureLevel: studentObj.pureLevel, 
+                        pureDept: studentObj.department, 
+                        activityName: activity,
+                        deadline: deadline,
+                        imageCode: compressedBase64 // 🌟 ส่งรูปที่ย่อไซส์แล้วไปแทน
+                    };
+                    
+                    try {
+                        const res = await fetch(API_URL, {
+                            method: "POST",
+                            headers: { "Content-Type": "text/plain;charset=utf-8" },
+                            body: JSON.stringify(payload)
+                        });
+                        const result = await res.json();
+                        
+                        if (result.status === "success") {
+                            alert("✅ บันทึกข้อมูลและอัปโหลดหลักฐานเรียบร้อยแล้ว!");
+                            location.reload(); 
+                        } else {
+                            alert("❌ เกิดข้อผิดพลาดจากระบบ: " + result.message);
+                            btn.disabled = false; 
+                            btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                            btn.innerText = "ส่งข้อมูลเช็คชื่อ";
+                        }
+                    } catch (err) {
+                        alert("❌ ไม่สามารถเชื่อมต่อระบบได้ กรุณาลองใหม่อีกครั้ง");
                         btn.disabled = false; 
                         btn.classList.remove('opacity-50', 'cursor-not-allowed');
                         btn.innerText = "ส่งข้อมูลเช็คชื่อ";
                     }
-                } catch (err) {
-                    alert("❌ ไม่สามารถเชื่อมต่อระบบได้ กรุณาลองใหม่อีกครั้ง");
-                    btn.disabled = false; 
-                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
-                    btn.innerText = "ส่งข้อมูลเช็คชื่อ";
                 }
             };
+
         };
     </script>
 </body>
