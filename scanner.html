@@ -16,67 +16,41 @@
             <p id="deadlineText" class="text-xs text-slate-500 mt-2"></p>
         </div>
 
-        <form id="attendanceForm" class="space-y-4">
-            <div class="grid grid-cols-12 gap-2">
-                <div class="col-span-3">
-                    <label class="block text-[11px] sm:text-xs font-semibold mb-1 text-slate-600">คำนำหน้า</label>
-                    <select id="title" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm bg-white outline-none focus:border-blue-500">
-                        <option value="นาย">นาย</option>
-                        <option value="นางสาว">นางสาว</option>
-                        <option value="นาง">นาง</option>
-                    </select>
-                </div>
-                <div class="col-span-4">
-                    <label class="block text-[11px] sm:text-xs font-semibold mb-1 text-slate-600">ชื่อจริง</label>
-                    <input type="text" id="firstName" required placeholder="ไม่ต้องกรอกคำนำหน้า" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                </div>
-                <div class="col-span-5">
-                    <label class="block text-[11px] sm:text-xs font-semibold mb-1 text-slate-600">นามสกุล</label>
-                    <input type="text" id="lastName" required placeholder="นามสกุล" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                </div>
-            </div>
+        <div id="loadingStatus" class="bg-blue-50 text-blue-600 text-xs text-center p-2 rounded-lg mb-4 animate-pulse">
+            ⏳ กำลังดึงฐานข้อมูลรายชื่อนักเรียน...
+        </div>
 
-            <div class="grid grid-cols-2 gap-3">
-                <div>
-                    <label class="block text-sm font-semibold mb-1 text-slate-600">ระดับชั้น</label>
-                    <select id="stuLevel" required class="w-full border border-slate-300 rounded-lg p-3 text-sm bg-white outline-none focus:border-blue-500">
-                        <option value="">เลือกชั้นปี...</option>
-                        <option value="ปวช.1">ปวช.1</option>
-                        <option value="ปวช.2">ปวช.2</option>
-                        <option value="ปวช.3">ปวช.3</option>
-                        <option value="ปวส.1">ปวส.1</option>
-                        <option value="ปวส.2">ปวส.2</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold mb-1 text-slate-600">แผนกวิชา</label>
-                    <select id="stuDept" required class="w-full border border-slate-300 rounded-lg p-3 text-sm bg-white outline-none focus:border-blue-500">
-                        <option value="">เลือกแผนกวิชา...</option>
-                        <option value="ช่างยนต์">ช่างยนต์</option>
-                        <option value="ช่างกลโรงงาน">ช่างกลโรงงาน</option>
-                        <option value="ช่างเชื่อมโลหะ">ช่างเชื่อมโลหะ</option>
-                        <option value="ไฟฟ้ากำลัง">ไฟฟ้ากำลัง</option>
-                        <option value="ช่างอิเล็กทรอนิกส์">ช่างอิเล็กทรอนิกส์</option>
-                        <option value="เทคโนโลยีธุรกิจดิจิทัล">เทคโนโลยีธุรกิจดิจิทัล</option>
-                        <option value="การบัญชี">การบัญชี</option>
-                        <option value="การตลาด">การตลาด</option>
-                        <option value="อาหารและโภชนาการ">อาหารและโภชนาการ</option>
-                    </select>
-                </div>
+        <form id="attendanceForm" class="space-y-4">
+            
+            <div>
+                <label class="block text-sm font-semibold mb-1 text-slate-600">1. เลือกห้องเรียน/แผนก</label>
+                <select id="roomSelect" required disabled class="w-full border border-slate-300 rounded-lg p-3 text-sm bg-slate-50 outline-none focus:border-blue-500 focus:bg-white transition-colors disabled:opacity-50">
+                    <option value="">กำลังโหลดข้อมูล...</option>
+                </select>
             </div>
 
             <div>
-                <label class="block text-sm font-semibold mb-2 text-slate-600">ถ่ายรูปหน้าตนเองในงาน</label>
+                <label class="block text-sm font-semibold mb-1 text-slate-600">2. เลือกชื่อของตนเอง</label>
+                <select id="studentSelect" required disabled class="w-full border border-slate-300 rounded-lg p-3 text-sm bg-slate-50 outline-none focus:border-blue-500 focus:bg-white transition-colors disabled:opacity-50">
+                    <option value="">-- กรุณาเลือกห้องเรียนก่อน --</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold mb-2 text-slate-600">3. ถ่ายรูปหน้าตนเองในงาน</label>
                 <input type="file" id="imageInput" accept="image/*" capture="user" required class="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer">
             </div>
 
-            <button type="submit" id="submitBtn" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 shadow-md transition-all">ส่งข้อมูลเช็คชื่อ</button>
+            <button type="submit" id="submitBtn" disabled class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                ส่งข้อมูลเช็คชื่อ
+            </button>
         </form>
     </div>
 
     <script>
-        // 🌟 อัปเดตลิงก์ API เป็นตัวใหม่ล่าสุดแล้ว 🌟
+        // 🚨 ใส่ลิงก์ API ตัวล่าสุดตรงนี้ 🚨
         const API_URL = "https://script.google.com/macros/s/AKfycbzEZwclY5DDyAEW5LFToH3WkK3slgHeHVTS1pTizIhvI7iEZwGUtD9GKcv-EPlWu1rE7Q/exec";
+        
         const params = new URLSearchParams(window.location.search);
         const activity = params.get('activity');
         const deadline = params.get('deadline');
@@ -86,28 +60,75 @@
             document.getElementById('deadlineText').innerText = "ปิดรับเช็คชื่อ: " + new Date(deadline).toLocaleString('th-TH');
         }
 
+        let allStudents = [];
+
+        // 🌟 ดึงข้อมูลรายชื่อจาก Google Sheets ทันทีที่เปิดหน้าเว็บ
+        window.onload = async () => {
+            try {
+                const res = await fetch(API_URL + "?type=activity");
+                const json = await res.json();
+                
+                if(json.status === "success") {
+                    allStudents = json.data;
+                    
+                    // สกัดเอาชื่อห้องทั้งหมดมาทำ Dropdown ที่ 1
+                    const rooms = [...new Set(allStudents.map(s => s.department))].sort();
+                    const roomSelect = document.getElementById('roomSelect');
+                    
+                    roomSelect.innerHTML = '<option value="">-- แตะเพื่อเลือกห้องเรียน --</option>';
+                    rooms.forEach(r => roomSelect.add(new Option(r, r)));
+                    
+                    // ปลดล็อกให้เริ่มใช้งานได้
+                    roomSelect.disabled = false;
+                    document.getElementById('loadingStatus').classList.add('hidden');
+                    document.getElementById('submitBtn').disabled = false;
+                }
+            } catch(e) {
+                document.getElementById('loadingStatus').innerText = "❌ โหลดรายชื่อล้มเหลว กรุณารีเฟรชหน้าเว็บ";
+                document.getElementById('loadingStatus').classList.replace('bg-blue-50', 'bg-red-50');
+                document.getElementById('loadingStatus').classList.replace('text-blue-600', 'text-red-600');
+            }
+        };
+
+        // 🌟 เมื่อเลือกห้องเรียน ให้กรองชื่อเด็กมาใส่ Dropdown ที่ 2
+        document.getElementById('roomSelect').addEventListener('change', function() {
+            const selectedRoom = this.value;
+            const studentSelect = document.getElementById('studentSelect');
+            
+            studentSelect.innerHTML = '<option value="">-- แตะเพื่อเลือกชื่อของตนเอง --</option>';
+            
+            if(!selectedRoom) {
+                studentSelect.disabled = true;
+                return;
+            }
+
+            // กรองรายชื่อเฉพาะห้องที่เลือก และเรียงตามตัวอักษร
+            const studentsInRoom = allStudents.filter(s => s.department === selectedRoom)
+                                              .sort((a,b) => a.studentName.localeCompare(b.studentName));
+            
+            studentsInRoom.forEach(s => studentSelect.add(new Option(s.studentName, s.studentName)));
+            studentSelect.disabled = false;
+        });
+
+        // 🌟 ระบบส่งข้อมูล
         document.getElementById('attendanceForm').onsubmit = async (e) => {
             e.preventDefault();
             const btn = document.getElementById('submitBtn');
-            
-            const title = document.getElementById('title').value;
-            const first = document.getElementById('firstName').value.trim();
-            const last = document.getElementById('lastName').value.trim();
-            const fullName = `${title}${first} ${last}`;
+            const selectedRoom = document.getElementById('roomSelect').value;
+            const selectedName = document.getElementById('studentSelect').value;
 
-            // 🛡️ ป้องกันการกดสแปมรัวๆ (ล็อกปุ่มทันทีที่กด)
             btn.disabled = true; 
-            btn.classList.add('opacity-50', 'cursor-not-allowed');
             btn.innerText = "กำลังอัปโหลดข้อมูลและรูปภาพ...";
 
             const file = document.getElementById('imageInput').files[0];
             const reader = new FileReader();
             reader.readAsDataURL(file);
             reader.onload = async () => {
+                
                 const payload = {
-                    studentName: fullName,
-                    pureLevel: document.getElementById('stuLevel').value,
-                    pureDept: document.getElementById('stuDept').value,
+                    studentName: selectedName,
+                    pureLevel: "", // ส่งค่าว่างไป เพื่อให้หลังบ้านใช้ค่า pureDept เป็นชื่อแท็บเต็มๆ
+                    pureDept: selectedRoom, // เช่น "อิเล็กทรอนิกส์ ปวช.1"
                     activityName: activity,
                     deadline: deadline,
                     imageCode: reader.result
@@ -122,18 +143,16 @@
                     const result = await res.json();
                     
                     if (result.status === "success") {
-                        alert("✅ บันทึกข้อมูลและอัปโหลดหลักฐานเรียบร้อยแล้ว!");
-                        location.reload(); // รีเฟรชหน้าเว็บเพื่อเคลียร์ฟอร์ม
+                        alert("✅ บันทึกข้อมูลเรียบร้อยแล้ว!");
+                        location.reload(); 
                     } else {
-                        alert("❌ เกิดข้อผิดพลาดจากระบบ: " + result.message);
+                        alert("❌ ข้อผิดพลาด: " + result.message);
                         btn.disabled = false; 
-                        btn.classList.remove('opacity-50', 'cursor-not-allowed');
                         btn.innerText = "ส่งข้อมูลเช็คชื่อ";
                     }
                 } catch (err) {
-                    alert("❌ ไม่สามารถเชื่อมต่อระบบได้ กรุณาลองใหม่อีกครั้ง");
+                    alert("❌ ไม่สามารถเชื่อมต่อระบบได้ กรุณาลองอีกครั้ง");
                     btn.disabled = false; 
-                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
                     btn.innerText = "ส่งข้อมูลเช็คชื่อ";
                 }
             };
