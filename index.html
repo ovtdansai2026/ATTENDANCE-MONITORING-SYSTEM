@@ -3,14 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>แดชบอร์ดสรุปผลการเข้าแถว</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect x=%2212%22 y=%2250%22 width=%2220%22 height=%2240%22 rx=%224%22 fill=%22%233b82f6%22/><rect x=%2240%22 y=%2225%22 width=%2220%22 height=%2265%22 rx=%224%22 fill=%22%231e40af%22/><rect x=%2268%22 y=%2210%22 width=%2220%22 height=%2280%22 rx=%224%22 fill=%22%23172554%22/></svg>">
+    <title>แดชบอร์ดสรุปผลการเข้าแถวและกิจกรรม</title>
+    <link class="custom-favicon" rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect x=%2212%22 y=%2250%22 width=%2220%22 height=%2240%22 rx=%224%22 fill=%22%233b82f6%22/><rect x=%2240%22 y=%2225%22 width=%2220%22 height=%2265%22 rx=%224%22 fill=%22%231e40af%22/><rect x=%2268%22 y=%2210%22 width=%2220%22 height=%2280%22 rx=%224%22 fill=%22%23172554%22/></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
     <style>
         body { font-family: 'Prompt', sans-serif; background-color: #0b0f19; }
         select, input, option { font-family: 'Prompt', sans-serif !important; }
-        
         .glass-card { background: rgba(17, 24, 39, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); }
         .custom-scroll::-webkit-scrollbar { width: 6px; }
         .custom-scroll::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); }
@@ -18,62 +19,67 @@
         .custom-scroll::-webkit-scrollbar-thumb:hover { background: rgba(71, 85, 105, 0.7); }
         .loader { border: 4px solid rgba(255, 255, 255, 0.1); border-top: 4px solid #3b82f6; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .tab-btn { transition: all 0.3s ease; }
+        .tab-active { background: #3b82f6; color: white; border-color: #3b82f6; box-shadow: 0 0 15px rgba(59, 130, 246, 0.3); }
+        .tab-inactive { background: transparent; color: #94a3b8; border-color: #334155; }
+        .tab-inactive:hover { background: rgba(51, 65, 85, 0.5); color: #cbd5e1; }
     </style>
 </head>
 <body class="p-4 md:p-8 text-slate-100 min-h-screen">
 
     <div class="max-w-7xl mx-auto">
-        <header class="glass-card p-4 md:p-6 rounded-2xl mb-6 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 shadow-xl border-b border-blue-500/20">
-            <div>
-                <div class="flex items-center gap-3">
-                    <span class="flex h-3 w-3 relative">
-                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                        <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-                    </span>
-                    <h1 class="text-xl md:text-3xl font-bold tracking-wide bg-gradient-to-r from-blue-400 via-indigo-400 to-cyan-400 bg-clip-text text-transparent">
-                        แดชบอร์ดสรุปผลการเข้าแถว
-                    </h1>
+        <header class="glass-card p-4 md:p-6 rounded-2xl mb-6 shadow-xl border-b border-blue-500/20">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                <div>
+                    <div class="flex items-center gap-3">
+                        <span class="flex h-3 w-3 relative"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span></span>
+                        <h1 id="mainTitle" class="text-xl md:text-3xl font-bold tracking-wide bg-gradient-to-r from-blue-400 via-indigo-400 to-cyan-400 bg-clip-text text-transparent">แดชบอร์ดการเข้าแถว</h1>
+                    </div>
+                    <p class="text-slate-400 text-xs md:text-sm mt-1">ระบบวิเคราะห์ข้อมูลและตรวจจับความเสี่ยงแบบเรียลไทม์</p>
                 </div>
-                <p class="text-slate-400 text-xs md:text-sm mt-1">ระบบวิเคราะห์ข้อมูลและตรวจจับความเสี่ยงการขาดแถวแบบเรียลไทม์</p>
+                <div class="flex gap-2 w-full md:w-auto items-center">
+                    <button onclick="switchMode('attendance')" id="btnAttendance" class="tab-btn tab-active flex-1 md:flex-none px-4 py-2 text-sm font-semibold rounded-lg border">การเข้าแถว</button>
+                    <button onclick="switchMode('activity')" id="btnActivity" class="tab-btn tab-inactive flex-1 md:flex-none px-4 py-2 text-sm font-semibold rounded-lg border">การเข้ากิจกรรม</button>
+                    
+                    <button onclick="openPasswordModal()" class="bg-slate-800 hover:bg-slate-700 text-amber-400 border border-amber-500/30 px-4 py-2 rounded-lg text-sm transition-colors flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(245,158,11,0.1)]">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                        <span class="font-medium text-xs whitespace-nowrap">แอดมิน (สร้างกิจกรรม)</span>
+                    </button>
+                </div>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 w-full lg:w-auto">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 w-full">
                 <div>
                     <label class="block text-[10px] md:text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">1. เลือกแผนกวิชา</label>
-                    <select id="deptFilter" onchange="onDeptChange()" class="w-full lg:w-48 bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-200 focus:outline-none focus:border-blue-500 transition-all cursor-pointer">
-                        <option value="ALL">ทุกแผนกวิชา</option>
-                    </select>
+                    <select id="deptFilter" onchange="onDeptChange()" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-200 focus:outline-none focus:border-blue-500"><option value="ALL">ทุกแผนกวิชา</option></select>
                 </div>
                 <div>
                     <label class="block text-[10px] md:text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">2. เลือกชั้นปี</label>
-                    <select id="levelFilter" onchange="filterData()" class="w-full lg:w-36 bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-200 focus:outline-none focus:border-blue-500 transition-all cursor-pointer">
-                        <option value="ALL">ทุกชั้นปี</option>
-                    </select>
+                    <select id="levelFilter" onchange="filterData()" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-200 focus:outline-none focus:border-blue-500"><option value="ALL">ทุกชั้นปี</option></select>
                 </div>
                 <div>
                     <label class="block text-[10px] md:text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">ค้นหารายชื่อ</label>
-                    <input type="text" id="searchBar" oninput="filterData()" placeholder="พิมพ์ชื่อนักเรียน..." class="w-full lg:w-48 bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-200 focus:outline-none focus:border-blue-500 placeholder-slate-500 transition-all">
+                    <input type="text" id="searchBar" oninput="filterData()" placeholder="พิมพ์ชื่อนักเรียน..." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-200 focus:outline-none focus:border-blue-500">
                 </div>
             </div>
         </header>
 
         <div id="loading" class="flex flex-col items-center justify-center py-32">
-            <div class="loader mb-4"></div>
-            <p class="text-slate-400 text-sm font-medium tracking-wide animate-pulse">SYNCHRONIZING WITH DATABASE API...</p>
+            <div class="loader mb-4"></div><p class="text-slate-400 text-sm font-medium tracking-wide animate-pulse">กำลังโหลดข้อมูลระบบ...</p>
         </div>
 
         <div id="dashboardContent" class="hidden">
             <section class="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 mb-8">
-                <div class="glass-card p-4 md:p-6 rounded-2xl bg-gradient-to-br from-slate-900/80 to-blue-950/20 shadow-lg relative overflow-hidden group">
+                <div class="glass-card p-4 md:p-6 rounded-2xl bg-gradient-to-br from-slate-900/80 to-blue-950/20 shadow-lg border-l-4 border-blue-500/50">
                     <p class="text-[10px] md:text-xs font-semibold uppercase tracking-wider text-slate-400">นักเรียนทั้งหมด</p>
                     <p id="totalCount" class="text-2xl md:text-3xl font-bold text-blue-400 mt-2">0 <span class="text-xs md:text-sm font-normal text-slate-400">คน</span></p>
                 </div>
                 <div class="glass-card p-4 md:p-6 rounded-2xl bg-gradient-to-br from-slate-900/80 to-red-950/20 shadow-lg border-l-4 border-red-500/50">
-                    <p class="text-[10px] md:text-xs font-semibold uppercase tracking-wider text-slate-400">กลุ่มเสี่ยงตกกิจกรรม</p>
+                    <p id="riskTitle" class="text-[10px] md:text-xs font-semibold uppercase tracking-wider text-slate-400">กลุ่มเสี่ยง (&lt; 80%)</p>
                     <p id="totalRiskCard" class="text-2xl md:text-3xl font-bold text-red-400 mt-2">0 <span class="text-xs md:text-sm font-normal text-slate-400">คน</span></p>
                 </div>
                 <div class="glass-card p-4 md:p-6 rounded-2xl bg-gradient-to-br from-slate-900/80 to-emerald-950/20 shadow-lg border-l-4 border-emerald-500/50">
-                    <p class="text-[10px] md:text-xs font-semibold uppercase tracking-wider text-slate-400">กลุ่มผ่านเกณฑ์ปกติ</p>
+                    <p id="passTitle" class="text-[10px] md:text-xs font-semibold uppercase tracking-wider text-slate-400">กลุ่มผ่านเกณฑ์ (≥ 80%)</p>
                     <p id="totalExcellentCard" class="text-2xl md:text-3xl font-bold text-emerald-400 mt-2">0 <span class="text-xs md:text-sm font-normal text-slate-400">คน</span></p>
                 </div>
             </section>
@@ -81,7 +87,7 @@
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
                 <div class="glass-card rounded-2xl overflow-hidden border border-red-500/10">
                     <div class="p-4 md:p-5 border-b border-slate-800 flex justify-between items-center bg-red-500/5">
-                        <h2 class="text-sm md:text-md font-bold text-red-400">กลุ่มเสี่ยงเข้าแถวไม่ครบ (&lt; 80%)</h2>
+                        <h2 class="text-sm md:text-md font-bold text-red-400" id="riskTableTitle">กลุ่มเสี่ยงเข้าแถวไม่ครบ (< 80%)</h2>
                         <span id="riskBadge" class="bg-red-500/20 text-red-400 text-xs font-bold px-3 py-1 rounded-full">0</span>
                     </div>
                     <div class="overflow-x-auto custom-scroll" style="max-height: 520px; overflow-y: auto;">
@@ -90,8 +96,8 @@
                                 <tr>
                                     <th class="px-2 py-3 md:px-4 md:py-4 text-center text-[10px] md:text-xs text-slate-400 uppercase tracking-wider whitespace-nowrap">ลำดับ</th>
                                     <th class="px-2 py-3 md:px-6 md:py-4 text-[10px] md:text-xs text-slate-400 uppercase tracking-wider whitespace-nowrap">ข้อมูลนักเรียน</th>
-                                    <th class="px-2 py-3 md:px-6 md:py-4 text-center text-[10px] md:text-xs text-slate-400 uppercase tracking-wider whitespace-nowrap">สถิติมา (%)</th>
-                                    <th class="px-2 py-3 md:px-6 md:py-4 text-[10px] md:text-xs text-slate-400 uppercase tracking-wider whitespace-nowrap">อีเมลครูที่ปรึกษา</th>
+                                    <th class="px-2 py-3 md:px-6 md:py-4 text-center text-[10px] md:text-xs text-slate-400 uppercase tracking-wider whitespace-nowrap">สถิติรวม (%)</th>
+                                    <th id="thTeacherRisk" class="px-2 py-3 md:px-6 md:py-4 text-[10px] md:text-xs text-slate-400 uppercase tracking-wider whitespace-nowrap">รายละเอียด</th>
                                 </tr>
                             </thead>
                             <tbody id="riskTableBody" class="divide-y divide-slate-800/50"></tbody>
@@ -101,7 +107,7 @@
 
                 <div class="glass-card rounded-2xl overflow-hidden border border-emerald-500/10">
                     <div class="p-4 md:p-5 border-b border-slate-800 flex justify-between items-center bg-emerald-500/5">
-                        <h2 class="text-sm md:text-md font-bold text-emerald-400">กลุ่มเข้าแถวตามเกณฑ์ (≥ 80%)</h2>
+                        <h2 class="text-sm md:text-md font-bold text-emerald-400" id="passTableTitle">กลุ่มเข้าแถวตามเกณฑ์ (≥ 80%)</h2>
                         <span id="excellentBadge" class="bg-emerald-500/20 text-emerald-400 text-xs font-bold px-3 py-1 rounded-full">0</span>
                     </div>
                     <div class="overflow-x-auto custom-scroll" style="max-height: 520px; overflow-y: auto;">
@@ -110,8 +116,8 @@
                                 <tr>
                                     <th class="px-2 py-3 md:px-4 md:py-4 text-center text-[10px] md:text-xs text-slate-400 uppercase tracking-wider whitespace-nowrap">ลำดับ</th>
                                     <th class="px-2 py-3 md:px-6 md:py-4 text-[10px] md:text-xs text-slate-400 uppercase tracking-wider whitespace-nowrap">ข้อมูลนักเรียน</th>
-                                    <th class="px-2 py-3 md:px-6 md:py-4 text-center text-[10px] md:text-xs text-slate-400 uppercase tracking-wider whitespace-nowrap">สถิติมา (%)</th>
-                                    <th class="px-2 py-3 md:px-6 md:py-4 text-[10px] md:text-xs text-slate-400 uppercase tracking-wider whitespace-nowrap">อีเมลครูที่ปรึกษา</th>
+                                    <th class="px-2 py-3 md:px-6 md:py-4 text-center text-[10px] md:text-xs text-slate-400 uppercase tracking-wider whitespace-nowrap">สถิติรวม (%)</th>
+                                    <th id="thTeacherPass" class="px-2 py-3 md:px-6 md:py-4 text-[10px] md:text-xs text-slate-400 uppercase tracking-wider whitespace-nowrap">รายละเอียด</th>
                                 </tr>
                             </thead>
                             <tbody id="excellentTableBody" class="divide-y divide-slate-800/50"></tbody>
@@ -122,116 +128,285 @@
         </div>
     </div>
 
-    <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbyOPje4XI9lkKYLwnp8kvBi3BjL6th-nOPkopcWNBiC_WkRPvDnfXFglzfHkgfdgibf7A/exec"; 
-        let rawStudents = [];
-        let structuredData = [];
+    <div id="passwordModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-50 p-4 backdrop-blur-sm">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+            <h3 class="text-lg font-bold text-amber-400 mb-2 flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                สิทธิ์ผู้ดูแลระบบ
+            </h3>
+            <p class="text-xs text-slate-400 mb-4">กรุณากรอกรหัสผ่านเพื่อเข้าสู่โหมดจัดการกิจกรรม</p>
+            <input type="password" id="adminPasswordInput" placeholder="กรอกรหัสผ่าน..." class="w-full bg-slate-800 border border-slate-600 rounded-lg p-3 text-sm text-white mb-4 outline-none focus:border-amber-500">
+            <div class="flex gap-2">
+                <button onclick="closePasswordModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-medium py-2 rounded-xl text-sm border border-slate-700">ยกเลิก</button>
+                <button onclick="submitAdminPassword()" class="flex-1 bg-amber-500 hover:bg-amber-600 text-black font-bold py-2 rounded-xl text-sm">ยืนยัน</button>
+            </div>
+        </div>
+    </div>
 
-        function parseDepartmentAndLevel(deptStr) {
-            const match = deptStr.match(/(ปวช\.\d|ปวส\.\d)\s*(.*)/);
-            if (match) {
-                return { level: match[1].trim(), department: match[2].replace(/แผนกวิชา/g, "").trim() };
-            }
-            return { level: "ไม่ระบุปี", department: deptStr.trim() };
+    <div id="adminModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-50 p-4 backdrop-blur-sm">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 md:p-8 max-w-md w-full max-h-[90vh] overflow-y-auto relative shadow-2xl custom-scroll">
+            <button onclick="closeAdminPanel()" class="absolute top-4 right-4 text-slate-400 hover:text-white font-bold text-lg">✖</button>
+            <h2 class="text-xl font-bold text-amber-400 mb-2 flex items-center gap-2"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>สร้างกิจกรรมใหม่</h2>
+
+            <div class="space-y-4 mb-6">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">ชื่อกิจกรรม</label>
+                    <input type="text" id="actName" placeholder="เช่น กิจกรรมวันไหว้ครู" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-2.5 text-sm text-white focus:border-amber-500 focus:outline-none">
+                </div>
+
+                <div class="mt-4 border border-slate-700 p-3 rounded-lg bg-slate-800/50">
+                    <label class="block text-xs font-semibold text-amber-400 mb-2">🎯 กำหนดกลุ่มเป้าหมายผู้เข้าร่วม</label>
+                    <div class="mb-3">
+                        <label class="flex items-center gap-2 cursor-pointer mb-2">
+                            <input type="checkbox" id="chkAllDept" checked onchange="document.getElementById('deptTargets').classList.toggle('hidden', this.checked)" class="w-4 h-4 text-amber-500 rounded bg-slate-900 border-slate-600">
+                            <span class="text-xs text-white font-medium">เข้าร่วมได้ทุกแผนกวิชา</span>
+                        </label>
+                        <div id="deptTargets" class="hidden grid grid-cols-2 gap-2 pl-6 text-[11px] text-slate-300"></div>
+                    </div>
+                    <div>
+                        <label class="flex items-center gap-2 cursor-pointer mb-2">
+                            <input type="checkbox" id="chkAllLevel" checked onchange="document.getElementById('levelTargets').classList.toggle('hidden', this.checked)" class="w-4 h-4 text-amber-500 rounded bg-slate-900 border-slate-600">
+                            <span class="text-xs text-white font-medium">เข้าร่วมได้ทุกชั้นปี</span>
+                        </label>
+                        <div id="levelTargets" class="hidden grid grid-cols-2 gap-2 pl-6 text-[11px] text-slate-300"></div>
+                    </div>
+                </div>
+                
+                <label class="flex items-center gap-2 cursor-pointer mb-2">
+                    <input type="checkbox" id="enableDeadline" class="w-4 h-4 text-amber-500 bg-slate-800 border-slate-600 rounded focus:ring-amber-500" onchange="toggleTimeInputs()" checked>
+                    <span class="text-xs font-semibold text-slate-300">ตั้งเวลาปิดรับเช็คชื่ออัตโนมัติ</span>
+                </label>
+
+                <div class="grid grid-cols-2 gap-4" id="timeInputsContainer">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">วันที่ปิดรับ</label>
+                        <input type="date" id="actDate" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-sm text-black focus:border-amber-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">เวลาปิดรับ (น.)</label>
+                        <div class="flex items-center gap-1">
+                            <select id="actHour" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-sm text-black"></select>
+                            <span class="text-slate-300 font-bold">:</span>
+                            <select id="actMinute" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-sm text-black"></select>
+                        </div>
+                    </div>
+                </div>
+
+                <button onclick="generateQR()" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-3 rounded-xl shadow-lg mt-2">
+                    สร้างคิวอาร์โค้ดกิจกรรม
+                </button>
+            </div>
+
+            <div id="qrContainer" class="hidden flex-col items-center justify-center p-4 bg-white rounded-xl mb-4">
+                <p class="text-slate-800 font-bold text-center mb-1 text-sm" id="qrTitleShow"></p>
+                <p class="text-red-500 font-bold text-center mb-4 text-xs" id="qrTimeShow"></p>
+                <div id="qrImage" class="w-48 h-48 border border-slate-200 rounded-lg shadow-sm flex items-center justify-center p-2"></div>
+                
+                <button onclick="expandQR()" class="mt-4 bg-blue-50 hover:bg-blue-100 text-blue-600 px-4 py-2 rounded-lg text-xs font-bold border border-blue-200 flex items-center gap-2">
+                    🔍 ขยายคิวอาร์เต็มจอ (ขึ้นโปรเจกเตอร์)
+                </button>
+                <div id="driveStatus" class="mt-4 w-full text-[10px] p-2 rounded text-center"></div>
+            </div>
+
+            <div class="border-t border-slate-800 pt-4 mt-6">
+                <button onclick="closeAdminPanel()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3 rounded-xl text-sm border border-slate-700">ปิดหน้าต่างควบคุม</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="qrExpandedModal" class="fixed inset-0 bg-slate-950/95 hidden flex-col items-center justify-center z-[60] p-4 cursor-pointer" onclick="closeExpandedQR()">
+        <p id="qrExpandedTitle" class="text-white text-2xl md:text-4xl font-bold mb-8 text-center drop-shadow-xl tracking-wide"></p>
+        <div id="qrExpandedImage" class="bg-white p-6 md:p-8 rounded-3xl shadow-2xl"></div>
+        <p class="text-slate-400 mt-8 text-xs bg-slate-900/80 px-4 py-2 rounded-full border border-slate-800">คลิกที่ใดก็ได้บนหน้าจอเพื่อย่อกลับ</p>
+    </div>
+
+    <div class="mt-6 glass-card p-4 rounded-xl border border-amber-500/20 bg-amber-500/5 text-center">
+    <p class="text-xs md:text-sm text-amber-400 font-medium tracking-wide">
+        📌 <strong>หมายเหตุ:</strong> หากพบว่าข้อมูลไม่ถูกต้อง หรือสถิติการเข้าร่วมกิจกรรมไม่ครบถ้วน กรุณาติดต่อครูที่ปรึกษา หรือ งานกิจกรรม
+    </p>
+    </div>
+
+
+    <script>
+        // ==========================================
+        const MASTER_PASSWORD = "Admin2026"; 
+        const URL_SCANNER_APP = "https://ovtdansai2026.github.io/ATTENDANCE-MONITORING-SYSTEM/scanner.html"; 
+        
+        // 🌟 ลิงก์ API ปัจจุบัน
+        const API_ATTENDANCE = "https://script.google.com/macros/s/AKfycbzEZwclY5DDyAEW5LFToH3WkK3slgHeHVTS1pTizIhvI7iEZwGUtD9GKcv-EPlWu1rE7Q/exec?type=attendance"; 
+        const API_ACTIVITY   = "https://script.google.com/macros/s/AKfycbzEZwclY5DDyAEW5LFToH3WkK3slgHeHVTS1pTizIhvI7iEZwGUtD9GKcv-EPlWu1rE7Q/exec?type=activity";
+        // ==========================================
+
+        function cleanHTML(str) { return !str ? "-" : str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag])); }
+
+        let currentMode = 'attendance'; 
+        let dataAttendance = [];
+        let dataActivity = [];
+        let activeData = [];
+        let currentScannerLink = ""; 
+
+        function initTimeDropdowns() {
+            const hSelect = document.getElementById('actHour'); hSelect.innerHTML = "";
+            for(let i=0; i<24; i++) hSelect.add(new Option(i.toString().padStart(2,'0'), i.toString().padStart(2,'0'))); hSelect.value = "16";
+            const mSelect = document.getElementById('actMinute'); mSelect.innerHTML = "";
+            for(let i=0; i<60; i+=5) mSelect.add(new Option(i.toString().padStart(2,'0'), i.toString().padStart(2,'0'))); mSelect.value = "00";
         }
 
-        async function fetchData() {
+        async function fetchAllData() {
             try {
-                const response = await fetch(API_URL);
-                const result = await response.json();
-                if (result.status === "success") {
-                    rawStudents = result.data;
-                    structuredData = rawStudents.map(item => {
-                        const parsed = parseDepartmentAndLevel(item.department);
-                        return { ...item, pureDept: parsed.department, pureLevel: parsed.level };
-                    });
-                    buildCascadingFilters();
-                    filterData();
-                    document.getElementById('loading').classList.add('hidden');
-                    document.getElementById('dashboardContent').classList.remove('hidden');
+                const [resAtt, resAct] = await Promise.all([ fetch(API_ATTENDANCE), fetch(API_ACTIVITY) ]);
+                const jsonAtt = await resAtt.json();
+                const jsonAct = await resAct.json();
+
+                if (jsonAtt.status === "success") {
+                    dataAttendance = processData(jsonAtt.data);
+                    
+                    // 🌟 สร้างตัวเลือกแผนก/ชั้นปีในหน้าแอดมินอัตโนมัติ
+                    const uniqueDepts = [...new Set(dataAttendance.map(i => i.pureDept))].filter(Boolean).sort();
+                    const uniqueLevels = [...new Set(dataAttendance.map(i => i.pureLevel))].filter(Boolean).sort();
+                    document.getElementById('deptTargets').innerHTML = uniqueDepts.map(d => `<label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="${d}" class="chk-dept rounded bg-slate-900 border-slate-600"> ${d}</label>`).join('');
+                    document.getElementById('levelTargets').innerHTML = uniqueLevels.map(l => `<label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="${l}" class="chk-level rounded bg-slate-900 border-slate-600"> ${l}</label>`).join('');
                 }
-            } catch (error) { console.error(error); }
+                
+                if (jsonAct.status === "success") dataActivity = processData(jsonAct.data);
+
+                switchMode('attendance');
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('dashboardContent').classList.remove('hidden');
+            } catch (error) { console.error(error); alert("โหลดข้อมูลไม่สำเร็จ กรุณารีเฟรช"); }
+        }
+
+    function processData(rawData) {
+    return rawData.map(item => {
+        let d = item.department || "ไม่ระบุ";
+        let l = item.pureLevel || "";
+
+        // 🌟 แก้ตรงนี้: สั่งล้างคำว่า ปวช./ปวส. และ แผนกวิชา ออกจากชื่อแผนกให้เกลี้ยงทุกกรณี ไม่ต้องสนว่าจะมี l หรือไม่
+        d = d.replace(/(ปวช\.\d|ปวส\.\d)/g, "")
+             .replace(/แผนกวิชา/g, "")
+             .trim();
+             
+        // ถ้าฝั่งไหนไม่มีชั้นปีส่งมา (เช่น ฝั่งเข้าแถวบางเคส) ค่อยไปงมหาจากชื่อเดิม
+        if (!l) {
+            const match = item.department.match(/(ปวช\.\d|ปวส\.\d)/);
+            l = match ? match[1].trim() : "ไม่ระบุปี";
+        }
+
+        return { ...item, pureDept: d, pureLevel: l };
+    });
+}
+
+
+        function switchMode(mode) {
+            currentMode = mode;
+            const btnAtt = document.getElementById('btnAttendance'); const btnAct = document.getElementById('btnActivity');
+            if (mode === 'attendance') {
+                btnAtt.className = "tab-btn tab-active flex-1 md:flex-none px-4 py-2 text-sm font-semibold rounded-lg border";
+                btnAct.className = "tab-btn tab-inactive flex-1 md:flex-none px-4 py-2 text-sm font-semibold rounded-lg border";
+                document.getElementById('mainTitle').innerHTML = "แดชบอร์ดการเข้าแถว";
+                document.getElementById('riskTableTitle').innerText = "กลุ่มเสี่ยงเข้าแถวไม่ครบ (< 80%)"; document.getElementById('passTableTitle').innerText = "กลุ่มเข้าแถวตามเกณฑ์ (≥ 80%)";
+                document.getElementById('thTeacherRisk').innerText = "อีเมลครูที่ปรึกษา"; document.getElementById('thTeacherPass').innerText = "อีเมลครูที่ปรึกษา";
+                activeData = dataAttendance;
+            } else {
+                btnAct.className = "tab-btn tab-active flex-1 md:flex-none px-4 py-2 text-sm font-semibold rounded-lg border";
+                btnAtt.className = "tab-btn tab-inactive flex-1 md:flex-none px-4 py-2 text-sm font-semibold rounded-lg border";
+                document.getElementById('mainTitle').innerHTML = "แดชบอร์ดการเข้ากิจกรรม";
+                document.getElementById('riskTableTitle').innerText = "กลุ่มเสี่ยงขาดกิจกรรม (< 80%)"; document.getElementById('passTableTitle').innerText = "กลุ่มเข้ากิจกรรมผ่านเกณฑ์ (≥ 80%)";
+                document.getElementById('thTeacherRisk').innerText = "สถิติการมา (ครั้ง)"; document.getElementById('thTeacherPass').innerText = "สถิติการมา (ครั้ง)";
+                activeData = dataActivity;
+            }
+            buildCascadingFilters(); filterData();
         }
 
         function buildCascadingFilters() {
-            const deptSelect = document.getElementById('deptFilter');
-            const uniqueDepts = [...new Set(structuredData.map(item => item.pureDept))].sort();
-            uniqueDepts.forEach(dept => {
-                const opt = document.createElement('option');
-                opt.value = dept; opt.textContent = "แผนก" + dept;
-                deptSelect.appendChild(opt);
-            });
+            const deptSelect = document.getElementById('deptFilter'); deptSelect.innerHTML = '<option value="ALL">ทุกแผนกวิชา</option>';
+            [...new Set(activeData.map(item => item.pureDept))].sort().forEach(dept => deptSelect.add(new Option("แผนก" + dept, dept)));
+            onDeptChange();
         }
 
         function onDeptChange() {
             const selectedDept = document.getElementById('deptFilter').value;
-            const levelSelect = document.getElementById('levelFilter');
-            levelSelect.innerHTML = '<option value="ALL">ทุกชั้นปี</option>';
-            let targetData = selectedDept === "ALL" ? structuredData : structuredData.filter(item => item.pureDept === selectedDept);
-            const uniqueLevels = [...new Set(targetData.map(item => item.pureLevel))].sort();
-            uniqueLevels.forEach(lvl => {
-                const opt = document.createElement('option');
-                opt.value = lvl; opt.textContent = lvl;
-                levelSelect.appendChild(opt);
-            });
+            const levelSelect = document.getElementById('levelFilter'); levelSelect.innerHTML = '<option value="ALL">ทุกชั้นปี</option>';
+            let targetData = selectedDept === "ALL" ? activeData : activeData.filter(item => item.pureDept === selectedDept);
+            [...new Set(targetData.map(item => item.pureLevel))].sort().forEach(lvl => levelSelect.add(new Option(lvl, lvl)));
             filterData();
         }
 
         function filterData() {
-            const selectedDept = document.getElementById('deptFilter').value;
-            const selectedLevel = document.getElementById('levelFilter').value;
-            const searchKeyword = document.getElementById('searchBar').value.trim().toLowerCase();
-
-            let result = structuredData
-                .filter(item => selectedDept === "ALL" || item.pureDept === selectedDept)
-                .filter(item => selectedLevel === "ALL" || item.pureLevel === selectedLevel)
-                .filter(item => searchKeyword === "" || item.studentName.toLowerCase().includes(searchKeyword));
-
+            const dept = document.getElementById('deptFilter').value; const lvl = document.getElementById('levelFilter').value; const search = document.getElementById('searchBar').value.trim().toLowerCase();
+            let result = activeData.filter(i => (dept === "ALL" || i.pureDept === dept) && (lvl === "ALL" || i.pureLevel === lvl) && (search === "" || i.studentName.toLowerCase().includes(search)));
             document.getElementById('totalCount').innerHTML = `${result.length} <span class="text-sm font-normal text-slate-400">คน</span>`;
-            
-            const riskGroup = result.filter(s => s.percent < 80).sort((a,b) => a.percent - b.percent);
-            const passGroup = result.filter(s => s.percent >= 80).sort((a,b) => b.percent - a.percent);
-
-            document.getElementById('totalRiskCard').innerHTML = `${riskGroup.length} <span class="text-sm font-normal text-slate-400">คน</span>`;
-            document.getElementById('totalExcellentCard').innerHTML = `${passGroup.length} <span class="text-sm font-normal text-slate-400">คน</span>`;
-            document.getElementById('riskBadge').textContent = riskGroup.length;
-            document.getElementById('excellentBadge').textContent = passGroup.length;
-
-            renderTableRows('riskTableBody', riskGroup, 'text-red-400 bg-red-500/10 border-red-500/20');
-            renderTableRows('excellentTableBody', passGroup, 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20');
+            const risk = result.filter(s => s.percent < 80).sort((a,b) => a.percent - b.percent); const pass = result.filter(s => s.percent >= 80).sort((a,b) => b.percent - a.percent);
+            document.getElementById('totalRiskCard').innerHTML = `${risk.length} <span class="text-sm font-normal text-slate-400">คน</span>`; document.getElementById('totalExcellentCard').innerHTML = `${pass.length} <span class="text-sm font-normal text-slate-400">คน</span>`;
+            document.getElementById('riskBadge').textContent = risk.length; document.getElementById('excellentBadge').textContent = pass.length;
+            renderTableRows('riskTableBody', risk, 'text-red-400 bg-red-500/10 border-red-500/20'); renderTableRows('excellentTableBody', pass, 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20');
         }
 
         function renderTableRows(tbodyId, data, badgeStyle) {
-            const tbody = document.getElementById(tbodyId);
-            tbody.innerHTML = '';
-            
-            if (data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-12 text-center text-slate-500 font-light">ไม่พบข้อมูลของกลุ่มนี้</td></tr>`;
-                return;
-            }
-
+            const tbody = document.getElementById(tbodyId); tbody.innerHTML = '';
+            if (data.length === 0) { tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-12 text-center text-slate-500">ไม่พบข้อมูล</td></tr>`; return; }
             data.forEach((student, index) => {
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-800/30 transition-colors";
-                tr.innerHTML = `
-                    <td class="px-2 py-3 md:px-4 md:py-4 text-center w-10">
-                        <span class="w-6 h-6 md:w-8 md:h-8 mx-auto flex items-center justify-center rounded-full bg-slate-800 text-[10px] md:text-xs font-bold border border-slate-700">${index + 1}</span>
-                    </td>
-                    <td class="px-2 py-3 md:px-6 md:py-4 whitespace-normal break-words">
-                        <div class="font-medium text-slate-200 text-[11px] md:text-sm">${student.studentName}</div>
-                        <div class="text-[10px] md:text-xs text-slate-400 mt-0.5">${student.pureLevel} แผนก${student.pureDept}</div>
-                    </td>
-                    <td class="px-2 py-3 md:px-6 md:py-4 text-center">
-                        <span class="inline-block px-2 py-1 md:px-2.5 md:py-1 rounded-md text-[10px] md:text-xs font-bold ${badgeStyle}">${student.percent}%</span>
-                    </td>
-                    <td class="px-2 py-3 md:px-6 md:py-4 text-[10px] md:text-xs text-slate-400 font-mono whitespace-normal break-all">
-                        <div>${student.teacherEmail}</div>
-                    </td>
-                `;
+                const tr = document.createElement('tr'); tr.className = "hover:bg-slate-800/30";
+                let detail = currentMode === 'attendance' ? `<div>${cleanHTML(student.teacherEmail)}</div>` : `<div class="font-bold text-slate-300">มา ${student.presentDays || 0}/${student.totalDays || 0} งาน</div>`;
+                tr.innerHTML = `<td class="px-2 py-3 md:px-4 text-center"><span class="w-6 h-6 mx-auto flex items-center justify-center rounded-full bg-slate-800 text-[10px] font-bold border border-slate-700">${index + 1}</span></td><td class="px-2 py-3 md:px-6"><div class="font-medium text-slate-200 text-[11px] md:text-sm">${cleanHTML(student.studentName)}</div><div class="text-[10px] text-slate-400">${cleanHTML(student.pureLevel)} แผนก${cleanHTML(student.pureDept)}</div></td><td class="px-2 py-3 md:px-6 text-center"><span class="inline-block px-2 py-1 rounded-md text-[10px] font-bold ${badgeStyle}">${student.percent}%</span></td><td class="px-2 py-3 md:px-6 text-[10px] text-slate-400">${detail}</td>`;
                 tbody.appendChild(tr);
             });
         }
-        fetchData();
+
+        let isAdminAuthenticated = false;
+        function openPasswordModal() { document.getElementById('passwordModal').classList.remove('hidden'); document.getElementById('passwordModal').classList.add('flex'); document.getElementById('adminPasswordInput').value = ""; document.getElementById('adminPasswordInput').focus(); }
+        function closePasswordModal() { document.getElementById('passwordModal').classList.add('hidden'); document.getElementById('passwordModal').classList.remove('flex'); }
+        function submitAdminPassword() { if (document.getElementById('adminPasswordInput').value === MASTER_PASSWORD) { isAdminAuthenticated = true; closePasswordModal(); document.getElementById('adminModal').classList.remove('hidden'); document.getElementById('adminModal').classList.add('flex'); document.getElementById('actDate').value = new Date().toISOString().split('T')[0]; } else { alert("❌ รหัสผ่านไม่ถูกต้อง!"); document.getElementById('adminPasswordInput').value = ""; isAdminAuthenticated = false; } }
+        function closeAdminPanel() { document.getElementById('adminModal').classList.add('hidden'); document.getElementById('adminModal').classList.remove('flex'); document.getElementById('qrContainer').classList.add('hidden'); isAdminAuthenticated = false; }
+        function toggleTimeInputs() { const isEnabled = document.getElementById('enableDeadline').checked; document.getElementById('timeInputsContainer').classList.toggle('opacity-30', !isEnabled); document.getElementById('timeInputsContainer').classList.toggle('pointer-events-none', !isEnabled); }
+
+        async function generateQR() {
+            if (!isAdminAuthenticated) return alert("⛔ ไม่อนุญาต!");
+            const actName = document.getElementById('actName').value.trim();
+            const isDeadlineEnabled = document.getElementById('enableDeadline').checked;
+            const actDate = document.getElementById('actDate').value;
+            const actTime = `${document.getElementById('actHour').value}:${document.getElementById('actMinute').value}`;
+            
+            if (!actName) return alert("กรุณาตั้งชื่อกิจกรรม!");
+            if (isDeadlineEnabled && !actDate) return alert("กรุณากำหนดวันที่ปิดรับ!");
+
+            // 🎯 เช็คค่า Checkbox เป้าหมาย
+            let targetDepts = []; let targetLevels = [];
+            if (!document.getElementById('chkAllDept').checked) { targetDepts = Array.from(document.querySelectorAll('.chk-dept:checked')).map(cb => cb.value); if(targetDepts.length === 0) return alert("กรุณาเลือกแผนกวิชาอย่างน้อย 1 แผนก!"); }
+            if (!document.getElementById('chkAllLevel').checked) { targetLevels = Array.from(document.querySelectorAll('.chk-level:checked')).map(cb => cb.value); if(targetLevels.length === 0) return alert("กรุณาเลือกชั้นปีอย่างน้อย 1 ชั้นปี!"); }
+
+            let deadlineISO = isDeadlineEnabled ? new Date(`${actDate}T${actTime}:00`).toISOString() : "none";
+            let displayTimeText = isDeadlineEnabled ? `ปิดรับเช็คชื่อ: ${actDate} เวลา ${actTime} น.` : "เปิดรับสแกนตลอดเวลา ไม่จำกัดเวลา";
+
+            // 🎯 ฝังค่า URL
+            const params = new URLSearchParams({ activity: actName, deadline: deadlineISO });
+            if(targetDepts.length > 0) params.append('dept', targetDepts.join(','));
+            if(targetLevels.length > 0) params.append('level', targetLevels.join(','));
+            
+            currentScannerLink = `${URL_SCANNER_APP}?${params.toString()}`;
+
+            const qrDiv = document.getElementById('qrImage'); qrDiv.innerHTML = ""; 
+            new QRCode(qrDiv, { text: currentScannerLink, width: 176, height: 176, correctLevel : QRCode.CorrectLevel.H });
+
+            document.getElementById('qrTitleShow').innerText = actName; document.getElementById('qrTimeShow').innerText = displayTimeText;
+            document.getElementById('qrContainer').classList.remove('hidden'); document.getElementById('qrContainer').classList.add('flex');
+            const driveStatus = document.getElementById('driveStatus'); driveStatus.innerText = "กำลังสำรอง QR Code..."; driveStatus.className = "mt-4 w-full bg-blue-50 text-blue-600 text-[10px] p-2 rounded text-center animate-pulse";
+            
+            setTimeout(async () => {
+                try {
+                    const qrDataUrl = qrDiv.querySelector('canvas').toDataURL("image/png");
+                    const res = await fetch("https://script.google.com/macros/s/AKfycbzEZwclY5DDyAEW5LFToH3WkK3slgHeHVTS1pTizIhvI7iEZwGUtD9GKcv-EPlWu1rE7Q/exec", { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: "create_qr", activityName: actName, qrUrl: qrDataUrl, deadlineText: displayTimeText }) });
+                    const data = await res.json();
+                    if(data.status === "success") { driveStatus.innerText = "✅ สำรอง QR Code ลง Google Drive สำเร็จ!"; driveStatus.className = "mt-4 w-full bg-green-50 text-green-600 text-[10px] font-bold p-2 rounded"; } 
+                    else throw new Error();
+                } catch (err) { driveStatus.innerText = "❌ บันทึกลงไดรฟ์ไม่สำเร็จ (กดขยายใช้งานได้เลย)"; driveStatus.className = "mt-4 w-full bg-red-50 text-red-600 text-[10px] p-2 rounded"; }
+            }, 500); 
+        }
+
+        function expandQR() { if (!currentScannerLink) return; const expDiv = document.getElementById('qrExpandedImage'); expDiv.innerHTML = ""; new QRCode(expDiv, { text: currentScannerLink, width: 350, height: 350, correctLevel: QRCode.CorrectLevel.H }); document.getElementById('qrExpandedTitle').innerText = document.getElementById('actName').value; document.getElementById('qrExpandedModal').classList.remove('hidden'); document.getElementById('qrExpandedModal').classList.add('flex'); }
+        function closeExpandedQR() { document.getElementById('qrExpandedModal').classList.add('hidden'); document.getElementById('qrExpandedModal').classList.remove('flex'); }
+        document.getElementById('adminPasswordInput').addEventListener('keypress', function(e) { if (e.key === 'Enter') submitAdminPassword(); });
+        window.onload = function() { initTimeDropdowns(); fetchAllData(); };
     </script>
 </body>
 </html>
