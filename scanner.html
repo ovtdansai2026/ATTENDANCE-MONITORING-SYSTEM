@@ -77,10 +77,18 @@
                 const json = await res.json();
                 
                 if(json.status === "success") {
-                    allStudents = json.data;
+                    
+                    // 🌟 เพิ่มท่อนนี้: ช่วยแยกชื่อ "ช่างยนต์ ปวช.1" ให้กลายเป็น แผนก="ช่างยนต์", ชั้นปี="ปวช.1"
+                    allStudents = json.data.map(s => {
+                        let d = s.department || "";
+                        let l = s.pureLevel || "";
+                        if (l && d.includes(l)) d = d.replace(l, "").trim(); 
+                        return { ...s, department: d, pureLevel: l };
+                    });
+
                     filteredStudents = allStudents;
 
-                    // 🎯 ร่อนตะแกรงกรองแผนกและชั้นปี ถ้ามีกำหนดไว้ใน QR
+                    // 🎯 ร่อนตะแกรงกรองแผนกและชั้นปี
                     if(urlDept) filteredStudents = filteredStudents.filter(s => urlDept.includes(s.department));
                     if(urlLevel) filteredStudents = filteredStudents.filter(s => urlLevel.includes(s.pureLevel));
 
