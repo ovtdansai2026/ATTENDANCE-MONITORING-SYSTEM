@@ -17,11 +17,10 @@
         </div>
 
         <div id="loadingStatus" class="bg-blue-50 text-blue-600 text-xs text-center p-2 rounded-lg mb-4 animate-pulse">
-            ⏳ กำลังดึงฐานข้อมูลรายชื่อนักเรียน...
+            ⏳ กำลังดึงฐานข้อมูลและตรวจสอบสิทธิ์...
         </div>
 
         <form id="attendanceForm" class="space-y-4">
-            
             <div>
                 <label class="block text-sm font-semibold mb-1 text-slate-600">1. เลือกห้องเรียน/แผนก</label>
                 <select id="roomSelect" required disabled class="w-full border border-slate-300 rounded-lg p-3 text-sm bg-slate-50 outline-none focus:border-blue-500 focus:bg-white transition-colors disabled:opacity-50">
@@ -48,21 +47,30 @@
     </div>
 
     <script>
-        // 🚨 ใส่ลิงก์ API ตัวล่าสุดตรงนี้ 🚨
+        // 🌟 ลิงก์ API ตัวล่าสุด 
         const API_URL = "https://script.google.com/macros/s/AKfycbzEZwclY5DDyAEW5LFToH3WkK3slgHeHVTS1pTizIhvI7iEZwGUtD9GKcv-EPlWu1rE7Q/exec";
         
         const params = new URLSearchParams(window.location.search);
         const activity = params.get('activity');
         const deadline = params.get('deadline');
+        const urlDept = params.get('dept') ? params.get('dept').split(',') : null;
+        const urlLevel = params.get('level') ? params.get('level').split(',') : null;
 
         document.getElementById('activityTitle').innerText = activity || "ไม่พบชื่อกิจกรรม";
-        if (deadline && deadline !== "none") {
-            document.getElementById('deadlineText').innerText = "ปิดรับเช็คชื่อ: " + new Date(deadline).toLocaleString('th-TH');
-        }
+        
+        let subText = "";
+        if (deadline && deadline !== "none") subText += "ปิดรับเช็คชื่อ: " + new Date(deadline).toLocaleString('th-TH');
+        
+        // 🌟 โชว์ให้เด็กรู้ว่าล็อกแผนกไหนบ้าง
+        let targetText = [];
+        if(urlDept) targetText.push("แผนก: " + urlDept.join(', '));
+        if(urlLevel) targetText.push("ชั้นปี: " + urlLevel.join(', '));
+        if(targetText.length > 0) subText += `<br><span class="text-amber-600 font-bold mt-1 inline-block">🎯 สิทธิ์เฉพาะ: ${targetText.join(' | ')}</span>`;
+        document.getElementById('deadlineText').innerHTML = subText;
 
         let allStudents = [];
+        let filteredStudents = []; 
 
-        // 🌟 ดึงข้อมูลรายชื่อจาก Google Sheets ทันทีที่เปิดหน้าเว็บ
         window.onload = async () => {
             try {
                 const res = await fetch(API_URL + "?type=activity");
@@ -70,65 +78,73 @@
                 
                 if(json.status === "success") {
                     allStudents = json.data;
-                    
-                    // สกัดเอาชื่อห้องทั้งหมดมาทำ Dropdown ที่ 1
-                    const rooms = [...new Set(allStudents.map(s => s.department))].sort();
+                    filteredStudents = allStudents;
+
+                    // 🎯 ร่อนตะแกรงกรองแผนกและชั้นปี ถ้ามีกำหนดไว้ใน QR
+                    if(urlDept) filteredStudents = filteredStudents.filter(s => urlDept.includes(s.department));
+                    if(urlLevel) filteredStudents = filteredStudents.filter(s => urlLevel.includes(s.pureLevel));
+
                     const roomSelect = document.getElementById('roomSelect');
+                    if (filteredStudents.length === 0) {
+                        roomSelect.innerHTML = '<option value="">⛔ กิจกรรมนี้ไม่ได้เปิดให้แผนกของคุณ</option>';
+                        document.getElementById('loadingStatus').innerText = "คุณไม่มีสิทธิ์ลงทะเบียนกิจกรรมนี้";
+                        document.getElementById('loadingStatus').classList.replace('bg-blue-50', 'bg-red-50');
+                        document.getElementById('loadingStatus').classList.replace('text-blue-600', 'text-red-600');
+                        return;
+                    }
+
+                    // สร้างห้องเรียนจากข้อมูลที่ร่อนแล้ว
+                    const rooms = [...new Set(filteredStudents.map(s => `${s.department} ${s.pureLevel}`.trim()))].sort();
                     
                     roomSelect.innerHTML = '<option value="">-- แตะเพื่อเลือกห้องเรียน --</option>';
                     rooms.forEach(r => roomSelect.add(new Option(r, r)));
                     
-                    // ปลดล็อกให้เริ่มใช้งานได้
                     roomSelect.disabled = false;
                     document.getElementById('loadingStatus').classList.add('hidden');
                     document.getElementById('submitBtn').disabled = false;
                 }
             } catch(e) {
-                document.getElementById('loadingStatus').innerText = "❌ โหลดรายชื่อล้มเหลว กรุณารีเฟรชหน้าเว็บ";
+                document.getElementById('loadingStatus').innerText = "❌ โหลดข้อมูลล้มเหลว กรุณารีเฟรชหน้าเว็บ";
                 document.getElementById('loadingStatus').classList.replace('bg-blue-50', 'bg-red-50');
                 document.getElementById('loadingStatus').classList.replace('text-blue-600', 'text-red-600');
             }
         };
 
-        // 🌟 เมื่อเลือกห้องเรียน ให้กรองชื่อเด็กมาใส่ Dropdown ที่ 2
+        // เมื่อจิ้มห้อง ให้กรองชื่อคนในห้องนั้นมาให้เลือก
         document.getElementById('roomSelect').addEventListener('change', function() {
             const selectedRoom = this.value;
             const studentSelect = document.getElementById('studentSelect');
-            
             studentSelect.innerHTML = '<option value="">-- แตะเพื่อเลือกชื่อของตนเอง --</option>';
-            
-            if(!selectedRoom) {
-                studentSelect.disabled = true;
-                return;
-            }
+            if(!selectedRoom) { studentSelect.disabled = true; return; }
 
-            // กรองรายชื่อเฉพาะห้องที่เลือก และเรียงตามตัวอักษร
-            const studentsInRoom = allStudents.filter(s => s.department === selectedRoom)
-                                              .sort((a,b) => a.studentName.localeCompare(b.studentName));
-            
+            const studentsInRoom = filteredStudents.filter(s => `${s.department} ${s.pureLevel}`.trim() === selectedRoom)
+                                                   .sort((a,b) => a.studentName.localeCompare(b.studentName));
             studentsInRoom.forEach(s => studentSelect.add(new Option(s.studentName, s.studentName)));
             studentSelect.disabled = false;
         });
 
-        // 🌟 ระบบส่งข้อมูล
+        // ส่งข้อมูลให้ API
         document.getElementById('attendanceForm').onsubmit = async (e) => {
             e.preventDefault();
             const btn = document.getElementById('submitBtn');
             const selectedRoom = document.getElementById('roomSelect').value;
             const selectedName = document.getElementById('studentSelect').value;
 
+            // ดึงข้อมูลชั้นปีและแผนกที่แท้จริงจาก Object เด็กคนนั้น
+            const studentObj = filteredStudents.find(s => s.studentName === selectedName && `${s.department} ${s.pureLevel}`.trim() === selectedRoom);
+
             btn.disabled = true; 
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
             btn.innerText = "กำลังอัปโหลดข้อมูลและรูปภาพ...";
 
             const file = document.getElementById('imageInput').files[0];
             const reader = new FileReader();
             reader.readAsDataURL(file);
             reader.onload = async () => {
-                
                 const payload = {
                     studentName: selectedName,
-                    pureLevel: "", // ส่งค่าว่างไป เพื่อให้หลังบ้านใช้ค่า pureDept เป็นชื่อแท็บเต็มๆ
-                    pureDept: selectedRoom, // เช่น "อิเล็กทรอนิกส์ ปวช.1"
+                    pureLevel: studentObj.pureLevel, 
+                    pureDept: studentObj.department, 
                     activityName: activity,
                     deadline: deadline,
                     imageCode: reader.result
@@ -143,16 +159,18 @@
                     const result = await res.json();
                     
                     if (result.status === "success") {
-                        alert("✅ บันทึกข้อมูลเรียบร้อยแล้ว!");
+                        alert("✅ บันทึกข้อมูลและอัปโหลดหลักฐานเรียบร้อยแล้ว!");
                         location.reload(); 
                     } else {
-                        alert("❌ ข้อผิดพลาด: " + result.message);
+                        alert("❌ เกิดข้อผิดพลาดจากระบบ: " + result.message);
                         btn.disabled = false; 
+                        btn.classList.remove('opacity-50', 'cursor-not-allowed');
                         btn.innerText = "ส่งข้อมูลเช็คชื่อ";
                     }
                 } catch (err) {
-                    alert("❌ ไม่สามารถเชื่อมต่อระบบได้ กรุณาลองอีกครั้ง");
+                    alert("❌ ไม่สามารถเชื่อมต่อระบบได้ กรุณาลองใหม่อีกครั้ง");
                     btn.disabled = false; 
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
                     btn.innerText = "ส่งข้อมูลเช็คชื่อ";
                 }
             };
