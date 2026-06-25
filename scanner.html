@@ -60,7 +60,7 @@
                         <option value="เทคโนโลยีธุรกิจดิจิทัล">เทคโนโลยีธุรกิจดิจิทัล</option>
                         <option value="การบัญชี">การบัญชี</option>
                         <option value="การตลาด">การตลาด</option>
-						<option value="อาหารและโภชนาการ">อาหารและโภชนาการ</option>
+                        <option value="อาหารและโภชนาการ">อาหารและโภชนาการ</option>
                     </select>
                 </div>
             </div>
@@ -75,7 +75,8 @@
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbx1i7PNiII3X0aMCOtUoC_4Qg3OrD33J_Hdb2d6VkagGfM1Vxx26pxycla6PKnirxgH/exec";
+        // 🌟 อัปเดตลิงก์ API เป็นตัวใหม่ล่าสุดแล้ว 🌟
+        const API_URL = "https://script.google.com/macros/s/AKfycbzEZwclY5DDyAEW5LFToH3WkK3slgHeHVTS1pTizIhvI7iEZwGUtD9GKcv-EPlWu1rE7Q/exec";
         const params = new URLSearchParams(window.location.search);
         const activity = params.get('activity');
         const deadline = params.get('deadline');
@@ -89,14 +90,15 @@
             e.preventDefault();
             const btn = document.getElementById('submitBtn');
             
-            // รวมข้อมูลชื่อ-นามสกุลให้อัตโนมัติก่อนส่งหลังบ้าน
             const title = document.getElementById('title').value;
             const first = document.getElementById('firstName').value.trim();
             const last = document.getElementById('lastName').value.trim();
             const fullName = `${title}${first} ${last}`;
 
+            // 🛡️ ป้องกันการกดสแปมรัวๆ (ล็อกปุ่มทันทีที่กด)
             btn.disabled = true; 
-            btn.innerText = "กำลังส่งข้อมูล...";
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+            btn.innerText = "กำลังอัปโหลดข้อมูลและรูปภาพ...";
 
             const file = document.getElementById('imageInput').files[0];
             const reader = new FileReader();
@@ -121,15 +123,18 @@
                     
                     if (result.status === "success") {
                         alert("✅ บันทึกข้อมูลและอัปโหลดหลักฐานเรียบร้อยแล้ว!");
-                        location.reload();
+                        location.reload(); // รีเฟรชหน้าเว็บเพื่อเคลียร์ฟอร์ม
                     } else {
                         alert("❌ เกิดข้อผิดพลาดจากระบบ: " + result.message);
+                        btn.disabled = false; 
+                        btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                        btn.innerText = "ส่งข้อมูลเช็คชื่อ";
                     }
                 } catch (err) {
                     alert("❌ ไม่สามารถเชื่อมต่อระบบได้ กรุณาลองใหม่อีกครั้ง");
-                } finally {
                     btn.disabled = false; 
-                    btn.innerText = "ส่งข้อมูล";
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    btn.innerText = "ส่งข้อมูลเช็คชื่อ";
                 }
             };
         };
