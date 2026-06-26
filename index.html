@@ -43,7 +43,7 @@
                     
                     <button onclick="openPasswordModal()" class="bg-slate-800 hover:bg-slate-700 text-amber-400 border border-amber-500/30 px-4 py-2 rounded-lg text-sm transition-colors flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(245,158,11,0.1)]">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-                        <span class="font-medium text-xs whitespace-nowrap">แอดมิน (สร้างกิจกรรม)</span>
+                        <span class="font-medium text-xs whitespace-nowrap">แอดมิน (จัดการระบบ)</span>
                     </button>
                 </div>
             </div>
@@ -125,6 +125,12 @@
                     </div>
                 </div>
             </div>
+
+            <div class="mt-6 glass-card p-4 rounded-xl border border-amber-500/20 bg-amber-500/5 text-center">
+                <p class="text-xs md:text-sm text-amber-400 font-medium tracking-wide">
+                    📌 <strong>หมายเหตุ:</strong> หากพบว่าข้อมูลไม่ถูกต้อง หรือสถิติการเข้าร่วมกิจกรรมไม่ครบถ้วน กรุณาติดต่อครูที่ปรึกษา หรือ งานกิจกรรม โดยด่วน
+                </p>
+            </div>
         </div>
     </div>
 
@@ -134,7 +140,7 @@
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
                 สิทธิ์ผู้ดูแลระบบ
             </h3>
-            <p class="text-xs text-slate-400 mb-4">กรุณากรอกรหัสผ่านเพื่อเข้าสู่โหมดจัดการกิจกรรม</p>
+            <p class="text-xs text-slate-400 mb-4">กรุณากรอกรหัสผ่านเพื่อเข้าสู่โหมดจัดการระบบ</p>
             <input type="password" id="adminPasswordInput" placeholder="กรอกรหัสผ่าน..." class="w-full bg-slate-800 border border-slate-600 rounded-lg p-3 text-sm text-white mb-4 outline-none focus:border-amber-500">
             <div class="flex gap-2">
                 <button onclick="closePasswordModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-medium py-2 rounded-xl text-sm border border-slate-700">ยกเลิก</button>
@@ -144,72 +150,100 @@
     </div>
 
     <div id="adminModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-50 p-4 backdrop-blur-sm">
-        <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 md:p-8 max-w-md w-full max-h-[90vh] overflow-y-auto relative shadow-2xl custom-scroll">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 md:p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto relative shadow-2xl custom-scroll">
             <button onclick="closeAdminPanel()" class="absolute top-4 right-4 text-slate-400 hover:text-white font-bold text-lg">✖</button>
-            <h2 class="text-xl font-bold text-amber-400 mb-2 flex items-center gap-2"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>สร้างกิจกรรมใหม่</h2>
-
-            <div class="space-y-4 mb-6">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-300 mb-1">ชื่อกิจกรรม</label>
-                    <input type="text" id="actName" placeholder="เช่น กิจกรรมวันไหว้ครู" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-2.5 text-sm text-white focus:border-amber-500 focus:outline-none">
-                </div>
-
-                <div class="mt-4 border border-slate-700 p-3 rounded-lg bg-slate-800/50">
-                    <label class="block text-xs font-semibold text-amber-400 mb-2">🎯 กำหนดกลุ่มเป้าหมายผู้เข้าร่วม</label>
-                    <div class="mb-3">
-                        <label class="flex items-center gap-2 cursor-pointer mb-2">
-                            <input type="checkbox" id="chkAllDept" checked onchange="document.getElementById('deptTargets').classList.toggle('hidden', this.checked)" class="w-4 h-4 text-amber-500 rounded bg-slate-900 border-slate-600">
-                            <span class="text-xs text-white font-medium">เข้าร่วมได้ทุกแผนกวิชา</span>
-                        </label>
-                        <div id="deptTargets" class="hidden grid grid-cols-2 gap-2 pl-6 text-[11px] text-slate-300"></div>
-                    </div>
+            
+            <div class="border-b border-slate-800 pb-6 mb-6">
+                <h2 class="text-xl font-bold text-amber-400 mb-4 flex items-center gap-2"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>1. สร้างกิจกรรมใหม่</h2>
+                <div class="space-y-4">
                     <div>
-                        <label class="flex items-center gap-2 cursor-pointer mb-2">
-                            <input type="checkbox" id="chkAllLevel" checked onchange="document.getElementById('levelTargets').classList.toggle('hidden', this.checked)" class="w-4 h-4 text-amber-500 rounded bg-slate-900 border-slate-600">
-                            <span class="text-xs text-white font-medium">เข้าร่วมได้ทุกชั้นปี</span>
-                        </label>
-                        <div id="levelTargets" class="hidden grid grid-cols-2 gap-2 pl-6 text-[11px] text-slate-300"></div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">ชื่อกิจกรรม</label>
+                        <input type="text" id="actName" placeholder="เช่น กิจกรรมวันไหว้ครู" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-2.5 text-sm text-white focus:border-amber-500 focus:outline-none">
                     </div>
-                </div>
-                
-                <label class="flex items-center gap-2 cursor-pointer mb-2">
-                    <input type="checkbox" id="enableDeadline" class="w-4 h-4 text-amber-500 bg-slate-800 border-slate-600 rounded focus:ring-amber-500" onchange="toggleTimeInputs()" checked>
-                    <span class="text-xs font-semibold text-slate-300">ตั้งเวลาปิดรับเช็คชื่ออัตโนมัติ</span>
-                </label>
 
-                <div class="grid grid-cols-2 gap-4" id="timeInputsContainer">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-400 mb-1">วันที่ปิดรับ</label>
-                        <input type="date" id="actDate" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-sm text-black focus:border-amber-500 focus:outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-400 mb-1">เวลาปิดรับ (น.)</label>
-                        <div class="flex items-center gap-1">
-                            <select id="actHour" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-sm text-black"></select>
-                            <span class="text-slate-300 font-bold">:</span>
-                            <select id="actMinute" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-sm text-black"></select>
+                    <div class="border border-slate-700 p-3 rounded-lg bg-slate-800/50">
+                        <label class="block text-xs font-semibold text-amber-400 mb-2">🎯 กำหนดกลุ่มเป้าหมายผู้เข้าร่วม</label>
+                        <div class="mb-3">
+                            <label class="flex items-center gap-2 cursor-pointer mb-2">
+                                <input type="checkbox" id="chkAllDept" checked onchange="document.getElementById('deptTargets').classList.toggle('hidden', this.checked)" class="w-4 h-4 text-amber-500 rounded bg-slate-900 border-slate-600">
+                                <span class="text-xs text-white font-medium">เข้าร่วมได้ทุกแผนกวิชา</span>
+                            </label>
+                            <div id="deptTargets" class="hidden grid grid-cols-2 gap-2 pl-6 text-[11px] text-slate-300"></div>
+                        </div>
+                        <div>
+                            <label class="flex items-center gap-2 cursor-pointer mb-2">
+                                <input type="checkbox" id="chkAllLevel" checked onchange="document.getElementById('levelTargets').classList.toggle('hidden', this.checked)" class="w-4 h-4 text-amber-500 rounded bg-slate-900 border-slate-600">
+                                <span class="text-xs text-white font-medium">เข้าร่วมได้ทุกชั้นปี</span>
+                            </label>
+                            <div id="levelTargets" class="hidden grid grid-cols-2 gap-2 pl-6 text-[11px] text-slate-300"></div>
                         </div>
                     </div>
+                    
+                    <label class="flex items-center gap-2 cursor-pointer mb-2">
+                        <input type="checkbox" id="enableDeadline" class="w-4 h-4 text-amber-500 bg-slate-800 border-slate-600 rounded" onchange="toggleTimeInputs()" checked>
+                        <span class="text-xs font-semibold text-slate-300">ตั้งเวลาปิดรับเช็คชื่ออัตโนมัติ</span>
+                    </label>
+
+                    <div class="grid grid-cols-2 gap-4" id="timeInputsContainer">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-400 mb-1">วันที่ปิดรับ</label>
+                            <input type="date" id="actDate" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-sm text-black focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-400 mb-1">เวลาปิดรับ (น.)</label>
+                            <div class="flex items-center gap-1">
+                                <select id="actHour" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-sm text-black"></select>
+                                <span class="text-slate-300 font-bold">:</span>
+                                <select id="actMinute" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-sm text-black"></select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button onclick="generateQR()" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-2.5 rounded-xl shadow-lg mt-2 transition-all">สร้างคิวอาร์โค้ดกิจกรรม</button>
                 </div>
 
-                <button onclick="generateQR()" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-3 rounded-xl shadow-lg mt-2">
-                    สร้างคิวอาร์โค้ดกิจกรรม
-                </button>
+                <div id="qrContainer" class="hidden flex-col items-center justify-center p-4 bg-white rounded-xl mt-4">
+                    <p class="text-slate-800 font-bold text-center mb-1 text-sm" id="qrTitleShow"></p>
+                    <p class="text-red-500 font-bold text-center mb-4 text-xs" id="qrTimeShow"></p>
+                    <div id="qrImage" class="w-48 h-48 border border-slate-200 rounded-lg shadow-sm flex items-center justify-center p-2"></div>
+                    <button onclick="expandQR()" class="mt-4 bg-blue-50 hover:bg-blue-100 text-blue-600 px-4 py-2 rounded-lg text-xs font-bold border border-blue-200 flex items-center gap-2">🔍 ขยายคิวอาร์เต็มจอ</button>
+                    <div id="driveStatus" class="mt-4 w-full text-[10px] p-2 rounded text-center"></div>
+                </div>
             </div>
 
-            <div id="qrContainer" class="hidden flex-col items-center justify-center p-4 bg-white rounded-xl mb-4">
-                <p class="text-slate-800 font-bold text-center mb-1 text-sm" id="qrTitleShow"></p>
-                <p class="text-red-500 font-bold text-center mb-4 text-xs" id="qrTimeShow"></p>
-                <div id="qrImage" class="w-48 h-48 border border-slate-200 rounded-lg shadow-sm flex items-center justify-center p-2"></div>
+            <div>
+                <h2 class="text-xl font-bold text-emerald-400 mb-2 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path></svg>
+                    2. เกณฑ์เงื่อนไขการซ่อมข้อมูลกิจกรรม/เข้าแถว
+                </h2>
+                <p class="text-xs text-slate-400 mb-3">* สามารถเพิ่มได้หลายช่วงเงื่อนไข ระบบจะดึงไปแสดงเมื่อเด็กกดปุ่ม "ดูวิธีแก้"</p>
                 
-                <button onclick="expandQR()" class="mt-4 bg-blue-50 hover:bg-blue-100 text-blue-600 px-4 py-2 rounded-lg text-xs font-bold border border-blue-200 flex items-center gap-2">
-                    🔍 ขยายคิวอาร์เต็มจอ (ขึ้นโปรเจกเตอร์)
-                </button>
-                <div id="driveStatus" class="mt-4 w-full text-[10px] p-2 rounded text-center"></div>
+                <div class="overflow-x-auto mb-3">
+                    <table class="w-full text-xs text-left">
+                        <thead class="bg-slate-800 text-slate-300 uppercase">
+                            <tr>
+                                <th class="px-2 py-2 rounded-tl-lg">หมวดหมู่</th>
+                                <th class="px-2 py-2 text-center">ขั้นต่ำ (%)</th>
+                                <th class="px-2 py-2 text-center">สูงสุด (%)</th>
+                                <th class="px-2 py-2">แนวทางแก้ไข / งานที่ต้องทำชดเชย</th>
+                                <th class="px-2 py-2 rounded-tr-lg text-center">ลบ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rulesTableBody" class="divide-y divide-slate-700 text-slate-200">
+                            </tbody>
+                    </table>
+                </div>
+
+                <div class="flex gap-2 mb-4">
+                    <button onclick="addRuleRow('attendance', 0, 79, '')" class="bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/40 px-3 py-1.5 rounded-lg text-xs font-bold transition">+ เพิ่มเกณฑ์เข้าแถว</button>
+                    <button onclick="addRuleRow('activity', 0, 79, '')" class="bg-purple-500/20 text-purple-400 border border-purple-500/30 hover:bg-purple-500/40 px-3 py-1.5 rounded-lg text-xs font-bold transition">+ เพิ่มเกณฑ์กิจกรรม</button>
+                </div>
+                
+                <button onclick="saveRulesToAPI()" id="btnSaveRules" class="w-full bg-emerald-500 hover:bg-emerald-600 text-black font-bold py-2.5 rounded-xl text-sm shadow-lg transition-all">บันทึกเงื่อนไขทั้งหมด</button>
             </div>
 
             <div class="border-t border-slate-800 pt-4 mt-6">
-                <button onclick="closeAdminPanel()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3 rounded-xl text-sm border border-slate-700">ปิดหน้าต่างควบคุม</button>
+                <button onclick="closeAdminPanel()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 rounded-xl text-sm border border-slate-700">ปิดหน้าต่างควบคุม</button>
             </div>
         </div>
     </div>
@@ -220,19 +254,27 @@
         <p class="text-slate-400 mt-8 text-xs bg-slate-900/80 px-4 py-2 rounded-full border border-slate-800">คลิกที่ใดก็ได้บนหน้าจอเพื่อย่อกลับ</p>
     </div>
 
-    <div class="mt-6 glass-card p-4 rounded-xl border border-amber-500/20 bg-amber-500/5 text-center">
-    <p class="text-xs md:text-sm text-amber-400 font-medium tracking-wide">
-        📌 <strong>หมายเหตุ:</strong> หากพบว่าข้อมูลไม่ถูกต้อง หรือสถิติการเข้าร่วมกิจกรรมไม่ครบถ้วน กรุณาติดต่อครูที่ปรึกษา หรือ งานกิจกรรม
-    </p>
+    <div id="resolutionModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[60] p-4 backdrop-blur-sm" onclick="closeResolutionModal(event)">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-sm w-full shadow-2xl transform transition-all" onclick="event.stopPropagation()">
+            <div class="text-center mb-4">
+                <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-red-500/20 text-red-500 mb-2">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                </div>
+                <h3 class="text-lg font-bold text-slate-100">แนวทางการแก้ไข</h3>
+                <p class="text-sm text-slate-400 mt-1">สถิติปัจจุบันของคุณอยู่ที่ <span id="resPercent" class="font-bold text-red-400"></span>%</p>
+            </div>
+            <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 mb-6 text-center">
+                <p id="resText" class="text-sm md:text-base text-amber-400 font-medium whitespace-pre-wrap">รอแจ้งข้อกำหนด</p>
+            </div>
+            <button onclick="closeResolutionModal()" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 rounded-xl text-sm border border-slate-700 transition-colors">รับทราบ</button>
+        </div>
     </div>
-
 
     <script>
         // ==========================================
         const MASTER_PASSWORD = "Admin2026"; 
         const URL_SCANNER_APP = "https://ovtdansai2026.github.io/ATTENDANCE-MONITORING-SYSTEM/scanner.html"; 
         
-        // 🌟 ลิงก์ API ปัจจุบัน
         const API_ATTENDANCE = "https://script.google.com/macros/s/AKfycbzEZwclY5DDyAEW5LFToH3WkK3slgHeHVTS1pTizIhvI7iEZwGUtD9GKcv-EPlWu1rE7Q/exec?type=attendance"; 
         const API_ACTIVITY   = "https://script.google.com/macros/s/AKfycbzEZwclY5DDyAEW5LFToH3WkK3slgHeHVTS1pTizIhvI7iEZwGUtD9GKcv-EPlWu1rE7Q/exec?type=activity";
         // ==========================================
@@ -244,6 +286,7 @@
         let dataActivity = [];
         let activeData = [];
         let currentScannerLink = ""; 
+        let globalRules = []; // 🌟 ตัวแปรเก็บเกณฑ์ซ่อมทั้งหมดจากฐานข้อมูล
 
         function initTimeDropdowns() {
             const hSelect = document.getElementById('actHour'); hSelect.innerHTML = "";
@@ -260,8 +303,8 @@
 
                 if (jsonAtt.status === "success") {
                     dataAttendance = processData(jsonAtt.data);
+                    globalRules = jsonAtt.rules || []; // 🌟 โหลดเกณฑ์การซ่อมมาจากหลังบ้านทันทีเมื่อเปิดเว็บ
                     
-                    // 🌟 สร้างตัวเลือกแผนก/ชั้นปีในหน้าแอดมินอัตโนมัติ
                     const uniqueDepts = [...new Set(dataAttendance.map(i => i.pureDept))].filter(Boolean).sort();
                     const uniqueLevels = [...new Set(dataAttendance.map(i => i.pureLevel))].filter(Boolean).sort();
                     document.getElementById('deptTargets').innerHTML = uniqueDepts.map(d => `<label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="${d}" class="chk-dept rounded bg-slate-900 border-slate-600"> ${d}</label>`).join('');
@@ -276,26 +319,20 @@
             } catch (error) { console.error(error); alert("โหลดข้อมูลไม่สำเร็จ กรุณารีเฟรช"); }
         }
 
-    function processData(rawData) {
-    return rawData.map(item => {
-        let d = item.department || "ไม่ระบุ";
-        let l = item.pureLevel || "";
-
-        // 🌟 แก้ตรงนี้: สั่งล้างคำว่า ปวช./ปวส. และ แผนกวิชา ออกจากชื่อแผนกให้เกลี้ยงทุกกรณี ไม่ต้องสนว่าจะมี l หรือไม่
-        d = d.replace(/(ปวช\.\d|ปวส\.\d)/g, "")
-             .replace(/แผนกวิชา/g, "")
-             .trim();
-             
-        // ถ้าฝั่งไหนไม่มีชั้นปีส่งมา (เช่น ฝั่งเข้าแถวบางเคส) ค่อยไปงมหาจากชื่อเดิม
-        if (!l) {
-            const match = item.department.match(/(ปวช\.\d|ปวส\.\d)/);
-            l = match ? match[1].trim() : "ไม่ระบุปี";
+        function processData(rawData) {
+            return rawData.map(item => {
+                let d = item.department || "ไม่ระบุ";
+                let l = item.pureLevel || "";
+                
+                // ล้างคำซ้ำซ้อนเพื่อให้ระบบแสดงผลกรองได้ตรงกัน
+                d = d.replace(/(ปวช\.\d|ปวส\.\d)/g, "").replace(/แผนกวิชา/g, "").trim();
+                if (!l) {
+                    const match = item.department.match(/(ปวช\.\d|ปวส\.\d)/);
+                    l = match ? match[1].trim() : "ไม่ระบุปี";
+                }
+                return { ...item, pureDept: d, pureLevel: l };
+            });
         }
-
-        return { ...item, pureDept: d, pureLevel: l };
-    });
-}
-
 
         function switchMode(mode) {
             currentMode = mode;
@@ -348,17 +385,143 @@
             data.forEach((student, index) => {
                 const tr = document.createElement('tr'); tr.className = "hover:bg-slate-800/30";
                 let detail = currentMode === 'attendance' ? `<div>${cleanHTML(student.teacherEmail)}</div>` : `<div class="font-bold text-slate-300">มา ${student.presentDays || 0}/${student.totalDays || 0} งาน</div>`;
-                tr.innerHTML = `<td class="px-2 py-3 md:px-4 text-center"><span class="w-6 h-6 mx-auto flex items-center justify-center rounded-full bg-slate-800 text-[10px] font-bold border border-slate-700">${index + 1}</span></td><td class="px-2 py-3 md:px-6"><div class="font-medium text-slate-200 text-[11px] md:text-sm">${cleanHTML(student.studentName)}</div><div class="text-[10px] text-slate-400">${cleanHTML(student.pureLevel)} แผนก${cleanHTML(student.pureDept)}</div></td><td class="px-2 py-3 md:px-6 text-center"><span class="inline-block px-2 py-1 rounded-md text-[10px] font-bold ${badgeStyle}">${student.percent}%</span></td><td class="px-2 py-3 md:px-6 text-[10px] text-slate-400">${detail}</td>`;
+                
+                let remarkHtml = student.remark ? `<div class="text-[10px] text-amber-400 mt-1 bg-amber-500/10 border border-amber-500/30 px-1.5 py-0.5 rounded inline-block">📝 ${cleanHTML(student.remark)}</div>` : "";
+
+                // 🌟 ปุ่มดูวิธีแก้ปัญหา (ถ้าคะแนนต่ำกว่า 80%)
+                let resolveBtn = "";
+                if (student.percent < 80) {
+                    resolveBtn = `<button onclick="showResolutionModal('${currentMode}', ${student.percent})" class="mt-1.5 flex items-center justify-center mx-auto gap-1 text-[10px] bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-2 py-0.5 rounded-md transition-all"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>ดูวิธีแก้</button>`;
+                }
+
+                tr.innerHTML = `
+                    <td class="px-2 py-3 md:px-4 text-center"><span class="w-6 h-6 mx-auto flex items-center justify-center rounded-full bg-slate-800 text-[10px] font-bold border border-slate-700">${index + 1}</span></td>
+                    <td class="px-2 py-3 md:px-6"><div class="font-medium text-slate-200 text-[11px] md:text-sm">${cleanHTML(student.studentName)}</div><div class="text-[10px] text-slate-400">${cleanHTML(student.pureLevel)} แผนก${cleanHTML(student.pureDept)}</div>${remarkHtml}</td>
+                    <td class="px-2 py-3 md:px-6 text-center">
+                        <span class="inline-block px-2 py-1 rounded-md text-[10px] font-bold ${badgeStyle}">${student.percent}%</span>
+                        ${resolveBtn}
+                    </td>
+                    <td class="px-2 py-3 md:px-6 text-[10px] text-slate-400">${detail}</td>`;
                 tbody.appendChild(tr);
             });
         }
 
+        // 🌟 ฟังก์ชันเปิดหน้าต่างรายละเอียดวิธีแก้ไขกิจกรรมเดี่ยว (Popup)
+        function showResolutionModal(type, percent) {
+            document.getElementById('resPercent').innerText = percent;
+            
+            // วิ่งงมหาเงื่อนไขช่วงคะแนนที่แอดมินตั้งไว้
+            let foundRule = globalRules.find(r => r.type === type && percent >= r.min && percent <= r.max);
+            
+            let resText = "รอแจ้งข้อกำหนด";
+            if (foundRule && foundRule.text.trim() !== "") {
+                resText = foundRule.text;
+            }
+            
+            document.getElementById('resText').innerText = resText;
+            
+            const modal = document.getElementById('resolutionModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeResolutionModal(e) {
+            if (e && e.target !== e.currentTarget) return;
+            const modal = document.getElementById('resolutionModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        // ==========================================
+        // ระบบบริหารจัดการฝั่งแอดมิน (Admin Functions)
+        // ==========================================
         let isAdminAuthenticated = false;
         function openPasswordModal() { document.getElementById('passwordModal').classList.remove('hidden'); document.getElementById('passwordModal').classList.add('flex'); document.getElementById('adminPasswordInput').value = ""; document.getElementById('adminPasswordInput').focus(); }
         function closePasswordModal() { document.getElementById('passwordModal').classList.add('hidden'); document.getElementById('passwordModal').classList.remove('flex'); }
-        function submitAdminPassword() { if (document.getElementById('adminPasswordInput').value === MASTER_PASSWORD) { isAdminAuthenticated = true; closePasswordModal(); document.getElementById('adminModal').classList.remove('hidden'); document.getElementById('adminModal').classList.add('flex'); document.getElementById('actDate').value = new Date().toISOString().split('T')[0]; } else { alert("❌ รหัสผ่านไม่ถูกต้อง!"); document.getElementById('adminPasswordInput').value = ""; isAdminAuthenticated = false; } }
+        
+        function submitAdminPassword() { 
+            if (document.getElementById('adminPasswordInput').value === MASTER_PASSWORD) { 
+                isAdminAuthenticated = true; 
+                closePasswordModal(); 
+                document.getElementById('adminModal').classList.remove('hidden'); 
+                document.getElementById('adminModal').classList.add('flex'); 
+                document.getElementById('actDate').value = new Date().toISOString().split('T')[0]; 
+                
+                // โหลดเกณฑ์ที่มีอยู่เดิมลงตารางในหน้าแอดมินทันที
+                renderRulesTable();
+            } else { 
+                alert("❌ รหัสผ่านไม่ถูกต้อง!"); 
+                document.getElementById('adminPasswordInput').value = ""; 
+                isAdminAuthenticated = false; 
+            } 
+        }
+        
         function closeAdminPanel() { document.getElementById('adminModal').classList.add('hidden'); document.getElementById('adminModal').classList.remove('flex'); document.getElementById('qrContainer').classList.add('hidden'); isAdminAuthenticated = false; }
         function toggleTimeInputs() { const isEnabled = document.getElementById('enableDeadline').checked; document.getElementById('timeInputsContainer').classList.toggle('opacity-30', !isEnabled); document.getElementById('timeInputsContainer').classList.toggle('pointer-events-none', !isEnabled); }
+
+        // ฟังก์ชันวาดตารางเกณฑ์ในหน้าแอดมิน
+        function renderRulesTable() {
+            const tbody = document.getElementById('rulesTableBody');
+            tbody.innerHTML = '';
+            if (globalRules.length > 0) {
+                globalRules.forEach(r => addRuleRow(r.type, r.min, r.max, r.text));
+            } else {
+                // หากไม่มีเกณฑ์เลย ให้สร้างตัวอย่างรอไว้ 2 แถว
+                addRuleRow('attendance', 70, 79, '');
+                addRuleRow('activity', 70, 79, '');
+            }
+        }
+
+        // ฟังก์ชันกดเพิ่มแถวเกณฑ์ซ่อมได้เรื่อยๆ (ไม่จำกัดจำนวนเงื่อนไข)
+        function addRuleRow(type, min, max, text) {
+            const tbody = document.getElementById('rulesTableBody');
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="px-1 py-2"><select class="rule-type bg-slate-800 text-[11px] text-white border border-slate-600 rounded p-1 outline-none w-full"><option value="attendance" ${type==='attendance'?'selected':''}>เข้าแถว</option><option value="activity" ${type==='activity'?'selected':''}>กิจกรรม</option></select></td>
+                <td class="px-1 py-2 text-center"><input type="number" value="${min}" class="rule-min w-12 bg-slate-800 text-[11px] text-white border border-slate-600 rounded p-1 text-center outline-none"></td>
+                <td class="px-1 py-2 text-center"><input type="number" value="${max}" class="rule-max w-12 bg-slate-800 text-[11px] text-white border border-slate-600 rounded p-1 text-center outline-none"></td>
+                <td class="px-1 py-2"><input type="text" value="${text}" placeholder="เช่น ทำจิตอาสา 5 ชม. หรือส่งงานแก้" class="rule-text w-full bg-slate-800 text-[11px] text-white border border-slate-600 rounded p-1 outline-none"></td>
+                <td class="px-1 py-2 text-center"><button onclick="this.closest('tr').remove()" class="text-red-400 hover:text-red-300 font-bold text-sm">✖</button></td>
+            `;
+            tbody.appendChild(tr);
+        }
+
+        // ฟังก์ชันบันทึกเกณฑ์ทั้งหมดส่งไปหา Google Sheets
+        async function saveRulesToAPI() {
+            const rows = document.querySelectorAll('#rulesTableBody tr');
+            const rulesData = [];
+            rows.forEach(tr => {
+                rulesData.push({
+                    type: tr.querySelector('.rule-type').value,
+                    min: parseInt(tr.querySelector('.rule-min').value) || 0,
+                    max: parseInt(tr.querySelector('.rule-max').value) || 0,
+                    text: tr.querySelector('.rule-text').value.trim()
+                });
+            });
+
+            const btn = document.getElementById('btnSaveRules');
+            btn.innerText = "กำลังบันทึกข้อมูลลงฐานข้อมูล...";
+            btn.disabled = true;
+
+            try {
+                const res = await fetch("https://script.google.com/macros/s/AKfycbzEZwclY5DDyAEW5LFToH3WkK3slgHeHVTS1pTizIhvI7iEZwGUtD9GKcv-EPlWu1rE7Q/exec", { 
+                    method: "POST", 
+                    headers: { "Content-Type": "text/plain;charset=utf-8" }, 
+                    body: JSON.stringify({ action: "save_rules", rules: rulesData }) 
+                });
+                const data = await res.json();
+                if(data.status === "success") {
+                    globalRules = rulesData; 
+                    alert("✅ บันทึกเกณฑ์เงื่อนไขทั้งหมดสำเร็จ!");
+                    filterData(); // รีเฟรชหน้าตารางหลัก
+                } else throw new Error();
+            } catch (err) {
+                alert("❌ เกิดข้อผิดพลาดในการบันทึก กรุณาลองใหม่อีกครั้ง");
+            } finally {
+                btn.innerText = "บันทึกเงื่อนไขทั้งหมด";
+                btn.disabled = false;
+            }
+        }
 
         async function generateQR() {
             if (!isAdminAuthenticated) return alert("⛔ ไม่อนุญาต!");
@@ -370,7 +533,6 @@
             if (!actName) return alert("กรุณาตั้งชื่อกิจกรรม!");
             if (isDeadlineEnabled && !actDate) return alert("กรุณากำหนดวันที่ปิดรับ!");
 
-            // 🎯 เช็คค่า Checkbox เป้าหมาย
             let targetDepts = []; let targetLevels = [];
             if (!document.getElementById('chkAllDept').checked) { targetDepts = Array.from(document.querySelectorAll('.chk-dept:checked')).map(cb => cb.value); if(targetDepts.length === 0) return alert("กรุณาเลือกแผนกวิชาอย่างน้อย 1 แผนก!"); }
             if (!document.getElementById('chkAllLevel').checked) { targetLevels = Array.from(document.querySelectorAll('.chk-level:checked')).map(cb => cb.value); if(targetLevels.length === 0) return alert("กรุณาเลือกชั้นปีอย่างน้อย 1 ชั้นปี!"); }
@@ -378,7 +540,6 @@
             let deadlineISO = isDeadlineEnabled ? new Date(`${actDate}T${actTime}:00`).toISOString() : "none";
             let displayTimeText = isDeadlineEnabled ? `ปิดรับเช็คชื่อ: ${actDate} เวลา ${actTime} น.` : "เปิดรับสแกนตลอดเวลา ไม่จำกัดเวลา";
 
-            // 🎯 ฝังค่า URL
             const params = new URLSearchParams({ activity: actName, deadline: deadlineISO });
             if(targetDepts.length > 0) params.append('dept', targetDepts.join(','));
             if(targetLevels.length > 0) params.append('level', targetLevels.join(','));
@@ -386,7 +547,8 @@
             currentScannerLink = `${URL_SCANNER_APP}?${params.toString()}`;
 
             const qrDiv = document.getElementById('qrImage'); qrDiv.innerHTML = ""; 
-            new QRCode(qrDiv, { text: currentScannerLink, width: 176, height: 176, correctLevel : QRCode.CorrectLevel.H });
+            // 🌟 ปรับระดับความหนาแน่นตัว QR เป็นระดับ L เพื่อให้จุดใหญ่สแกนง่ายขึ้น 
+            new QRCode(qrDiv, { text: currentScannerLink, width: 176, height: 176, correctLevel : QRCode.CorrectLevel.L });
 
             document.getElementById('qrTitleShow').innerText = actName; document.getElementById('qrTimeShow').innerText = displayTimeText;
             document.getElementById('qrContainer').classList.remove('hidden'); document.getElementById('qrContainer').classList.add('flex');
@@ -403,9 +565,10 @@
             }, 500); 
         }
 
-        function expandQR() { if (!currentScannerLink) return; const expDiv = document.getElementById('qrExpandedImage'); expDiv.innerHTML = ""; new QRCode(expDiv, { text: currentScannerLink, width: 350, height: 350, correctLevel: QRCode.CorrectLevel.H }); document.getElementById('qrExpandedTitle').innerText = document.getElementById('actName').value; document.getElementById('qrExpandedModal').classList.remove('hidden'); document.getElementById('qrExpandedModal').classList.add('flex'); }
+        function expandQR() { if (!currentScannerLink) return; const expDiv = document.getElementById('qrExpandedImage'); expDiv.innerHTML = ""; new QRCode(expDiv, { text: currentScannerLink, width: 450, height: 450, correctLevel: QRCode.CorrectLevel.L }); document.getElementById('qrExpandedTitle').innerText = document.getElementById('actName').value; document.getElementById('qrExpandedModal').classList.remove('hidden'); document.getElementById('qrExpandedModal').classList.add('flex'); }
         function closeExpandedQR() { document.getElementById('qrExpandedModal').classList.add('hidden'); document.getElementById('qrExpandedModal').classList.remove('flex'); }
         document.getElementById('adminPasswordInput').addEventListener('keypress', function(e) { if (e.key === 'Enter') submitAdminPassword(); });
+        
         window.onload = function() { initTimeDropdowns(); fetchAllData(); };
     </script>
 </body>
