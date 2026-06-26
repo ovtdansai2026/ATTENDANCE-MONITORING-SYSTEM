@@ -4,6 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>แดชบอร์ดสรุปผลการเข้าแถวและกิจกรรม</title>
+    
+    <!-- 🌟 ตั้งค่า Web App (PWA) -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0b0f19">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Dashboard">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3135/3135715.png">
+    
     <link class="custom-favicon" rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect x=%2212%22 y=%2250%22 width=%2220%22 height=%2240%22 rx=%224%22 fill=%22%233b82f6%22/><rect x=%2240%22 y=%2225%22 width=%2220%22 height=%2265%22 rx=%224%22 fill=%22%231e40af%22/><rect x=%2268%22 y=%2210%22 width=%2220%22 height=%2280%22 rx=%224%22 fill=%22%23172554%22/></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -27,6 +36,7 @@
 </head>
 <body class="p-4 md:p-8 text-slate-100 min-h-screen">
 
+    <!-- 🌟 โครงสร้างหน้าเว็บหลักของครู (ใช้ตัวเดิมเป๊ะๆ) 🌟 -->
     <div class="max-w-7xl mx-auto">
         <header class="glass-card p-4 md:p-6 rounded-2xl mb-6 shadow-xl border-b border-blue-500/20">
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
@@ -134,7 +144,8 @@
         </div>
     </div>
 
-    <div id="passwordModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-50 p-4 backdrop-blur-sm">
+    <!-- Password Modal -->
+    <div id="passwordModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[70] p-4 backdrop-blur-sm">
         <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-sm w-full shadow-2xl">
             <h3 class="text-lg font-bold text-amber-400 mb-2 flex items-center gap-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
@@ -149,7 +160,8 @@
         </div>
     </div>
 
-    <div id="adminModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-50 p-4 backdrop-blur-sm">
+    <!-- Admin Modal -->
+    <div id="adminModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[60] p-4 backdrop-blur-sm">
         <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 md:p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto relative shadow-2xl custom-scroll">
             <button onclick="closeAdminPanel()" class="absolute top-4 right-4 text-slate-400 hover:text-white font-bold text-lg">✖</button>
             
@@ -230,7 +242,7 @@
                             </tr>
                         </thead>
                         <tbody id="rulesTableBody" class="divide-y divide-slate-700 text-slate-200">
-                            </tbody>
+                        </tbody>
                     </table>
                 </div>
 
@@ -248,13 +260,15 @@
         </div>
     </div>
 
-    <div id="qrExpandedModal" class="fixed inset-0 bg-slate-950/95 hidden flex-col items-center justify-center z-[60] p-4 cursor-pointer" onclick="closeExpandedQR()">
+    <!-- QR Expanded -->
+    <div id="qrExpandedModal" class="fixed inset-0 bg-slate-950/95 hidden flex-col items-center justify-center z-[70] p-4 cursor-pointer" onclick="closeExpandedQR()">
         <p id="qrExpandedTitle" class="text-white text-2xl md:text-4xl font-bold mb-8 text-center drop-shadow-xl tracking-wide"></p>
         <div id="qrExpandedImage" class="bg-white p-6 md:p-8 rounded-3xl shadow-2xl"></div>
         <p class="text-slate-400 mt-8 text-xs bg-slate-900/80 px-4 py-2 rounded-full border border-slate-800">คลิกที่ใดก็ได้บนหน้าจอเพื่อย่อกลับ</p>
     </div>
 
-    <div id="resolutionModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[60] p-4 backdrop-blur-sm" onclick="closeResolutionModal(event)">
+    <!-- Popup Resolution Modal -->
+    <div id="resolutionModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[70] p-4 backdrop-blur-sm" onclick="closeResolutionModal(event)">
         <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-sm w-full shadow-2xl transform transition-all" onclick="event.stopPropagation()">
             <div class="text-center mb-4">
                 <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-red-500/20 text-red-500 mb-2">
@@ -270,11 +284,37 @@
         </div>
     </div>
 
+    <!-- 🌟 Popup จำลองสอนติดตั้งสำหรับ iOS (Safari) 🌟 -->
+    <div id="iosInstallPrompt" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-slate-800 border border-blue-500/30 text-white p-5 rounded-2xl shadow-2xl z-[100] hidden w-[90%] max-w-sm transition-all">
+        <div class="flex justify-between items-start mb-3">
+            <h3 class="font-bold text-sm text-blue-400 flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                ติดตั้งแอปนี้บน iPhone/iPad
+            </h3>
+            <button onclick="closeIosPrompt()" class="text-slate-400 hover:text-white font-bold text-lg leading-none">✖</button>
+        </div>
+        <p class="text-[11px] text-slate-300 mb-3 leading-relaxed">เพื่อการใช้งานที่รวดเร็วและเต็มจอ (ไม่ต้องโหลดผ่านเบราว์เซอร์ใหม่ทุกครั้ง)</p>
+        <div class="bg-slate-900 rounded-lg p-3 text-[11px] text-slate-300">
+            <p class="mb-2">1. แตะไอคอน <strong class="text-white">แชร์ (Share)</strong> ตรงแถบด้านล่าง <svg class="inline w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg></p>
+            <p>2. เลื่อนลงมาแล้วเลือก <strong class="text-white">เพิ่มไปยังหน้าจอโฮม</strong> <svg class="inline w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg></p>
+        </div>
+    </div>
+
+    <!-- 🌟 ฝังโค้ด Service Worker ลงหน้าเว็บ -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                .then(reg => console.log('✅ Service Worker จดทะเบียนสำเร็จ!'))
+                .catch(err => console.log('❌ Service Worker ล้มเหลว:', err));
+            });
+        }
+    </script>
+
     <script>
         // ==========================================
         const MASTER_PASSWORD = "Admin2026"; 
         const URL_SCANNER_APP = "https://ovtdansai2026.github.io/ATTENDANCE-MONITORING-SYSTEM/scanner.html"; 
-        
         const API_ATTENDANCE = "https://script.google.com/macros/s/AKfycbzEZwclY5DDyAEW5LFToH3WkK3slgHeHVTS1pTizIhvI7iEZwGUtD9GKcv-EPlWu1rE7Q/exec?type=attendance"; 
         const API_ACTIVITY   = "https://script.google.com/macros/s/AKfycbzEZwclY5DDyAEW5LFToH3WkK3slgHeHVTS1pTizIhvI7iEZwGUtD9GKcv-EPlWu1rE7Q/exec?type=activity";
         // ==========================================
@@ -286,7 +326,7 @@
         let dataActivity = [];
         let activeData = [];
         let currentScannerLink = ""; 
-        let globalRules = []; // 🌟 ตัวแปรเก็บเกณฑ์ซ่อมทั้งหมดจากฐานข้อมูล
+        let globalRules = [];
 
         function initTimeDropdowns() {
             const hSelect = document.getElementById('actHour'); hSelect.innerHTML = "";
@@ -303,7 +343,7 @@
 
                 if (jsonAtt.status === "success") {
                     dataAttendance = processData(jsonAtt.data);
-                    globalRules = jsonAtt.rules || []; // 🌟 โหลดเกณฑ์การซ่อมมาจากหลังบ้านทันทีเมื่อเปิดเว็บ
+                    globalRules = jsonAtt.rules || [];
                     
                     const uniqueDepts = [...new Set(dataAttendance.map(i => i.pureDept))].filter(Boolean).sort();
                     const uniqueLevels = [...new Set(dataAttendance.map(i => i.pureLevel))].filter(Boolean).sort();
@@ -316,6 +356,10 @@
                 switchMode('attendance');
                 document.getElementById('loading').classList.add('hidden');
                 document.getElementById('dashboardContent').classList.remove('hidden');
+                
+                // 🌟 ตรวจสอบและแสดง Popup สำหรับ iOS (หลังจากโหลดเว็บเสร็จ)
+                checkIOSInstallPrompt();
+
             } catch (error) { console.error(error); alert("โหลดข้อมูลไม่สำเร็จ กรุณารีเฟรช"); }
         }
 
@@ -323,8 +367,6 @@
             return rawData.map(item => {
                 let d = item.department || "ไม่ระบุ";
                 let l = item.pureLevel || "";
-                
-                // ล้างคำซ้ำซ้อนเพื่อให้ระบบแสดงผลกรองได้ตรงกัน
                 d = d.replace(/(ปวช\.\d|ปวส\.\d)/g, "").replace(/แผนกวิชา/g, "").trim();
                 if (!l) {
                     const match = item.department.match(/(ปวช\.\d|ปวส\.\d)/);
@@ -385,10 +427,8 @@
             data.forEach((student, index) => {
                 const tr = document.createElement('tr'); tr.className = "hover:bg-slate-800/30";
                 let detail = currentMode === 'attendance' ? `<div>${cleanHTML(student.teacherEmail)}</div>` : `<div class="font-bold text-slate-300">มา ${student.presentDays || 0}/${student.totalDays || 0} งาน</div>`;
-                
                 let remarkHtml = student.remark ? `<div class="text-[10px] text-amber-400 mt-1 bg-amber-500/10 border border-amber-500/30 px-1.5 py-0.5 rounded inline-block">📝 ${cleanHTML(student.remark)}</div>` : "";
 
-                // 🌟 ปุ่มดูวิธีแก้ปัญหา (ถ้าคะแนนต่ำกว่า 80%)
                 let resolveBtn = "";
                 if (student.percent < 80) {
                     resolveBtn = `<button onclick="showResolutionModal('${currentMode}', ${student.percent})" class="mt-1.5 flex items-center justify-center mx-auto gap-1 text-[10px] bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-2 py-0.5 rounded-md transition-all"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>ดูวิธีแก้</button>`;
@@ -406,34 +446,46 @@
             });
         }
 
-        // 🌟 ฟังก์ชันเปิดหน้าต่างรายละเอียดวิธีแก้ไขกิจกรรมเดี่ยว (Popup)
         function showResolutionModal(type, percent) {
             document.getElementById('resPercent').innerText = percent;
-            
-            // วิ่งงมหาเงื่อนไขช่วงคะแนนที่แอดมินตั้งไว้
             let foundRule = globalRules.find(r => r.type === type && percent >= r.min && percent <= r.max);
-            
             let resText = "รอแจ้งข้อกำหนด";
-            if (foundRule && foundRule.text.trim() !== "") {
-                resText = foundRule.text;
-            }
-            
+            if (foundRule && foundRule.text.trim() !== "") resText = foundRule.text;
             document.getElementById('resText').innerText = resText;
-            
-            const modal = document.getElementById('resolutionModal');
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
+            const modal = document.getElementById('resolutionModal'); modal.classList.remove('hidden'); modal.classList.add('flex');
         }
 
         function closeResolutionModal(e) {
             if (e && e.target !== e.currentTarget) return;
-            const modal = document.getElementById('resolutionModal');
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
+            const modal = document.getElementById('resolutionModal'); modal.classList.add('hidden'); modal.classList.remove('flex');
         }
 
         // ==========================================
-        // ระบบบริหารจัดการฝั่งแอดมิน (Admin Functions)
+        // 🌟 ฟังก์ชันจัดการ iOS Install Prompt
+        // ==========================================
+        function checkIOSInstallPrompt() {
+            // เช็คว่าเป็นอุปกรณ์ตระกูล iOS หรือไม่
+            const isIos = () => {
+                const userAgent = window.navigator.userAgent.toLowerCase();
+                return /iphone|ipad|ipod/.test(userAgent);
+            };
+            // เช็คว่าเปิดเป็นแอปเต็มจอแล้วหรือยัง (ถ้ายัง = false)
+            const isInStandaloneMode = () => ('standalone' in window.navigator) && (window.navigator.standalone);
+
+            // ถ้าเป็น iOS และไม่ได้เปิดเต็มจอ และผู้ใช้ยังไม่เคยกดปิดกล่องนี้
+            if (isIos() && !isInStandaloneMode()) {
+                if (!localStorage.getItem('iosPromptClosed')) {
+                    document.getElementById('iosInstallPrompt').classList.remove('hidden');
+                }
+            }
+        }
+
+        function closeIosPrompt() {
+            document.getElementById('iosInstallPrompt').classList.add('hidden');
+            // จำไว้ในเครื่องว่าเคยกดปิดแล้ว จะได้ไม่เด้งกวนใจบ่อยๆ
+            localStorage.setItem('iosPromptClosed', 'true');
+        }
+
         // ==========================================
         let isAdminAuthenticated = false;
         function openPasswordModal() { document.getElementById('passwordModal').classList.remove('hidden'); document.getElementById('passwordModal').classList.add('flex'); document.getElementById('adminPasswordInput').value = ""; document.getElementById('adminPasswordInput').focus(); }
@@ -446,8 +498,6 @@
                 document.getElementById('adminModal').classList.remove('hidden'); 
                 document.getElementById('adminModal').classList.add('flex'); 
                 document.getElementById('actDate').value = new Date().toISOString().split('T')[0]; 
-                
-                // โหลดเกณฑ์ที่มีอยู่เดิมลงตารางในหน้าแอดมินทันที
                 renderRulesTable();
             } else { 
                 alert("❌ รหัสผ่านไม่ถูกต้อง!"); 
@@ -459,23 +509,14 @@
         function closeAdminPanel() { document.getElementById('adminModal').classList.add('hidden'); document.getElementById('adminModal').classList.remove('flex'); document.getElementById('qrContainer').classList.add('hidden'); isAdminAuthenticated = false; }
         function toggleTimeInputs() { const isEnabled = document.getElementById('enableDeadline').checked; document.getElementById('timeInputsContainer').classList.toggle('opacity-30', !isEnabled); document.getElementById('timeInputsContainer').classList.toggle('pointer-events-none', !isEnabled); }
 
-        // ฟังก์ชันวาดตารางเกณฑ์ในหน้าแอดมิน
         function renderRulesTable() {
-            const tbody = document.getElementById('rulesTableBody');
-            tbody.innerHTML = '';
-            if (globalRules.length > 0) {
-                globalRules.forEach(r => addRuleRow(r.type, r.min, r.max, r.text));
-            } else {
-                // หากไม่มีเกณฑ์เลย ให้สร้างตัวอย่างรอไว้ 2 แถว
-                addRuleRow('attendance', 70, 79, '');
-                addRuleRow('activity', 70, 79, '');
-            }
+            const tbody = document.getElementById('rulesTableBody'); tbody.innerHTML = '';
+            if (globalRules.length > 0) { globalRules.forEach(r => addRuleRow(r.type, r.min, r.max, r.text)); } 
+            else { addRuleRow('attendance', 70, 79, ''); addRuleRow('activity', 70, 79, ''); }
         }
 
-        // ฟังก์ชันกดเพิ่มแถวเกณฑ์ซ่อมได้เรื่อยๆ (ไม่จำกัดจำนวนเงื่อนไข)
         function addRuleRow(type, min, max, text) {
-            const tbody = document.getElementById('rulesTableBody');
-            const tr = document.createElement('tr');
+            const tbody = document.getElementById('rulesTableBody'); const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td class="px-1 py-2"><select class="rule-type bg-slate-800 text-[11px] text-white border border-slate-600 rounded p-1 outline-none w-full"><option value="attendance" ${type==='attendance'?'selected':''}>เข้าแถว</option><option value="activity" ${type==='activity'?'selected':''}>กิจกรรม</option></select></td>
                 <td class="px-1 py-2 text-center"><input type="number" value="${min}" class="rule-min w-12 bg-slate-800 text-[11px] text-white border border-slate-600 rounded p-1 text-center outline-none"></td>
@@ -486,52 +527,24 @@
             tbody.appendChild(tr);
         }
 
-        // ฟังก์ชันบันทึกเกณฑ์ทั้งหมดส่งไปหา Google Sheets
         async function saveRulesToAPI() {
-            const rows = document.querySelectorAll('#rulesTableBody tr');
-            const rulesData = [];
-            rows.forEach(tr => {
-                rulesData.push({
-                    type: tr.querySelector('.rule-type').value,
-                    min: parseInt(tr.querySelector('.rule-min').value) || 0,
-                    max: parseInt(tr.querySelector('.rule-max').value) || 0,
-                    text: tr.querySelector('.rule-text').value.trim()
-                });
-            });
-
-            const btn = document.getElementById('btnSaveRules');
-            btn.innerText = "กำลังบันทึกข้อมูลลงฐานข้อมูล...";
-            btn.disabled = true;
+            const rows = document.querySelectorAll('#rulesTableBody tr'); const rulesData = [];
+            rows.forEach(tr => { rulesData.push({ type: tr.querySelector('.rule-type').value, min: parseInt(tr.querySelector('.rule-min').value) || 0, max: parseInt(tr.querySelector('.rule-max').value) || 0, text: tr.querySelector('.rule-text').value.trim() }); });
+            const btn = document.getElementById('btnSaveRules'); btn.innerText = "กำลังบันทึกข้อมูลลงฐานข้อมูล..."; btn.disabled = true;
 
             try {
-                const res = await fetch("https://script.google.com/macros/s/AKfycbzEZwclY5DDyAEW5LFToH3WkK3slgHeHVTS1pTizIhvI7iEZwGUtD9GKcv-EPlWu1rE7Q/exec", { 
-                    method: "POST", 
-                    headers: { "Content-Type": "text/plain;charset=utf-8" }, 
-                    body: JSON.stringify({ action: "save_rules", rules: rulesData }) 
-                });
+                const res = await fetch("https://script.google.com/macros/s/AKfycbzEZwclY5DDyAEW5LFToH3WkK3slgHeHVTS1pTizIhvI7iEZwGUtD9GKcv-EPlWu1rE7Q/exec", { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: "save_rules", rules: rulesData }) });
                 const data = await res.json();
-                if(data.status === "success") {
-                    globalRules = rulesData; 
-                    alert("✅ บันทึกเกณฑ์เงื่อนไขทั้งหมดสำเร็จ!");
-                    filterData(); // รีเฟรชหน้าตารางหลัก
-                } else throw new Error();
-            } catch (err) {
-                alert("❌ เกิดข้อผิดพลาดในการบันทึก กรุณาลองใหม่อีกครั้ง");
-            } finally {
-                btn.innerText = "บันทึกเงื่อนไขทั้งหมด";
-                btn.disabled = false;
-            }
+                if(data.status === "success") { globalRules = rulesData; alert("✅ บันทึกเกณฑ์เงื่อนไขทั้งหมดสำเร็จ!"); filterData(); } else throw new Error();
+            } catch (err) { alert("❌ เกิดข้อผิดพลาดในการบันทึก กรุณาลองใหม่อีกครั้ง"); } finally { btn.innerText = "บันทึกเงื่อนไขทั้งหมด"; btn.disabled = false; }
         }
 
         async function generateQR() {
             if (!isAdminAuthenticated) return alert("⛔ ไม่อนุญาต!");
-            const actName = document.getElementById('actName').value.trim();
-            const isDeadlineEnabled = document.getElementById('enableDeadline').checked;
-            const actDate = document.getElementById('actDate').value;
-            const actTime = `${document.getElementById('actHour').value}:${document.getElementById('actMinute').value}`;
+            const actName = document.getElementById('actName').value.trim(); const isDeadlineEnabled = document.getElementById('enableDeadline').checked;
+            const actDate = document.getElementById('actDate').value; const actTime = `${document.getElementById('actHour').value}:${document.getElementById('actMinute').value}`;
             
-            if (!actName) return alert("กรุณาตั้งชื่อกิจกรรม!");
-            if (isDeadlineEnabled && !actDate) return alert("กรุณากำหนดวันที่ปิดรับ!");
+            if (!actName) return alert("กรุณาตั้งชื่อกิจกรรม!"); if (isDeadlineEnabled && !actDate) return alert("กรุณากำหนดวันที่ปิดรับ!");
 
             let targetDepts = []; let targetLevels = [];
             if (!document.getElementById('chkAllDept').checked) { targetDepts = Array.from(document.querySelectorAll('.chk-dept:checked')).map(cb => cb.value); if(targetDepts.length === 0) return alert("กรุณาเลือกแผนกวิชาอย่างน้อย 1 แผนก!"); }
@@ -541,13 +554,10 @@
             let displayTimeText = isDeadlineEnabled ? `ปิดรับเช็คชื่อ: ${actDate} เวลา ${actTime} น.` : "เปิดรับสแกนตลอดเวลา ไม่จำกัดเวลา";
 
             const params = new URLSearchParams({ activity: actName, deadline: deadlineISO });
-            if(targetDepts.length > 0) params.append('dept', targetDepts.join(','));
-            if(targetLevels.length > 0) params.append('level', targetLevels.join(','));
+            if(targetDepts.length > 0) params.append('dept', targetDepts.join(',')); if(targetLevels.length > 0) params.append('level', targetLevels.join(','));
             
             currentScannerLink = `${URL_SCANNER_APP}?${params.toString()}`;
-
             const qrDiv = document.getElementById('qrImage'); qrDiv.innerHTML = ""; 
-            // 🌟 ปรับระดับความหนาแน่นตัว QR เป็นระดับ L เพื่อให้จุดใหญ่สแกนง่ายขึ้น 
             new QRCode(qrDiv, { text: currentScannerLink, width: 176, height: 176, correctLevel : QRCode.CorrectLevel.L });
 
             document.getElementById('qrTitleShow').innerText = actName; document.getElementById('qrTimeShow').innerText = displayTimeText;
