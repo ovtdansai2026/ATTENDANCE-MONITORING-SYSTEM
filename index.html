@@ -157,7 +157,7 @@
         </div>
     </div>
 
-    <div id="adminModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[60] p-4 backdrop-blur-sm">
+    <div id="adminModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-50 p-4 backdrop-blur-sm">
         <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 md:p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto relative shadow-2xl custom-scroll">
             <button onclick="closeAdminPanel()" class="absolute top-4 right-4 text-slate-400 hover:text-white font-bold text-lg">✖</button>
             
@@ -219,7 +219,7 @@
                 </div>
             </div>
 
-            <div class="border-b border-slate-800 pb-6 mb-6">
+            <div>
                 <h2 class="text-xl font-bold text-emerald-400 mb-2 flex items-center gap-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path></svg>
                     2. เกณฑ์เงื่อนไขการซ่อมข้อมูลกิจกรรม/เข้าแถว
@@ -248,18 +248,6 @@
                 </div>
                 
                 <button onclick="saveRulesToAPI()" id="btnSaveRules" class="w-full bg-emerald-500 hover:bg-emerald-600 text-black font-bold py-2.5 rounded-xl text-sm shadow-lg transition-all">บันทึกเงื่อนไขทั้งหมด</button>
-            </div>
-
-            <div>
-                <h2 class="text-xl font-bold text-rose-400 mb-4 flex items-center gap-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4v-4l5.659-5.659A6 6 0 1121 9z"></path></svg>
-                    3. เปลี่ยนรหัสผ่านแอดมิน
-                </h2>
-                <div class="flex gap-2">
-                    <input type="password" id="newAdminPass" placeholder="ตั้งรหัสผ่านใหม่..." class="flex-1 bg-slate-800 border border-slate-600 rounded-lg p-2.5 text-sm text-white focus:border-rose-500 focus:outline-none">
-                    <button onclick="changeAdminPassword()" id="btnChangePass" class="bg-rose-500 hover:bg-rose-600 text-white font-bold px-4 py-2.5 rounded-xl text-sm shadow-lg transition-all">เปลี่ยนรหัสผ่าน</button>
-                </div>
-                <p class="text-[10px] text-slate-400 mt-2">* รหัสผ่านจะถูกเข้ารหัสและบันทึกลงใน Google Sheets อย่างปลอดภัย</p>
             </div>
 
             <div class="border-t border-slate-800 pt-4 mt-6">
@@ -317,13 +305,15 @@
 
     <script>
         // ==========================================
+        // 🌟 เข้ารหัสผ่านฝังบนหน้าเว็บตรงๆ ปลอดภัยแบบเรียบง่าย (ถอดรหัสออกมาคือ Admin2026)
+        const MASTER_HASH = "QWRtaW4yMDI2"; 
+        
         const URL_SCANNER_APP = "https://ovtdansai2026.github.io/ATTENDANCE-MONITORING-SYSTEM/scanner.html"; 
         const API_ATTENDANCE = "https://script.google.com/macros/s/AKfycbzEZwclY5DDyAEW5LFToH3WkK3slgHeHVTS1pTizIhvI7iEZwGUtD9GKcv-EPlWu1rE7Q/exec?type=attendance"; 
         const API_ACTIVITY   = "https://script.google.com/macros/s/AKfycbzEZwclY5DDyAEW5LFToH3WkK3slgHeHVTS1pTizIhvI7iEZwGUtD9GKcv-EPlWu1rE7Q/exec?type=activity";
         // ==========================================
 
         function cleanHTML(str) { return !str ? "-" : str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag])); }
-        function encodePass(str) { return btoa(str).split('').reverse().join(''); }
 
         let currentMode = 'attendance'; 
         let dataAttendance = [];
@@ -331,7 +321,6 @@
         let activeData = [];
         let currentScannerLink = ""; 
         let globalRules = [];
-        let currentAdminHash = "2IDMy4WatRWQ"; // 🌟 รหัสตั้งต้นที่ตรงกันเป๊ะ 100%
 
         function initTimeDropdowns() {
             const hSelect = document.getElementById('actHour'); hSelect.innerHTML = "";
@@ -349,7 +338,6 @@
                 if (jsonAtt.status === "success") {
                     dataAttendance = processData(jsonAtt.data);
                     globalRules = jsonAtt.rules || [];
-                    if (jsonAtt.adminPass) currentAdminHash = jsonAtt.adminPass; // โหลดรหัสผ่านล่าสุดมาทับทันที
                     
                     const uniqueDepts = [...new Set(dataAttendance.map(i => i.pureDept))].filter(Boolean).sort();
                     const uniqueLevels = [...new Set(dataAttendance.map(i => i.pureLevel))].filter(Boolean).sort();
@@ -473,13 +461,15 @@
         function closeIosPrompt() { document.getElementById('iosInstallPrompt').classList.add('hidden'); localStorage.setItem('iosPromptClosed', 'true'); }
 
         // ==========================================
+        // ระบบบริหารจัดการฝั่งแอดมิน (Admin Panel)
+        // ==========================================
         let isAdminAuthenticated = false;
         function openPasswordModal() { document.getElementById('passwordModal').classList.remove('hidden'); document.getElementById('passwordModal').classList.add('flex'); document.getElementById('adminPasswordInput').value = ""; document.getElementById('adminPasswordInput').focus(); }
         function closePasswordModal() { document.getElementById('passwordModal').classList.add('hidden'); document.getElementById('passwordModal').classList.remove('flex'); }
         
         function submitAdminPassword() { 
-            // 🌟 เช็คว่ารหัสที่พิมพ์ ตรงกับรหัสบนฐานข้อมูลหรือไม่
-            if (encodePass(document.getElementById('adminPasswordInput').value) === currentAdminHash) { 
+            // 🌟 เปรียบเทียบรหัสผ่านด้วยระบบ Base64 ในหน้าเว็บตรงๆ ทันที
+            if (btoa(document.getElementById('adminPasswordInput').value) === MASTER_HASH) { 
                 isAdminAuthenticated = true; 
                 closePasswordModal(); 
                 document.getElementById('adminModal').classList.remove('hidden'); 
@@ -524,38 +514,6 @@
                 const data = await res.json();
                 if(data.status === "success") { globalRules = rulesData; alert("✅ บันทึกเกณฑ์เงื่อนไขทั้งหมดสำเร็จ!"); filterData(); } else throw new Error();
             } catch (err) { alert("❌ เกิดข้อผิดพลาดในการบันทึก กรุณาลองใหม่อีกครั้ง"); } finally { btn.innerText = "บันทึกเงื่อนไขทั้งหมด"; btn.disabled = false; }
-        }
-
-        async function changeAdminPassword() {
-            const newPass = document.getElementById('newAdminPass').value.trim();
-            if (!newPass) return alert("กรุณาใส่รหัสผ่านใหม่!");
-            if (newPass.length < 4) return alert("รหัสผ่านต้องมีอย่างน้อย 4 ตัวอักษร");
-            
-            const confirmPass = prompt("ยืนยันรหัสผ่าน: กรุณาพิมพ์รหัสผ่านใหม่อีกครั้งเพื่อความชัวร์:");
-            if (newPass !== confirmPass) return alert("❌ รหัสผ่านไม่ตรงกัน! ยกเลิกการบันทึก");
-
-            const newHash = encodePass(newPass);
-            const btn = document.getElementById('btnChangePass');
-            btn.innerText = "กำลังบันทึก..."; btn.disabled = true;
-
-            try {
-                const apiUrlBase = API_ATTENDANCE.split('?')[0];
-                const res = await fetch(apiUrlBase, { 
-                    method: "POST", 
-                    headers: { "Content-Type": "text/plain;charset=utf-8" }, 
-                    body: JSON.stringify({ action: "change_password", newPass: newHash }) 
-                });
-                const data = await res.json();
-                if(data.status === "success") { 
-                    currentAdminHash = newHash; 
-                    alert("✅ เปลี่ยนรหัสผ่านสำเร็จแล้ว! ระบบจะบันทึกค่าลง Google Sheets ทันที");
-                    document.getElementById('newAdminPass').value = "";
-                } else throw new Error();
-            } catch (err) { 
-                alert("❌ เกิดข้อผิดพลาดทางเทคนิค ไม่สามารถเปลี่ยนรหัสผ่านได้"); 
-            } finally { 
-                btn.innerText = "เปลี่ยนรหัสผ่าน"; btn.disabled = false; 
-            }
         }
 
         async function generateQR() {
