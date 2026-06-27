@@ -1,6 +1,6 @@
 {
-  "name": "ระบบจัดการกิจกรรมและเข้าแถว",
-  "short_name": "ระบบกิจกรรม",
+  "name": "แดชบอร์ดวิทยาลัยการอาชีพด่านซ้าย",
+  "short_name": "DICEC Dashboard",
   "description": "แดชบอร์ดตรวจสอบการเข้าแถวและกิจกรรมนักเรียน",
   "start_url": "./index.html",
   "display": "standalone",
