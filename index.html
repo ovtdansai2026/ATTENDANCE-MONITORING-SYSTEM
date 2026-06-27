@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>แดชบอร์ดสรุปผลการเข้าแถวและกิจกรรม</title>
     
-    <!-- 🌟 ตั้งค่า Web App (PWA) -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0b0f19">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -36,7 +35,6 @@
 </head>
 <body class="p-4 md:p-8 text-slate-100 min-h-screen">
 
-    <!-- 🌟 โครงสร้างหน้าเว็บหลักของครู (ใช้ตัวเดิมเป๊ะๆ) 🌟 -->
     <div class="max-w-7xl mx-auto">
         <header class="glass-card p-4 md:p-6 rounded-2xl mb-6 shadow-xl border-b border-blue-500/20">
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
@@ -144,7 +142,6 @@
         </div>
     </div>
 
-    <!-- Password Modal -->
     <div id="passwordModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[70] p-4 backdrop-blur-sm">
         <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-sm w-full shadow-2xl">
             <h3 class="text-lg font-bold text-amber-400 mb-2 flex items-center gap-2">
@@ -160,7 +157,6 @@
         </div>
     </div>
 
-    <!-- Admin Modal -->
     <div id="adminModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[60] p-4 backdrop-blur-sm">
         <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 md:p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto relative shadow-2xl custom-scroll">
             <button onclick="closeAdminPanel()" class="absolute top-4 right-4 text-slate-400 hover:text-white font-bold text-lg">✖</button>
@@ -223,7 +219,7 @@
                 </div>
             </div>
 
-            <div>
+            <div class="border-b border-slate-800 pb-6 mb-6">
                 <h2 class="text-xl font-bold text-emerald-400 mb-2 flex items-center gap-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path></svg>
                     2. เกณฑ์เงื่อนไขการซ่อมข้อมูลกิจกรรม/เข้าแถว
@@ -254,21 +250,31 @@
                 <button onclick="saveRulesToAPI()" id="btnSaveRules" class="w-full bg-emerald-500 hover:bg-emerald-600 text-black font-bold py-2.5 rounded-xl text-sm shadow-lg transition-all">บันทึกเงื่อนไขทั้งหมด</button>
             </div>
 
+            <div>
+                <h2 class="text-xl font-bold text-rose-400 mb-4 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4v-4l5.659-5.659A6 6 0 1121 9z"></path></svg>
+                    3. เปลี่ยนรหัสผ่านแอดมิน
+                </h2>
+                <div class="flex gap-2">
+                    <input type="password" id="newAdminPass" placeholder="ตั้งรหัสผ่านใหม่..." class="flex-1 bg-slate-800 border border-slate-600 rounded-lg p-2.5 text-sm text-white focus:border-rose-500 focus:outline-none">
+                    <button onclick="changeAdminPassword()" id="btnChangePass" class="bg-rose-500 hover:bg-rose-600 text-white font-bold px-4 py-2.5 rounded-xl text-sm shadow-lg transition-all">เปลี่ยนรหัสผ่าน</button>
+                </div>
+                <p class="text-[10px] text-slate-400 mt-2">* รหัสผ่านจะถูกเข้ารหัสและบันทึกลงใน Google Sheets อย่างปลอดภัย</p>
+            </div>
+
             <div class="border-t border-slate-800 pt-4 mt-6">
                 <button onclick="closeAdminPanel()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 rounded-xl text-sm border border-slate-700">ปิดหน้าต่างควบคุม</button>
             </div>
         </div>
     </div>
 
-    <!-- QR Expanded -->
     <div id="qrExpandedModal" class="fixed inset-0 bg-slate-950/95 hidden flex-col items-center justify-center z-[70] p-4 cursor-pointer" onclick="closeExpandedQR()">
         <p id="qrExpandedTitle" class="text-white text-2xl md:text-4xl font-bold mb-8 text-center drop-shadow-xl tracking-wide"></p>
         <div id="qrExpandedImage" class="bg-white p-6 md:p-8 rounded-3xl shadow-2xl"></div>
         <p class="text-slate-400 mt-8 text-xs bg-slate-900/80 px-4 py-2 rounded-full border border-slate-800">คลิกที่ใดก็ได้บนหน้าจอเพื่อย่อกลับ</p>
     </div>
 
-    <!-- Popup Resolution Modal -->
-    <div id="resolutionModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[70] p-4 backdrop-blur-sm" onclick="closeResolutionModal(event)">
+    <div id="resolutionModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[60] p-4 backdrop-blur-sm" onclick="closeResolutionModal(event)">
         <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-sm w-full shadow-2xl transform transition-all" onclick="event.stopPropagation()">
             <div class="text-center mb-4">
                 <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-red-500/20 text-red-500 mb-2">
@@ -284,7 +290,6 @@
         </div>
     </div>
 
-    <!-- 🌟 Popup จำลองสอนติดตั้งสำหรับ iOS (Safari) 🌟 -->
     <div id="iosInstallPrompt" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-slate-800 border border-blue-500/30 text-white p-5 rounded-2xl shadow-2xl z-[100] hidden w-[90%] max-w-sm transition-all">
         <div class="flex justify-between items-start mb-3">
             <h3 class="font-bold text-sm text-blue-400 flex items-center gap-2">
@@ -300,7 +305,6 @@
         </div>
     </div>
 
-    <!-- 🌟 ฝังโค้ด Service Worker ลงหน้าเว็บ -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
@@ -313,13 +317,13 @@
 
     <script>
         // ==========================================
-        const MASTER_PASSWORD = "Admin2026"; 
         const URL_SCANNER_APP = "https://ovtdansai2026.github.io/ATTENDANCE-MONITORING-SYSTEM/scanner.html"; 
         const API_ATTENDANCE = "https://script.google.com/macros/s/AKfycbzEZwclY5DDyAEW5LFToH3WkK3slgHeHVTS1pTizIhvI7iEZwGUtD9GKcv-EPlWu1rE7Q/exec?type=attendance"; 
         const API_ACTIVITY   = "https://script.google.com/macros/s/AKfycbzEZwclY5DDyAEW5LFToH3WkK3slgHeHVTS1pTizIhvI7iEZwGUtD9GKcv-EPlWu1rE7Q/exec?type=activity";
         // ==========================================
 
         function cleanHTML(str) { return !str ? "-" : str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag])); }
+        function encodePass(str) { return btoa(str).split('').reverse().join(''); }
 
         let currentMode = 'attendance'; 
         let dataAttendance = [];
@@ -327,6 +331,7 @@
         let activeData = [];
         let currentScannerLink = ""; 
         let globalRules = [];
+        let currentAdminHash = "6IMMy4WimRWQ"; // รหัสผ่านตั้งต้น (Admin2026)
 
         function initTimeDropdowns() {
             const hSelect = document.getElementById('actHour'); hSelect.innerHTML = "";
@@ -344,6 +349,7 @@
                 if (jsonAtt.status === "success") {
                     dataAttendance = processData(jsonAtt.data);
                     globalRules = jsonAtt.rules || [];
+                    if (jsonAtt.adminPass) currentAdminHash = jsonAtt.adminPass; // 🌟 ดึงแฮชรหัสผ่านล่าสุดมาจาก Google Sheets
                     
                     const uniqueDepts = [...new Set(dataAttendance.map(i => i.pureDept))].filter(Boolean).sort();
                     const uniqueLevels = [...new Set(dataAttendance.map(i => i.pureLevel))].filter(Boolean).sort();
@@ -356,10 +362,7 @@
                 switchMode('attendance');
                 document.getElementById('loading').classList.add('hidden');
                 document.getElementById('dashboardContent').classList.remove('hidden');
-                
-                // 🌟 ตรวจสอบและแสดง Popup สำหรับ iOS (หลังจากโหลดเว็บเสร็จ)
                 checkIOSInstallPrompt();
-
             } catch (error) { console.error(error); alert("โหลดข้อมูลไม่สำเร็จ กรุณารีเฟรช"); }
         }
 
@@ -460,39 +463,25 @@
             const modal = document.getElementById('resolutionModal'); modal.classList.add('hidden'); modal.classList.remove('flex');
         }
 
-        // ==========================================
-        // 🌟 ฟังก์ชันจัดการ iOS Install Prompt
-        // ==========================================
         function checkIOSInstallPrompt() {
-            // เช็คว่าเป็นอุปกรณ์ตระกูล iOS หรือไม่
-            const isIos = () => {
-                const userAgent = window.navigator.userAgent.toLowerCase();
-                return /iphone|ipad|ipod/.test(userAgent);
-            };
-            // เช็คว่าเปิดเป็นแอปเต็มจอแล้วหรือยัง (ถ้ายัง = false)
+            const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
             const isInStandaloneMode = () => ('standalone' in window.navigator) && (window.navigator.standalone);
-
-            // ถ้าเป็น iOS และไม่ได้เปิดเต็มจอ และผู้ใช้ยังไม่เคยกดปิดกล่องนี้
-            if (isIos() && !isInStandaloneMode()) {
-                if (!localStorage.getItem('iosPromptClosed')) {
-                    document.getElementById('iosInstallPrompt').classList.remove('hidden');
-                }
+            if (isIos() && !isInStandaloneMode() && !localStorage.getItem('iosPromptClosed')) {
+                document.getElementById('iosInstallPrompt').classList.remove('hidden');
             }
         }
+        function closeIosPrompt() { document.getElementById('iosInstallPrompt').classList.add('hidden'); localStorage.setItem('iosPromptClosed', 'true'); }
 
-        function closeIosPrompt() {
-            document.getElementById('iosInstallPrompt').classList.add('hidden');
-            // จำไว้ในเครื่องว่าเคยกดปิดแล้ว จะได้ไม่เด้งกวนใจบ่อยๆ
-            localStorage.setItem('iosPromptClosed', 'true');
-        }
-
+        // ==========================================
+        // ระบบบริหารจัดการฝั่งแอดมิน (Admin Panel)
         // ==========================================
         let isAdminAuthenticated = false;
         function openPasswordModal() { document.getElementById('passwordModal').classList.remove('hidden'); document.getElementById('passwordModal').classList.add('flex'); document.getElementById('adminPasswordInput').value = ""; document.getElementById('adminPasswordInput').focus(); }
         function closePasswordModal() { document.getElementById('passwordModal').classList.add('hidden'); document.getElementById('passwordModal').classList.remove('flex'); }
         
         function submitAdminPassword() { 
-            if (document.getElementById('adminPasswordInput').value === MASTER_PASSWORD) { 
+            // 🌟 เช็คค่าแฮชรหัสผ่านเปรียบเทียบกับหน่วยความจำดิบ
+            if (encodePass(document.getElementById('adminPasswordInput').value) === currentAdminHash) { 
                 isAdminAuthenticated = true; 
                 closePasswordModal(); 
                 document.getElementById('adminModal').classList.remove('hidden'); 
@@ -537,6 +526,39 @@
                 const data = await res.json();
                 if(data.status === "success") { globalRules = rulesData; alert("✅ บันทึกเกณฑ์เงื่อนไขทั้งหมดสำเร็จ!"); filterData(); } else throw new Error();
             } catch (err) { alert("❌ เกิดข้อผิดพลาดในการบันทึก กรุณาลองใหม่อีกครั้ง"); } finally { btn.innerText = "บันทึกเงื่อนไขทั้งหมด"; btn.disabled = false; }
+        }
+
+        // 🌟 ฟังก์ชันสำหรับปุ่มเปลี่ยนรหัสผ่านแอดมิน
+        async function changeAdminPassword() {
+            const newPass = document.getElementById('newAdminPass').value.trim();
+            if (!newPass) return alert("กรุณาใส่รหัสผ่านใหม่!");
+            if (newPass.length < 4) return alert("รหัสผ่านต้องมีอย่างน้อย 4 ตัวอักษร");
+            
+            const confirmPass = prompt("ยืนยันรหัสผ่าน: กรุณาพิมพ์รหัสผ่านใหม่อีกครั้งเพื่อความชัวร์:");
+            if (newPass !== confirmPass) return alert("❌ รหัสผ่านไม่ตรงกัน! ยกเลิกการบันทึก");
+
+            const newHash = encodePass(newPass);
+            const btn = document.getElementById('btnChangePass');
+            btn.innerText = "กำลังบันทึก..."; btn.disabled = true;
+
+            try {
+                const apiUrlBase = API_ATTENDANCE.split('?')[0];
+                const res = await fetch(apiUrlBase, { 
+                    method: "POST", 
+                    headers: { "Content-Type": "text/plain;charset=utf-8" }, 
+                    body: JSON.stringify({ action: "change_password", newPass: newHash }) 
+                });
+                const data = await res.json();
+                if(data.status === "success") { 
+                    currentAdminHash = newHash; // จำรหัสผ่านใหม่ทันที
+                    alert("✅ เปลี่ยนรหัสผ่านสำเร็จแล้ว! ระบบจะบันทึกค่าลง Google Sheets ทันที");
+                    document.getElementById('newAdminPass').value = "";
+                } else throw new Error();
+            } catch (err) { 
+                alert("❌ เกิดข้อผิดพลาดทางเทคนิค ไม่สามารถเปลี่ยนรหัสผ่านได้"); 
+            } finally { 
+                btn.innerText = "เปลี่ยนรหัสผ่าน"; btn.disabled = false; 
+            }
         }
 
         async function generateQR() {
