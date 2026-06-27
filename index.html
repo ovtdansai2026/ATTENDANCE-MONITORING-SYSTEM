@@ -331,7 +331,7 @@
         let activeData = [];
         let currentScannerLink = ""; 
         let globalRules = [];
-        let currentAdminHash = "6IMMy4WimRWQ"; // รหัสผ่านตั้งต้น (Admin2026)
+        let currentAdminHash = "2IDMy4WatRWQ"; // 🌟 รหัสตั้งต้นที่ตรงกันเป๊ะ 100%
 
         function initTimeDropdowns() {
             const hSelect = document.getElementById('actHour'); hSelect.innerHTML = "";
@@ -349,7 +349,7 @@
                 if (jsonAtt.status === "success") {
                     dataAttendance = processData(jsonAtt.data);
                     globalRules = jsonAtt.rules || [];
-                    if (jsonAtt.adminPass) currentAdminHash = jsonAtt.adminPass; // 🌟 ดึงแฮชรหัสผ่านล่าสุดมาจาก Google Sheets
+                    if (jsonAtt.adminPass) currentAdminHash = jsonAtt.adminPass; // โหลดรหัสผ่านล่าสุดมาทับทันที
                     
                     const uniqueDepts = [...new Set(dataAttendance.map(i => i.pureDept))].filter(Boolean).sort();
                     const uniqueLevels = [...new Set(dataAttendance.map(i => i.pureLevel))].filter(Boolean).sort();
@@ -473,14 +473,12 @@
         function closeIosPrompt() { document.getElementById('iosInstallPrompt').classList.add('hidden'); localStorage.setItem('iosPromptClosed', 'true'); }
 
         // ==========================================
-        // ระบบบริหารจัดการฝั่งแอดมิน (Admin Panel)
-        // ==========================================
         let isAdminAuthenticated = false;
         function openPasswordModal() { document.getElementById('passwordModal').classList.remove('hidden'); document.getElementById('passwordModal').classList.add('flex'); document.getElementById('adminPasswordInput').value = ""; document.getElementById('adminPasswordInput').focus(); }
         function closePasswordModal() { document.getElementById('passwordModal').classList.add('hidden'); document.getElementById('passwordModal').classList.remove('flex'); }
         
         function submitAdminPassword() { 
-            // 🌟 เช็คค่าแฮชรหัสผ่านเปรียบเทียบกับหน่วยความจำดิบ
+            // 🌟 เช็คว่ารหัสที่พิมพ์ ตรงกับรหัสบนฐานข้อมูลหรือไม่
             if (encodePass(document.getElementById('adminPasswordInput').value) === currentAdminHash) { 
                 isAdminAuthenticated = true; 
                 closePasswordModal(); 
@@ -528,7 +526,6 @@
             } catch (err) { alert("❌ เกิดข้อผิดพลาดในการบันทึก กรุณาลองใหม่อีกครั้ง"); } finally { btn.innerText = "บันทึกเงื่อนไขทั้งหมด"; btn.disabled = false; }
         }
 
-        // 🌟 ฟังก์ชันสำหรับปุ่มเปลี่ยนรหัสผ่านแอดมิน
         async function changeAdminPassword() {
             const newPass = document.getElementById('newAdminPass').value.trim();
             if (!newPass) return alert("กรุณาใส่รหัสผ่านใหม่!");
@@ -550,7 +547,7 @@
                 });
                 const data = await res.json();
                 if(data.status === "success") { 
-                    currentAdminHash = newHash; // จำรหัสผ่านใหม่ทันที
+                    currentAdminHash = newHash; 
                     alert("✅ เปลี่ยนรหัสผ่านสำเร็จแล้ว! ระบบจะบันทึกค่าลง Google Sheets ทันที");
                     document.getElementById('newAdminPass').value = "";
                 } else throw new Error();
