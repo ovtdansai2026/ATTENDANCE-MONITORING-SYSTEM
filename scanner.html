@@ -141,19 +141,44 @@
             // ดึงข้อมูลชั้นปีและแผนกที่แท้จริงจาก Object เด็กคนนั้น
             const studentObj = filteredStudents.find(s => s.studentName === selectedName && `${s.department} ${s.pureLevel}`.trim() === selectedRoom);
 
+            // ฟังก์ชันส่วนตัวสำหรับรีเซ็ตปุ่มเมื่อทำงานผิดพลาด
+            const resetBtn = () => {
+                btn.disabled = false; 
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                btn.innerText = "ส่งข้อมูลเช็คชื่อ";
+            };
+
             btn.disabled = true; 
             btn.classList.add('opacity-50', 'cursor-not-allowed');
             btn.innerText = "กำลังอัปโหลดข้อมูลและรูปภาพ...";
 
             const file = document.getElementById('imageInput').files[0];
+            if (!file) {
+                alert("❌ กรุณาเลือกหรือถ่ายภาพหลักฐานการเข้าร่วมกิจกรรม");
+                resetBtn();
+                return;
+            }
+
             const reader = new FileReader();
-            reader.readAsDataURL(file);
             
+            // 🌟 ป้องกันค้าง: หากเปิดอ่านไฟล์รูปภาพของเครื่องเด็กไม่สำเร็จ
+            reader.onerror = function() {
+                alert("❌ ไม่สามารถเปิดไฟล์รูปภาพหลักฐานได้ กรุณาลองถ่ายรูปใหม่อีกครั้ง");
+                resetBtn();
+            };
+
+            reader.readAsDataURL(file);
             reader.onload = function(event) {
                 // สร้าง Image Object เพื่อเตรียมย่อขนาด
                 const img = new Image();
                 img.src = event.target.result;
                 
+                // 🌟 ป้องกันค้าง: หากตัวเว็บโหลดข้อมูลไฟล์ภาพเพื่อย่อขนาดไม่สำเร็จ
+                img.onerror = function() {
+                    alert("❌ รูปภาพหลักฐานมีปัญหา ข้อมูลขัดข้อง กรุณาลองถ่ายรูปใหม่อีกครั้ง");
+                    resetBtn();
+                };
+
                 img.onload = async function() {
                     // สร้าง Canvas สำหรับบีบอัด
                     const canvas = document.createElement('canvas');
@@ -176,7 +201,7 @@
                         pureDept: studentObj.department, 
                         activityName: activity,
                         deadline: deadline,
-                        imageCode: compressedBase64 // 🌟 ส่งรูปที่ย่อไซส์แล้วไปแทน
+                        imageCode: compressedBase64 // ส่งรูปที่ย่อไซส์แล้วไปแทน
                     };
                     
                     try {
@@ -192,15 +217,11 @@
                             location.reload(); 
                         } else {
                             alert("❌ เกิดข้อผิดพลาดจากระบบ: " + result.message);
-                            btn.disabled = false; 
-                            btn.classList.remove('opacity-50', 'cursor-not-allowed');
-                            btn.innerText = "ส่งข้อมูลเช็คชื่อ";
+                            resetBtn();
                         }
                     } catch (err) {
-                        alert("❌ ไม่สามารถเชื่อมต่อระบบได้ กรุณาลองใหม่อีกครั้ง");
-                        btn.disabled = false; 
-                        btn.classList.remove('opacity-50', 'cursor-not-allowed');
-                        btn.innerText = "ส่งข้อมูลเช็คชื่อ";
+                        alert("❌ ไม่สามารถเชื่อมต่อระบบอินเทอร์เน็ตได้ กรุณาตรวจสอบสัญญาณแล้วลองใหม่อีกครั้ง");
+                        resetBtn();
                     }
                 }
             };
