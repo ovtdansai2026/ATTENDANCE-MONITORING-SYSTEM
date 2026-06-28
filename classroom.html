@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบเช็คชื่อรายวิชาเรียนออนไลน์ - วิทยาลัยการอาชีพด่านซ้าย</title>
+    
+    <meta name="theme-color" content="#0b0f19">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Prompt', sans-serif; background-color: #0b0f19; }
+        select, input, option { font-family: 'Prompt', sans-serif !important; }
+        .glass-card { background: rgba(17, 24, 39, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); }
+        .custom-scroll::-webkit-scrollbar-thumb { background: rgba(51, 65, 85, 0.5); border-radius: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: rgba(71, 85, 105, 0.7); }
+        .loader { border: 4px solid rgba(255, 255, 255, 0.1); border-top: 4px solid #3b82f6; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="p-4 md:p-8 text-slate-100 min-h-screen flex items-center justify-center">
+
+    <!-- แผงการทำงานหลัก (เปิดใช้งานทันทีโดยไม่มีการล็อกอินรวมด่านแรก) -->
+    <div id="mainScreen" class="w-full max-w-7xl mx-auto space-y-6">
+        <header class="glass-card p-4 md:p-6 rounded-2xl shadow-xl border-b border-blue-500/20 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+                <div class="flex items-center gap-3">
+                    <span class="flex h-3 w-3 relative"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span></span>
+                    <h1 class="text-xl md:text-2xl font-bold tracking-wide bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">ระบบเช็คชื่อรายวิชาเรียน วิทยาลัยการอาชีพด่านซ้าย</h1>
+                </div>
+                <p class="text-slate-400 text-xs md:text-sm mt-1">ระบบลงทะเบียนและประมวลผลเวลาเรียนออนไลน์ประจำแผนก</p>
+            </div>
+        </header>
+
+        <!-- Spinner โหลดเดอร์ -->
+        <div id="classroomLoader" class="flex flex-col items-center justify-center py-20 hidden">
+            <div class="loader mb-4"></div>
+            <p class="text-slate-400 text-sm font-medium tracking-wide animate-pulse">กำลังเรียกดำเนินการเข้าฐานข้อมูล...</p>
+        </div>
+
+        <!-- 🌟 แผงระดับที่ 1: แฟ้มรายชื่ออาจารย์ผู้สอน (Spreadsheets View) -->
+        <div id="classroomSpreadsheetsView" class="hidden space-y-6">
+            <!-- ดาวน์โหลดเทมเพลต Excel สำหรับครูท่านอื่น -->
+            <div class="glass-card p-4 rounded-xl border border-blue-500/15 flex flex-col md:flex-row justify-between items-center gap-4 bg-blue-500/5 shadow-md">
+                <div class="flex items-center gap-3">
+                    <span class="p-2 rounded-xl bg-blue-500/20 text-blue-400">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 011.414.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    </span>
+                    <div>
+                        <h4 class="text-xs md:text-sm font-bold text-slate-100">ต้องการใช้งานระบบเช็คชื่อรายวิชาเรียนนี้?</h4>
+                        <p class="text-[11px] text-slate-400 mt-1">ดาวน์โหลดไฟล์แม่แบบสเปรดชีตวิชานี้ นำไปใส่รายชื่อนักเรียนและเปิดแชร์ใน Google Drive ก็พร้อมสร้างระบบส่วนตัวทันที</p>
+                    </div>
+                </div>
+                <a href="template_เช็คชื่อรายวิชา.xlsx" download class="text-xs bg-slate-800 hover:bg-slate-700 text-blue-400 font-bold border border-slate-700 px-4 py-2 rounded-lg flex items-center gap-1.5 transition-colors w-full md:w-auto justify-center">
+                    📥 ดาวน์โหลดเทมเพลตรายวิชา (.xlsx)
+                </a>
+            </div>
+
+            <!-- สร้างแฟ้มครูผู้สอนใหม่ และบังคับครูตั้งรหัสผ่านประจำชีตของตนเอง -->
+            <div class="glass-card p-5 rounded-2xl border border-blue-500/10 bg-slate-900/40 space-y-3">
+                <h3 class="text-xs md:text-sm font-bold text-slate-200 flex items-center gap-1.5">
+                    <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    ลงทะเบียน Google Sheets แฟ้มรายวิชาคุณครูใหม่
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">ชื่อ-นามสกุล ของอาจารย์ผู้สอน</label>
+                        <input type="text" id="newTeacherName" placeholder="เช่น นายสัญชัย ทูลไธสง" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">ลิงก์ Google Sheets (แชร์แบบ Editor)</label>
+                        <input type="text" id="newSpreadsheetUrl" placeholder="https://docs.google.com/spreadsheets/d/..." class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">กำหนดรหัสผ่านเข้าใช้งานชีตนี้ (ครูตั้งเอง)</label>
+                        <input type="password" id="newSpreadsheetPassword" placeholder="ตั้งรหัสผ่านประจำชีต..." class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500">
+                    </div>
+                </div>
+                <div class="flex justify-end pt-2">
+                    <button onclick="addSpreadsheetAction()" id="btnAddSpreadsheet" class="w-full md:w-auto px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow transition-colors flex items-center justify-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                        ลงทะเบียนแฟ้มครูผู้สอน
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 pb-2 border-b border-slate-800">
+                <h2 class="text-sm md:text-md font-bold text-blue-400">รายชื่อแฟ้มสถิติรายสัปดาห์ของคุณครูประจำวิชา</h2>
+                <button onclick="loadClassroomSpreadsheets()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 px-3 py-1.5 rounded-lg transition-colors">
+                    รีเฟรชแฟ้มสถิติ
+                </button>
+            </div>
+            
+            <!-- ค้นหาอัจฉริยะแบบ Real-time ดึงตามคีย์เวิร์ดทั้งชื่อผู้สอนและชื่อวิชาที่สอน -->
+            <div class="relative w-full">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                </span>
+                <input type="text" id="classroomSearch" oninput="filterSpreadsheets()" placeholder="พิมพ์ค้นหาด่วน ด้วยชื่อคุณครูผู้สอน หรือรายวิชาในวิทยาลัย..." class="w-full bg-slate-900 border border-slate-700 rounded-xl py-3 pl-10 pr-4 text-xs md:text-sm text-slate-200 focus:outline-none focus:border-blue-500 shadow-md">
+            </div>
+
+            <div id="classroomSpreadsheetList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                <!-- รายชื่อครูจะถูกดึงมาเรนเดอร์ตรงนี้ -->
+            </div>
+        </div>
+
+        <!-- 🌟 แผงระดับที่ 2: หน้าคัดเลือกวิชาเรียนภายในสเปรดชีตที่เลือก (Subjects View) -->
+        <div id="classroomSubjectsView" class="hidden space-y-6">
+            <div class="glass-card p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 flex items-center gap-3">
+                <button onclick="backToSpreadsheets()" class="p-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-300">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                </button>
+                <div>
+                    <span class="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">กำลังตรวจสอบแฟ้มประวัติเรียน</span>
+                    <h2 id="classroomSpreadsheetTitleHeader" class="text-sm md:text-base font-bold text-slate-200">ชื่อไฟล์ชีตวิชา</h2>
+                </div>
+            </div>
+            
+            <div class="flex justify-between items-center pb-2 border-b border-slate-800">
+                <h3 class="text-xs md:text-sm font-bold text-blue-400">เลือกวิชาด้านในแฟ้มเพื่อเริ่มเช็คชื่อนักเรียน</h3>
+            </div>
+            <div id="classroomSubjectList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6"></div>
+        </div>
+
+        <!-- 🌟 แผงระดับที่ 3: หน้าตารางเช็ครายชื่อนักเรียน (Classroom Form View) -->
+        <div id="classroomFormView" class="hidden space-y-6">
+            <div class="glass-card p-4 md:p-6 rounded-2xl border border-blue-500/20 flex flex-col md:flex-row justify-between gap-4">
+                <div class="flex items-start gap-4">
+                    <button onclick="backToSubjects()" class="p-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-slate-300 transition-all">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                    </button>
+                    <div>
+                        <span class="text-xs font-semibold text-blue-400 tracking-wider uppercase">บันทึกสถิติรายวิชา</span>
+                        <h3 id="classroomSubjectTitle" class="text-base md:text-lg font-bold text-slate-100 mt-1">ชื่อวิชาเรียน</h3>
+                    </div>
+                </div>
+                
+                <div class="flex flex-wrap items-center gap-3">
+                    <div class="flex-1 min-w-[140px]">
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">เลือกวันที่เช็คชื่อ</label>
+                        <input type="date" id="classroomCheckDate" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div class="w-36">
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">จำนวนคาบ (เว้นว่างได้)</label>
+                        <input type="text" id="classroomPeriods" placeholder="เช่น 4" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2 text-sm text-slate-200 text-center focus:outline-none focus:border-blue-500">
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-card rounded-2xl overflow-hidden border border-slate-800 shadow-xl">
+                <div class="p-4 md:p-5 border-b border-slate-800 flex flex-wrap justify-between items-center gap-3 bg-slate-900/40">
+                    <h4 class="text-xs font-bold text-slate-300">เครื่องมือช่วยติ๊กสถานะด่วนสำหรับทุกคน</h4>
+                    <div class="flex flex-wrap gap-1">
+                        <button onclick="quickSetAllAttendance('มา')" class="px-3 py-1 text-[11px] font-bold rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all">มาทุกคน</button>
+                        <button onclick="quickSetAllAttendance('สาย')" class="px-3 py-1 text-[11px] font-bold rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-all">สายทุกคน</button>
+                        <button onclick="quickSetAllAttendance('ลา')" class="px-3 py-1 text-[11px] font-bold rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 transition-all">ลาทุกคน</button>
+                        <button onclick="quickSetAllAttendance('ขาด')" class="px-3 py-1 text-[11px] font-bold rounded bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-all">ขาดทุกคน</button>
+                    </div>
+                </div>
+                
+                <div class="overflow-x-auto custom-scroll max-h-[500px]">
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-slate-900 sticky top-0 border-b border-slate-800 z-10">
+                            <tr>
+                                <th class="px-2 py-3 text-center text-[10px] text-slate-400 uppercase tracking-wider w-12">ลำดับ</th>
+                                <th class="px-2 py-3 text-[10px] text-slate-400 uppercase tracking-wider">ข้อมูลส่วนตัวนักเรียน</th>
+                                <th class="px-2 py-3 text-center text-[10px] text-slate-400 uppercase tracking-wider w-64">บันทึกสัญลักษณ์ลงในช่อง</th>
+                            </tr>
+                        </thead>
+                        <tbody id="classroomStudentsBody" class="divide-y divide-slate-800/40 bg-slate-950/20"></tbody>
+                    </table>
+                </div>
+                
+                <div class="p-4 md:p-6 bg-slate-900/20 border-t border-slate-800 flex justify-end">
+                    <button onclick="saveClassroomAttendanceForm()" id="btnSaveClassroomAttendance" class="w-full md:w-auto px-8 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold text-sm rounded-xl shadow-lg transition-all flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
+                        💾 บันทึกข้อมูลเข้า Google Sheets
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🌟 3. ป๊อปอัปกรอกรหัสผ่านประจำชีต เพื่อยืนยันสิทธิ์ของคุณครูผู้เป็นเจ้าของก่อนเปิดเข้าเช็ค -->
+    <div id="spreadsheetPasswordModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[70] p-4 backdrop-blur-sm">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+            <h3 class="text-lg font-bold text-amber-400 mb-2 flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                ยืนยันสิทธิ์ประจำชีตวิชา
+            </h3>
+            <p id="ssPasswordPromptText" class="text-xs text-slate-400 mb-4">กรุณากรอกรหัสผ่านของอาจารย์เพื่อยืนยันสิทธิ์ในการเข้าถึงและแก้ไขข้อมูล</p>
+            <input type="password" id="ssPasswordInput" placeholder="ป้อนรหัสประจำชีต..." class="w-full bg-slate-800 border border-slate-600 rounded-lg p-3 text-sm text-white mb-4 outline-none focus:border-amber-500">
+            <div class="flex gap-2">
+                <button onclick="closeSsPasswordModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-medium py-2 rounded-xl text-sm border border-slate-700">ยกเลิก</button>
+                <button onclick="submitSsPassword()" class="flex-1 bg-amber-500 hover:bg-amber-600 text-black font-bold py-2 rounded-xl text-sm">ยืนยันรหัสผ่าน</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = "https://script.google.com/macros/s/AKfycbzEZwclY5DDyAEW5LFToH3WkK3slgHeHVTS1pTizIhvI7iEZwGUtD9GKcv-EPlWu1rE7Q/exec";
+
+        let classroomSpreadsheets = [];
+        let selectedSpreadsheetId = "";
+        let selectedSpreadsheetName = "";
+        let classroomSubjects = [];
+        let selectedSubject = null;
+        let currentStudents = [];
+        
+        // ตัวแปรความปลอดภัยในการเช็คชื่อส่วนตัว
+        let tempSelectedSs = null;
+        let currentPassword = ""; 
+
+        function cleanHTML(str) { return !str ? "-" : str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag])); }
+
+        // ดึงรายการประวัติคุณครูทุกคนขึ้นมาแสดงผลทันทีแบบไม่มีด่านล็อกอินรวมด่านแรกกวนใจ
+        async function loadClassroomSpreadsheets() {
+            const loader = document.getElementById('classroomLoader');
+            const view = document.getElementById('classroomSpreadsheetsView');
+            
+            loader.classList.remove('hidden');
+            view.classList.add('hidden');
+            document.getElementById('classroomSubjectsView').classList.add('hidden');
+            document.getElementById('classroomFormView').classList.add('hidden');
+            
+            try {
+                const res = await fetch(`${API_BASE}?action=get_spreadsheets`);
+                const json = await res.json();
+                if (json.status === "success") {
+                    classroomSpreadsheets = json.data;
+                    renderSpreadsheetCards();
+                    view.classList.remove('hidden');
+                    document.getElementById('classroomSearch').value = ""; // รีเซ็ตคำค้นหา
+                } else {
+                    alert("ไม่สามารถดึงรายชื่อชีตวิทยาลัยได้: " + json.message);
+                }
+            } catch (err) {
+                console.error(err);
+                alert("เกิดข้อผิดพลาดในการโหลดระบบทะเบียนกลาง");
+            } finally {
+                loader.classList.add('hidden');
+            }
+        }
+
+        function renderSpreadsheetCards() {
+            const listDiv = document.getElementById('classroomSpreadsheetList');
+            listDiv.innerHTML = "";
+            
+            if (classroomSpreadsheets.length === 0) {
+                listDiv.innerHTML = `<p class="col-span-full text-center text-slate-500 py-12">ยังไม่มีแฟ้มประวัติสเปรดชีตใด ๆ ลงทะเบียนไว้ในระบบหลังบ้าน</p>`;
+                return;
+            }
+            
+            classroomSpreadsheets.forEach((ss, idx) => {
+                const card = document.createElement('div');
+                card.id = `teacher_card_${idx}`;
+                card.className = "teacher-card glass-card p-5 rounded-2xl border border-emerald-500/10 hover:border-emerald-500/30 cursor-pointer hover:bg-slate-900/90 transition-all shadow-md group flex flex-col justify-between min-h-[160px]";
+                card.onclick = () => selectSpreadsheet(ss);
+                card.innerHTML = `
+                    <div>
+                        <div class="flex items-center gap-3 mb-2">
+                            <span class="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-500/20 transition-colors">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                            </span>
+                            <span class="text-xs font-semibold text-slate-400">อาจารย์ผู้สอนประจำรายวิชา</span>
+                        </div>
+                        <h3 class="text-sm font-bold text-slate-200 leading-relaxed group-hover:text-emerald-400 transition-colors">${cleanHTML(ss.teacherName)}</h3>
+                        <p class="text-[10px] text-slate-400 mt-2 line-clamp-2 leading-relaxed">
+                            <strong>วิชาที่เปิดสอน:</strong> ${cleanHTML(ss.subjects || "ไม่ระบุวิชาเรียน")}
+                        </p>
+                    </div>
+                    <div class="text-[10px] text-emerald-400/80 font-semibold uppercase flex items-center gap-1 mt-3">
+                        เปิดสแกนแท็บรายวิชา 
+                        <svg class="w-3 h-3 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    </div>
+                `;
+                listDiv.appendChild(card);
+            });
+        }
+
+        // ค้นหาแบบ Real-time ดึงได้ทั้งชื่อครูและวิชาที่สอนในประวัติเรียน
+        function filterSpreadsheets() {
+            const query = document.getElementById('classroomSearch').value.trim().toLowerCase();
+            classroomSpreadsheets.forEach((ss, idx) => {
+                const card = document.getElementById(`teacher_card_${idx}`);
+                if (!card) return;
+                
+                const matchName = ss.teacherName.toLowerCase().includes(query);
+                const matchSubjects = ss.subjects.toLowerCase().includes(query);
+                
+                if (query === "" || matchName || matchSubjects) {
+                    card.classList.remove('hidden');
+                } else {
+                    card.classList.add('hidden');
+                }
+            });
+        }
+
+        // ป๊อปอัปให้ครูกรอกรหัสผ่านประจำแฟ้มชีตของตนเอง
+        function selectSpreadsheet(ss) {
+            tempSelectedSs = ss;
+            document.getElementById('ssPasswordPromptText').innerText = `กรุณากรอกรหัสผ่านเพื่อสแกนเข้าชีตเรียนของ ${ss.teacherName}`;
+            document.getElementById('ssPasswordInput').value = "";
+            document.getElementById('spreadsheetPasswordModal').classList.remove('hidden');
+            document.getElementById('spreadsheetPasswordModal').classList.add('flex');
+            document.getElementById('ssPasswordInput').focus();
+        }
+
+        function closeSsPasswordModal() {
+            document.getElementById('spreadsheetPasswordModal').classList.add('hidden');
+            document.getElementById('spreadsheetPasswordModal').classList.remove('flex');
+            tempSelectedSs = null;
+        }
+
+        // ยืนยันรหัสผ่านประจำชีตก่อนดึงวิชาเรียนจริงขึ้นมาแสดงผล
+        function submitSsPassword() {
+            const password = document.getElementById('ssPasswordInput').value.trim();
+            if (!password) return alert("กรุณากรอกรหัสผ่านประจำชีตเพื่อดำเนินการสแกนสิทธิ์เข้าถึงครับ");
+            
+            currentPassword = password;
+            
+            // 🌟 สำคัญ: ดึงค่าและปิดป๊อปอัปสิทธิ์รหัสผ่าน "ก่อน" เรียกฟังก์ชันโหลดชีตวิชา
+            selectedSpreadsheetId = tempSelectedSs.id;
+            selectedSpreadsheetName = tempSelectedSs.teacherName;
+            
+            closeSsPasswordModal();
+            loadClassroomSubjects(password);
+        }
+
+        // ดึงชื่อวิชาจากสเปรดชีต Google Sheets (ตรวจสอบสิทธิ์หลังบ้าน)
+        async function loadClassroomSubjects(password) {
+            const loader = document.getElementById('classroomLoader');
+            const listDiv = document.getElementById('classroomSubjectList');
+            
+            loader.classList.remove('hidden');
+            listDiv.classList.add('hidden');
+            document.getElementById('classroomSpreadsheetsView').classList.add('hidden');
+            document.getElementById('classroomFormView').classList.add('hidden');
+            document.getElementById('classroomSubjectsView').classList.remove('hidden');
+            
+            document.getElementById('classroomSpreadsheetTitleHeader').innerText = "แฟ้มประวัติเรียน: " + selectedSpreadsheetName;
+            
+            try {
+                const res = await fetch(`${API_BASE}?action=get_subjects&spreadsheetId=${encodeURIComponent(selectedSpreadsheetId)}&password=${encodeURIComponent(password)}`);
+                const json = await res.json();
+                if (json.status === "success") {
+                    classroomSubjects = json.data;
+                    renderSubjectCards();
+                } else {
+                    alert("❌ ไม่สามารถเปิดแฟ้มสเปรดชีตนี้ได้: " + json.message);
+                    backToSpreadsheets();
+                }
+            } catch (err) {
+                console.error(err);
+                alert("เกิดข้อผิดพลาดในการโหลดวิชาเรียน");
+                backToSpreadsheets();
+            } finally {
+                loader.classList.add('hidden');
+            }
+        }
+
+        function renderSubjectCards() {
+            const listDiv = document.getElementById('classroomSubjectList');
+            listDiv.classList.remove('hidden');
+            listDiv.innerHTML = "";
+            
+            if (classroomSubjects.length === 0) {
+                listDiv.innerHTML = `<p class="col-span-full text-center text-slate-500 py-12">ไม่พบรายวิชาในระบบชีต</p>`;
+                return;
+            }
+            
+            classroomSubjects.forEach(sub => {
+                const card = document.createElement('div');
+                card.className = "glass-card p-5 rounded-2xl border border-blue-500/10 hover:border-blue-500/30 cursor-pointer hover:bg-slate-900/90 transition-all shadow-md group flex flex-col justify-between h-40";
+                card.onclick = () => selectSubject(sub);
+                card.innerHTML = `
+                    <div>
+                        <div class="flex items-center gap-3 mb-2">
+                            <span class="p-2 rounded-xl bg-blue-500/10 text-blue-400 group-hover:bg-blue-500/20 transition-colors">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                            </span>
+                            <span class="text-xs font-semibold text-slate-400">ชีตแท็บ: ${cleanHTML(sub.sheetName)}</span>
+                        </div>
+                        <h3 class="text-xs md:text-sm font-bold text-slate-200 line-clamp-2 leading-relaxed group-hover:text-blue-400 transition-colors">${cleanHTML(sub.title)}</h3>
+                    </div>
+                    <div class="text-[10px] text-blue-400/80 font-semibold uppercase flex items-center gap-1 mt-3">
+                        บันทึกการเช็คชื่อเข้าตารางเรียน
+                        <svg class="w-3 h-3 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    </div>
+                `;
+                listDiv.appendChild(card);
+            });
+        }
+
+        async function selectSubject(subject) {
+            selectedSubject = subject;
+            const loader = document.getElementById('classroomLoader');
+            loader.classList.remove('hidden');
+            document.getElementById('classroomSubjectsView').classList.add('hidden');
+            
+            try {
+                // ดึงรายชื่อนักเรียนโดยส่งรหัสผ่านส่วนตัวครูไปด้วย
+                const res = await fetch(`${API_BASE}?action=get_subject_students&spreadsheetId=${encodeURIComponent(selectedSpreadsheetId)}&password=${encodeURIComponent(currentPassword)}&sheetName=${encodeURIComponent(subject.sheetName)}`);
+                const json = await res.json();
+                if (json.status === "success") {
+                    currentStudents = json.data;
+                    openClassroomForm();
+                } else {
+                    alert("ไม่สามารถโหลดรายชื่อเด็กได้: " + json.message);
+                    document.getElementById('classroomSubjectsView').classList.remove('hidden');
+                }
+            } catch (err) {
+                console.error(err);
+                alert("เกิดข้อผิดพลาดในการโหลดรายชื่อนักเรียน");
+                document.getElementById('classroomSubjectsView').classList.remove('hidden');
+            } finally {
+                loader.classList.add('hidden');
+            }
+        }
+
+        function openClassroomForm() {
+            document.getElementById('classroomSubjectsView').classList.add('hidden');
+            document.getElementById('classroomFormView').classList.remove('hidden');
+            document.getElementById('classroomSubjectTitle').innerText = selectedSubject.title;
+            
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const date = String(now.getDate()).padStart(2, '0');
+            document.getElementById('classroomCheckDate').value = `${year}-${month}-${date}`;
+            document.getElementById('classroomPeriods').value = ""; 
+            
+            renderClassroomStudents();
+        }
+
+        function renderClassroomStudents() {
+            const tbody = document.getElementById('classroomStudentsBody');
+            tbody.innerHTML = "";
+            
+            if (currentStudents.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="3" class="px-6 py-12 text-center text-slate-500">ไม่พบรายชื่อในแท็บวิชานี้</td></tr>`;
+                return;
+            }
+            
+            currentStudents.forEach((student, index) => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-800/30 border-b border-slate-800/50";
+                tr.innerHTML = `
+                    <td class="px-2 py-3 text-center text-slate-400 text-xs md:text-sm">${index + 1}</td>
+                    <td class="px-2 py-3 text-xs md:text-sm font-semibold text-slate-200">
+                        <div>${cleanHTML(student.name)}</div>
+                        <div class="text-[10px] text-slate-400">${cleanHTML(student.id)} | ${cleanHTML(student.level)}</div>
+                    </td>
+                    <td class="px-2 py-3">
+                        <div class="flex items-center gap-1 justify-center max-w-[280px] mx-auto">
+                            <label class="cursor-pointer flex-1 text-center">
+                                <input type="radio" name="att_${student.id}" value="มา" checked class="hidden peer">
+                                <span class="block py-2 rounded-lg text-xs font-bold bg-slate-800 text-slate-400 border border-slate-700 peer-checked:bg-emerald-500/20 peer-checked:text-emerald-400 peer-checked:border-emerald-500/50 transition-all select-none">มา</span>
+                            </label>
+                            <label class="cursor-pointer flex-1 text-center">
+                                <input type="radio" name="att_${student.id}" value="สาย" class="hidden peer">
+                                <span class="block py-2 rounded-lg text-xs font-bold bg-slate-800 text-slate-400 border border-slate-700 peer-checked:bg-amber-500/20 peer-checked:text-amber-400 peer-checked:border-amber-500/50 transition-all select-none">สาย</span>
+                            </label>
+                            <label class="cursor-pointer flex-1 text-center">
+                                <input type="radio" name="att_${student.id}" value="ลา" class="hidden peer">
+                                <span class="block py-2 rounded-lg text-xs font-bold bg-slate-800 text-slate-400 border border-slate-700 peer-checked:bg-blue-500/20 peer-checked:text-blue-400 peer-checked:border-blue-500/50 transition-all select-none">ลา</span>
+                            </label>
+                            <label class="cursor-pointer flex-1 text-center">
+                                <input type="radio" name="att_${student.id}" value="ขาด" class="hidden peer">
+                                <span class="block py-2 rounded-lg text-xs font-bold bg-slate-800 text-slate-400 border border-slate-700 peer-checked:bg-red-500/20 peer-checked:text-red-400 peer-checked:border-red-500/50 transition-all select-none">ขาด</span>
+                            </label>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function quickSetAllAttendance(status) {
+            currentStudents.forEach(student => {
+                const radio = document.querySelector(`input[name="att_${student.id}"][value="${status}"]`);
+                if (radio) radio.checked = true;
+            });
+        }
+
+        // ยื่นขอความประสงค์บันทึกข้อมูล
+        async function saveClassroomAttendanceForm() {
+            const dateStr = document.getElementById('classroomCheckDate').value;
+            const periods = document.getElementById('classroomPeriods').value; 
+            
+            if (!dateStr) return alert("กรุณากำหนดวันทำการบันทึกประวัติก่อนครับ!");
+            
+            const attendanceData = currentStudents.map(student => {
+                const selectedRadio = document.querySelector(`input[name="att_${student.id}"]:checked`);
+                return {
+                    id: student.id,
+                    status: selectedRadio ? selectedRadio.value : "ขาด"
+                };
+            });
+            
+            const btn = document.getElementById('btnSaveClassroomAttendance');
+            btn.disabled = true;
+            btn.innerText = "กำลังเขียนข้อมูลเข้า Sheets...";
+            
+            try {
+                const res = await fetch(API_BASE, {
+                    method: "POST",
+                    headers: { "Content-Type": "text/plain;charset=utf-8" },
+                    body: JSON.stringify({
+                        action: "save_subject_attendance",
+                        spreadsheetId: selectedSpreadsheetId, 
+                        password: currentPassword, // 🌟 ส่งรหัสผ่านเพื่อตรวจพิสูจน์สิทธิ์
+                        sheetName: selectedSubject.sheetName,
+                        dateStr: dateStr,
+                        periods: periods, 
+                        attendanceData: attendanceData
+                    })
+                });
+                
+                const json = await res.json();
+                if (json.status === "success") {
+                    alert("🎉 บันทึกประวัติวิชาเข้า Sheets สำเร็จเรียบร้อย!");
+                    loadClassroomSubjects(currentPassword); 
+                } else {
+                    alert("❌ บันทึกล้มเหลว: " + json.message);
+                }
+            } catch (err) {
+                console.error(err);
+                alert("การเชื่อมต่อเซิร์ฟเวอร์ขัดข้อง กรุณาลองใหม่อีกครั้ง");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "💾 บันทึกข้อมูลเข้า Google Sheets";
+            }
+        }
+
+        // ลงทะเบียนครูท่านใหม่พร้อมตั้งรหัสผ่านประประจำชีตวิชา
+        async function addSpreadsheetAction() {
+            const teacherInput = document.getElementById('newTeacherName');
+            const urlInput = document.getElementById('newSpreadsheetUrl');
+            const passwordInput = document.getElementById('newSpreadsheetPassword');
+            
+            const teacherName = teacherInput.value.trim();
+            const url = urlInput.value.trim();
+            const password = passwordInput.value.trim();
+            
+            if (!teacherName) return alert("กรุณากรอกชื่อ-นามสกุลของคุณครูผู้สอนด้วยครับ");
+            if (!url) return alert("กรุณาวางลิงก์ Google Sheets แฟ้มวิชาเรียนที่ต้องการลงทะเบียนด้วยครับ");
+            if (!password) return alert("กรุณากำหนดรหัสผ่านส่วนตัวของท่านเพื่อควบคุมความปลอดภัยแฟ้มชีตนี้ด้วยครับ");
+            
+            const btn = document.getElementById('btnAddSpreadsheet');
+            btn.disabled = true;
+            btn.innerText = "กำลังลงทะเบียนชีต...";
+            
+            try {
+                const res = await fetch(API_BASE, {
+                    method: "POST",
+                    headers: { "Content-Type": "text/plain;charset=utf-8" },
+                    body: JSON.stringify({
+                        action: "add_spreadsheet",
+                        teacherName: teacherName, 
+                        url: url,
+                        password: password 
+                    })
+                });
+                
+                const json = await res.json();
+                if (json.status === "success") {
+                    alert("🎉 " + json.message);
+                    teacherInput.value = "";
+                    urlInput.value = "";
+                    passwordInput.value = "";
+                    loadClassroomSpreadsheets(); 
+                } else {
+                    alert("❌ ไม่สามารถลงทะเบียนชีตได้: " + json.message + "\n\nกรุณาตั้งค่าสิทธิ์ให้ทุกคนที่มีลิงก์มีสิทธิ์แก้ไขได้ด้วยครับ");
+                }
+            } catch (err) {
+                console.error(err);
+                alert("เกิดข้อผิดพลาดในการติดต่อฐานระบบประวัติสถิติเรียน");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "ลงทะเบียนแฟ้มครูผู้สอน";
+            }
+        }
+
+        function backToSpreadsheets() {
+            document.getElementById('classroomSubjectsView').classList.add('hidden');
+            loadClassroomSpreadsheets();
+        }
+
+        function backToSubjects() {
+            document.getElementById('classroomFormView').classList.add('hidden');
+            document.getElementById('classroomSubjectsView').classList.remove('hidden');
+        }
+
+        // 🌟 ดึงข้อมูลคีย์เพรสของช่องรหัสผ่าน เพื่อให้ครูกดปุ่ม Enter บนแป้นพิมพ์ได้ทันที
+        document.getElementById('ssPasswordInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') submitSsPassword();
+        });
+
+        // โหลดข้อมูลแฟ้มคุณครูขึ้นทันทีเมื่อเปิดเข้าใช้งานหน้าเว็บ
+        window.onload = function() {
+            loadClassroomSpreadsheets();
+        };
+    </script>
+</body>
+</html>
