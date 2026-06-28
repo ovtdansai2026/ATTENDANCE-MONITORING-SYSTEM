@@ -45,11 +45,24 @@
                     </div>
                     <p class="text-slate-400 text-xs md:text-sm mt-1">ระบบวิเคราะห์ข้อมูลและตรวจจับความเสี่ยงแบบเรียลไทม์</p>
                 </div>
-                <div class="flex gap-2 w-full md:w-auto items-center">
-                    <button onclick="switchMode('attendance')" id="btnAttendance" class="tab-btn tab-active flex-1 md:flex-none px-4 py-2 text-sm font-semibold rounded-lg border">การเข้าแถว</button>
-                    <button onclick="switchMode('activity')" id="btnActivity" class="tab-btn tab-inactive flex-1 md:flex-none px-4 py-2 text-sm font-semibold rounded-lg border">การเข้ากิจกรรม</button>
+                <div class="flex flex-wrap gap-2 w-full md:w-auto items-center">
+                    <button onclick="switchMode('attendance')" id="btnAttendance" class="tab-btn tab-active px-4 py-2 text-sm font-semibold rounded-lg border flex-1 md:flex-none">การเข้าแถว</button>
+                    <button onclick="switchMode('activity')" id="btnActivity" class="tab-btn tab-inactive px-4 py-2 text-sm font-semibold rounded-lg border flex-1 md:flex-none">การเข้ากิจกรรม</button>
                     
-                    <button onclick="openPasswordModal()" class="bg-slate-800 hover:bg-slate-700 text-amber-400 border border-amber-500/30 px-4 py-2 rounded-lg text-sm transition-colors flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(245,158,11,0.1)]">
+                    <!-- 🌟 ปุ่มลิงก์ไปหน้าเช็คชื่อรายวิชาแบบเด่นชัดเรืองแสงพร้อมเอฟเฟกต์กระพริบดึงดูดสายตา -->
+                    <a href="classroom.html" class="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-750 text-white font-bold px-4 py-2 rounded-lg text-xs md:text-sm transition-all shadow-[0_0_15px_rgba(59,130,246,0.35)] flex items-center justify-center gap-1.5 flex-1 md:flex-none animate-pulse hover:animate-none">
+                        <svg class="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                        <span class="whitespace-nowrap">📝 เช็คชื่อรายวิชาเรียน</span>
+                    </a>
+					
+					<!-- 🔥 ปุ่มคู่แฝดธีมไฟเรืองแสง (จัดวางในเฮดเดอร์อย่างเป็นระเบียบ ไม่บังข้อมูล) -->
+					<a href="https://ovtdansai2026.github.io/ovt-fireboard/" target="_blank" 
+					   class="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-bold px-4 py-2 rounded-lg text-xs md:text-sm transition-all shadow-[0_0_15px_rgba(249,115,22,0.35)] flex items-center justify-center gap-1.5 flex-1 md:flex-none animate-pulse hover:animate-none">
+						<span class="text-sm">🔥</span>
+						<span class="whitespace-nowrap">บอร์ดแสดงความคิดเห็น</span>
+					</a>
+
+                    <button onclick="openPasswordModal()" class="bg-slate-800 hover:bg-slate-700 text-amber-400 border border-amber-500/30 px-4 py-2 rounded-lg text-sm transition-colors flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(245,158,11,0.1)] flex-1 md:flex-none">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
                         <span class="font-medium text-xs whitespace-nowrap">แอดมิน (จัดการระบบ)</span>
                     </button>
@@ -142,6 +155,7 @@
         </div>
     </div>
 
+    <!-- แผงล็อกอินแอดมินสำหรับตั้งเกณฑ์เงื่อนไขและคิวอาร์โค้ดกิจกรรมส่วนกลาง -->
     <div id="passwordModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[70] p-4 backdrop-blur-sm">
         <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-sm w-full shadow-2xl">
             <h3 class="text-lg font-bold text-amber-400 mb-2 flex items-center gap-2">
@@ -274,7 +288,9 @@
             <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 mb-6 text-center">
                 <p id="resText" class="text-sm md:text-base text-amber-400 font-medium whitespace-pre-wrap">รอแจ้งข้อกำหนด</p>
             </div>
-            <button onclick="closeResolutionModal()" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 rounded-xl text-sm border border-slate-700 transition-colors">รับทราบ</button>
+            <div class="flex gap-2">
+                <button onclick="closeResolutionModal()" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 rounded-xl text-sm border border-slate-700 transition-colors">รับทราบ</button>
+            </div>
         </div>
     </div>
 
@@ -305,12 +321,13 @@
 
     <script>
         // ==========================================
-        // 🌟 เข้ารหัสผ่านฝังบนหน้าเว็บตรงๆ ปลอดภัยแบบเรียบง่าย (ถอดรหัสออกมาคือ Admin2026)
+        // 🌟 เข้ารหัสผ่านฝังบนหน้าเว็บตรงๆ (ถอดรหัสออกมาคือ Admin2026)
         const MASTER_HASH = "QWRtaW4yMDI2"; 
         
         const URL_SCANNER_APP = "https://ovtdansai2026.github.io/ATTENDANCE-MONITORING-SYSTEM/scanner.html"; 
-        const API_ATTENDANCE = "https://script.google.com/macros/s/AKfycbzEZwclY5DDyAEW5LFToH3WkK3slgHeHVTS1pTizIhvI7iEZwGUtD9GKcv-EPlWu1rE7Q/exec?type=attendance"; 
-        const API_ACTIVITY   = "https://script.google.com/macros/s/AKfycbzEZwclY5DDyAEW5LFToH3WkK3slgHeHVTS1pTizIhvI7iEZwGUtD9GKcv-EPlWu1rE7Q/exec?type=activity";
+        const API_BASE = "https://script.google.com/macros/s/AKfycbzEZwclY5DDyAEW5LFToH3WkK3slgHeHVTS1pTizIhvI7iEZwGUtD9GKcv-EPlWu1rE7Q/exec";
+        const API_ATTENDANCE = `${API_BASE}?type=attendance`; 
+        const API_ACTIVITY   = `${API_BASE}?type=activity`;
         // ==========================================
 
         function cleanHTML(str) { return !str ? "-" : str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag])); }
@@ -371,15 +388,15 @@
             currentMode = mode;
             const btnAtt = document.getElementById('btnAttendance'); const btnAct = document.getElementById('btnActivity');
             if (mode === 'attendance') {
-                btnAtt.className = "tab-btn tab-active flex-1 md:flex-none px-4 py-2 text-sm font-semibold rounded-lg border";
-                btnAct.className = "tab-btn tab-inactive flex-1 md:flex-none px-4 py-2 text-sm font-semibold rounded-lg border";
+                btnAtt.className = "tab-btn tab-active px-4 py-2 text-sm font-semibold rounded-lg border flex-1 md:flex-none";
+                btnAct.className = "tab-btn tab-inactive px-4 py-2 text-sm font-semibold rounded-lg border flex-1 md:flex-none";
                 document.getElementById('mainTitle').innerHTML = "แดชบอร์ดการเข้าแถว";
                 document.getElementById('riskTableTitle').innerText = "กลุ่มเสี่ยงเข้าแถวไม่ครบ (< 80%)"; document.getElementById('passTableTitle').innerText = "กลุ่มเข้าแถวตามเกณฑ์ (≥ 80%)";
                 document.getElementById('thTeacherRisk').innerText = "อีเมลครูที่ปรึกษา"; document.getElementById('thTeacherPass').innerText = "อีเมลครูที่ปรึกษา";
                 activeData = dataAttendance;
             } else {
-                btnAct.className = "tab-btn tab-active flex-1 md:flex-none px-4 py-2 text-sm font-semibold rounded-lg border";
-                btnAtt.className = "tab-btn tab-inactive flex-1 md:flex-none px-4 py-2 text-sm font-semibold rounded-lg border";
+                btnAct.className = "tab-btn tab-active px-4 py-2 text-sm font-semibold rounded-lg border flex-1 md:flex-none";
+                btnAtt.className = "tab-btn tab-inactive px-4 py-2 text-sm font-semibold rounded-lg border flex-1 md:flex-none";
                 document.getElementById('mainTitle').innerHTML = "แดชบอร์ดการเข้ากิจกรรม";
                 document.getElementById('riskTableTitle').innerText = "กลุ่มเสี่ยงขาดกิจกรรม (< 80%)"; document.getElementById('passTableTitle').innerText = "กลุ่มเข้ากิจกรรมผ่านเกณฑ์ (≥ 80%)";
                 document.getElementById('thTeacherRisk').innerText = "สถิติการมา (ครั้ง)"; document.getElementById('thTeacherPass').innerText = "สถิติการมา (ครั้ง)";
@@ -468,7 +485,6 @@
         function closePasswordModal() { document.getElementById('passwordModal').classList.add('hidden'); document.getElementById('passwordModal').classList.remove('flex'); }
         
         function submitAdminPassword() { 
-            // 🌟 เปรียบเทียบรหัสผ่านด้วยระบบ Base64 ในหน้าเว็บตรงๆ ทันที
             if (btoa(document.getElementById('adminPasswordInput').value) === MASTER_HASH) { 
                 isAdminAuthenticated = true; 
                 closePasswordModal(); 
@@ -510,7 +526,7 @@
             const btn = document.getElementById('btnSaveRules'); btn.innerText = "กำลังบันทึกข้อมูลลงฐานข้อมูล..."; btn.disabled = true;
 
             try {
-                const res = await fetch("https://script.google.com/macros/s/AKfycbzEZwclY5DDyAEW5LFToH3WkK3slgHeHVTS1pTizIhvI7iEZwGUtD9GKcv-EPlWu1rE7Q/exec", { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: "save_rules", rules: rulesData }) });
+                const res = await fetch(API_BASE, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: "save_rules", rules: rulesData }) });
                 const data = await res.json();
                 if(data.status === "success") { globalRules = rulesData; alert("✅ บันทึกเกณฑ์เงื่อนไขทั้งหมดสำเร็จ!"); filterData(); } else throw new Error();
             } catch (err) { alert("❌ เกิดข้อผิดพลาดในการบันทึก กรุณาลองใหม่อีกครั้ง"); } finally { btn.innerText = "บันทึกเงื่อนไขทั้งหมด"; btn.disabled = false; }
@@ -544,7 +560,7 @@
             setTimeout(async () => {
                 try {
                     const qrDataUrl = qrDiv.querySelector('canvas').toDataURL("image/png");
-                    const res = await fetch("https://script.google.com/macros/s/AKfycbzEZwclY5DDyAEW5LFToH3WkK3slgHeHVTS1pTizIhvI7iEZwGUtD9GKcv-EPlWu1rE7Q/exec", { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: "create_qr", activityName: actName, qrUrl: qrDataUrl, deadlineText: displayTimeText }) });
+                    const res = await fetch(API_BASE, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: "create_qr", activityName: actName, qrUrl: qrDataUrl, deadlineText: displayTimeText }) });
                     const data = await res.json();
                     if(data.status === "success") { driveStatus.innerText = "✅ สำรอง QR Code ลง Google Drive สำเร็จ!"; driveStatus.className = "mt-4 w-full bg-green-50 text-green-600 text-[10px] font-bold p-2 rounded"; } 
                     else throw new Error();
