@@ -10,6 +10,8 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Dashboard">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3135/3135715.png">
+    
     <link class="custom-favicon" rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect x=%2212%22 y=%2250%22 width=%2220%22 height=%2240%22 rx=%224%22 fill=%22%233b82f6%22/><rect x=%2240%22 y=%2225%22 width=%2220%22 height=%2265%22 rx=%224%22 fill=%22%231e40af%22/><rect x=%2268%22 y=%2210%22 width=%2220%22 height=%2280%22 rx=%224%22 fill=%22%23172554%22/></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -43,9 +45,22 @@
                     </div>
                     <p class="text-slate-400 text-xs md:text-sm mt-1">ระบบวิเคราะห์ข้อมูลและตรวจจับความเสี่ยงแบบเรียลไทม์</p>
                 </div>
-                <div class="flex flex-wrap gap-2 w-full md:w-auto items-center justify-end">
-                    <!-- 🌟 ย้ายปุ่มสลับกิจกรรมไปด้านล่างเรียบร้อย และเอาปุ่มเช็คชื่อวิชาเรียนออกตามสั่งครับ -->
-                    <button onclick="openPasswordModal()" class="bg-slate-800 hover:bg-slate-700 text-amber-400 border border-amber-500/30 px-4 py-2 rounded-lg text-xs md:text-sm transition-colors flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(245,158,11,0.1)] w-full md:w-auto">
+                <div class="flex flex-wrap gap-2 w-full md:w-auto items-center">
+                                       
+                    <!-- 🌟 ปุ่มลิงก์ไปหน้าเช็คชื่อรายวิชาแบบเด่นชัดเรืองแสงพร้อมเอฟเฟกต์กระพริบดึงดูดสายตา -->
+                    <a href="classroom.html" class="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-750 text-white font-bold px-4 py-2 rounded-lg text-xs md:text-sm transition-all shadow-[0_0_15px_rgba(59,130,246,0.35)] flex items-center justify-center gap-1.5 flex-1 md:flex-none animate-pulse hover:animate-none">
+                        <svg class="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                        <span class="whitespace-nowrap">📝 เช็คชื่อรายวิชาเรียน</span>
+                    </a>
+					
+					<!-- 🔥 ปุ่มคู่แฝดธีมไฟเรืองแสง (จัดวางในเฮดเดอร์อย่างเป็นระเบียบ ไม่บังข้อมูล) -->
+					<a href="https://ovtdansai2026.github.io/ovt-fireboard/" target="_blank" 
+					   class="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-bold px-4 py-2 rounded-lg text-xs md:text-sm transition-all shadow-[0_0_15px_rgba(249,115,22,0.35)] flex items-center justify-center gap-1.5 flex-1 md:flex-none animate-pulse hover:animate-none">
+						<span class="text-sm">🔥</span>
+						<span class="whitespace-nowrap">บอร์ดแสดงความคิดเห็น</span>
+					</a>
+
+                    <button onclick="openPasswordModal()" class="bg-slate-800 hover:bg-slate-700 text-amber-400 border border-amber-500/30 px-4 py-2 rounded-lg text-sm transition-colors flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(245,158,11,0.1)] flex-1 md:flex-none">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
                         <span class="font-medium text-xs whitespace-nowrap">แอดมิน (จัดการระบบ)</span>
                     </button>
@@ -87,9 +102,9 @@
                     <p id="totalExcellentCard" class="text-2xl md:text-3xl font-bold text-emerald-400 mt-2">0 <span class="text-xs md:text-sm font-normal text-slate-400">คน</span></p>
                 </div>
             </section>
-
-            <!-- 🌟 ปุ่มควบคุมการสลับโหมดข้อมูล (ย้ายมาไว้ข้างใต้การ์ดสถิติ) -->
-            <div class="flex gap-2 mb-6 w-full max-w-sm">
+			
+			<!-- 🌟 2. แผงปุ่มสลับกิจกรรมและเข้าแถว (ย้ายมาอยู่ตรงนี้อย่างมีมิติ) -->
+            <div class="flex gap-2 mb-6 w-full max-w-xs sm:max-w-sm">
                 <button onclick="switchMode('attendance')" id="btnAttendance" class="tab-btn tab-active px-4 py-2.5 text-xs md:text-sm font-bold rounded-xl border flex-1 text-center transition-all">การเข้าแถว</button>
                 <button onclick="switchMode('activity')" id="btnActivity" class="tab-btn tab-inactive px-4 py-2.5 text-xs md:text-sm font-bold rounded-xl border flex-1 text-center transition-all">การเข้ากิจกรรม</button>
             </div>
@@ -309,11 +324,12 @@
     </script>
 
     <script>
-        // 🔐 รหัสผ่านเข้ารหัสสำหรับผู้ดูแลระบบ (Admin)
         const MASTER_HASH = "QWRtaW4yMDI2"; 
         
         const URL_SCANNER_APP = "https://ovtdansai2026.github.io/ATTENDANCE-MONITORING-SYSTEM/scanner.html"; 
         const API_BASE = "https://script.google.com/macros/s/AKfycbzEZwclY5DDyAEW5LFToH3WkK3slgHeHVTS1pTizIhvI7iEZwGUtD9GKcv-EPlWu1rE7Q/exec";
+        const API_ATTENDANCE = `${API_BASE}?type=attendance`; 
+        const API_ACTIVITY   = `${API_BASE}?type=activity`;
         // ==========================================
 
         function cleanHTML(str) { return !str ? "-" : str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag])); }
@@ -334,20 +350,21 @@
 
         async function fetchAllData() {
             try {
-                // 🌟 ปรับระบบดึงข้อมูลแบบรวบยอดขาเดียว (Unified Fetch) แก้ไขความหน่วงเหลือ 1-2 วินาที ⚡
-                const res = await fetch(API_BASE); 
-                const json = await res.json();
+                const [resAtt, resAct] = await Promise.all([ fetch(API_ATTENDANCE), fetch(API_ACTIVITY) ]);
+                const jsonAtt = await resAtt.json();
+                const jsonAct = await resAct.json();
 
-                if (json.status === "success") {
-                    dataAttendance = processData(json.attendance || []);
-                    dataActivity = processData(json.activity || []);
-                    globalRules = json.rules || [];
+                if (jsonAtt.status === "success") {
+                    dataAttendance = processData(jsonAtt.data);
+                    globalRules = jsonAtt.rules || [];
                     
                     const uniqueDepts = [...new Set(dataAttendance.map(i => i.pureDept))].filter(Boolean).sort();
                     const uniqueLevels = [...new Set(dataAttendance.map(i => i.pureLevel))].filter(Boolean).sort();
                     document.getElementById('deptTargets').innerHTML = uniqueDepts.map(d => `<label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="${d}" class="chk-dept rounded bg-slate-900 border-slate-600"> ${d}</label>`).join('');
                     document.getElementById('levelTargets').innerHTML = uniqueLevels.map(l => `<label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="${l}" class="chk-level rounded bg-slate-900 border-slate-600"> ${l}</label>`).join('');
                 }
+                
+                if (jsonAct.status === "success") dataActivity = processData(jsonAct.data);
 
                 switchMode('attendance');
                 document.getElementById('loading').classList.add('hidden');
@@ -373,15 +390,15 @@
             currentMode = mode;
             const btnAtt = document.getElementById('btnAttendance'); const btnAct = document.getElementById('btnActivity');
             if (mode === 'attendance') {
-                btnAtt.className = "tab-btn tab-active px-4 py-2.5 text-xs md:text-sm font-bold rounded-xl border flex-1 text-center transition-all";
-                btnAct.className = "tab-btn tab-inactive px-4 py-2.5 text-xs md:text-sm font-bold rounded-xl border flex-1 text-center transition-all";
+                btnAtt.className = "tab-btn tab-active px-4 py-2 text-sm font-semibold rounded-lg border flex-1 md:flex-none";
+                btnAct.className = "tab-btn tab-inactive px-4 py-2 text-sm font-semibold rounded-lg border flex-1 md:flex-none";
                 document.getElementById('mainTitle').innerHTML = "แดชบอร์ดการเข้าแถว";
                 document.getElementById('riskTableTitle').innerText = "กลุ่มเสี่ยงเข้าแถวไม่ครบ (< 80%)"; document.getElementById('passTableTitle').innerText = "กลุ่มเข้าแถวตามเกณฑ์ (≥ 80%)";
                 document.getElementById('thTeacherRisk').innerText = "อีเมลครูที่ปรึกษา"; document.getElementById('thTeacherPass').innerText = "อีเมลครูที่ปรึกษา";
                 activeData = dataAttendance;
             } else {
-                btnAct.className = "tab-btn tab-active px-4 py-2.5 text-xs md:text-sm font-bold rounded-xl border flex-1 text-center transition-all";
-                btnAtt.className = "tab-btn tab-inactive px-4 py-2.5 text-xs md:text-sm font-bold rounded-xl border flex-1 text-center transition-all";
+                btnAct.className = "tab-btn tab-active px-4 py-2 text-sm font-semibold rounded-lg border flex-1 md:flex-none";
+                btnAtt.className = "tab-btn tab-inactive px-4 py-2 text-sm font-semibold rounded-lg border flex-1 md:flex-none";
                 document.getElementById('mainTitle').innerHTML = "แดชบอร์ดการเข้ากิจกรรม";
                 document.getElementById('riskTableTitle').innerText = "กลุ่มเสี่ยงขาดกิจกรรม (< 80%)"; document.getElementById('passTableTitle').innerText = "กลุ่มเข้ากิจกรรมผ่านเกณฑ์ (≥ 80%)";
                 document.getElementById('thTeacherRisk').innerText = "สถิติการมา (ครั้ง)"; document.getElementById('thTeacherPass').innerText = "สถิติการมา (ครั้ง)";
@@ -408,18 +425,7 @@
             const dept = document.getElementById('deptFilter').value; const lvl = document.getElementById('levelFilter').value; const search = document.getElementById('searchBar').value.trim().toLowerCase();
             let result = activeData.filter(i => (dept === "ALL" || i.pureDept === dept) && (lvl === "ALL" || i.pureLevel === lvl) && (search === "" || i.studentName.toLowerCase().includes(search)));
             document.getElementById('totalCount').innerHTML = `${result.length} <span class="text-sm font-normal text-slate-400">คน</span>`;
-            
-            // 🌟 อัปเดตตรรกะกิจกรรม: หากยังไม่มีกิจกรรมใด ๆ เลย (totalDays === 0) จะไม่ถือว่าเป็นกลุ่มเสี่ยง และแยกแสดงผลให้ถูกต้อง
-            const risk = result.filter(s => {
-                if (currentMode === 'activity' && s.totalDays === 0) return false;
-                return s.percent < 80;
-            }).sort((a,b) => a.percent - b.percent);
-
-            const pass = result.filter(s => {
-                if (currentMode === 'activity' && s.totalDays === 0) return true;
-                return s.percent >= 80;
-            }).sort((a,b) => b.percent - a.percent);
-
+            const risk = result.filter(s => s.percent < 80).sort((a,b) => a.percent - b.percent); const pass = result.filter(s => s.percent >= 80).sort((a,b) => b.percent - a.percent);
             document.getElementById('totalRiskCard').innerHTML = `${risk.length} <span class="text-sm font-normal text-slate-400">คน</span>`; document.getElementById('totalExcellentCard').innerHTML = `${pass.length} <span class="text-sm font-normal text-slate-400">คน</span>`;
             document.getElementById('riskBadge').textContent = risk.length; document.getElementById('excellentBadge').textContent = pass.length;
             renderTableRows('riskTableBody', risk, 'text-red-400 bg-red-500/10 border-red-500/20'); renderTableRows('excellentTableBody', pass, 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20');
@@ -430,23 +436,11 @@
             if (data.length === 0) { tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-12 text-center text-slate-500">ไม่พบข้อมูล</td></tr>`; return; }
             data.forEach((student, index) => {
                 const tr = document.createElement('tr'); tr.className = "hover:bg-slate-800/30";
-                
-                // 🌟 อัปเดตสถิติฝั่งหน้าจอ: แยกแสดงข้อมูลหากยังไม่มีกิจกรรมจัดขึ้นเลย
-                let detail = "";
-                if (currentMode === 'attendance') {
-                    detail = `<div>${cleanHTML(student.teacherEmail)}</div>`;
-                } else {
-                    if (student.totalDays === 0) {
-                        detail = `<div class="font-bold text-slate-400">ยังไม่มีการจัดกิจกรรม</div>`;
-                    } else {
-                        detail = `<div class="font-bold text-slate-300">มา ${student.presentDays || 0}/${student.totalDays || 0} งาน</div>`;
-                    }
-                }
-                
+                let detail = currentMode === 'attendance' ? `<div>${cleanHTML(student.teacherEmail)}</div>` : `<div class="font-bold text-slate-300">มา ${student.presentDays || 0}/${student.totalDays || 0} งาน</div>`;
                 let remarkHtml = student.remark ? `<div class="text-[10px] text-amber-400 mt-1 bg-amber-500/10 border border-amber-500/30 px-1.5 py-0.5 rounded inline-block">📝 ${cleanHTML(student.remark)}</div>` : "";
 
                 let resolveBtn = "";
-                if (student.percent < 80 && (currentMode === 'attendance' || student.totalDays > 0)) {
+                if (student.percent < 80) {
                     resolveBtn = `<button onclick="showResolutionModal('${currentMode}', ${student.percent})" class="mt-1.5 flex items-center justify-center mx-auto gap-1 text-[10px] bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-2 py-0.5 rounded-md transition-all"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>ดูวิธีแก้</button>`;
                 }
 
