@@ -12,6 +12,8 @@
     <meta name="apple-mobile-web-app-title" content="Dashboard">
     <link class="custom-favicon" rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect x=%2212%22 y=%2250%22 width=%2220%22 height=%2240%22 rx=%224%22 fill=%22%233b82f6%22/><rect x=%2240%22 y=%2225%22 width=%2220%22 height=%2265%22 rx=%224%22 fill=%22%231e40af%22/><rect x=%2268%22 y=%2210%22 width=%2220%22 height=%2280%22 rx=%224%22 fill=%22%23172554%22/></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 🌟 แก้ไขไวยากรณ์เชื่อมโยง Google Fonts สากลเพื่อแก้ปัญหา Error 400 -->
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
@@ -34,6 +36,7 @@
 <body class="p-4 md:p-8 text-slate-100 min-h-screen">
 
     <div class="max-w-7xl mx-auto">
+        <!-- Header -->
         <header class="glass-card p-4 md:p-6 rounded-2xl mb-6 shadow-xl border-b border-blue-500/20">
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                 <div>
@@ -51,6 +54,7 @@
                 </div>
             </div>
 
+            <!-- Filters -->
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 w-full">
                 <div>
                     <label class="block text-[10px] md:text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">1. เลือกแผนกวิชา</label>
@@ -67,45 +71,51 @@
             </div>
         </header>
 
+        <!-- Loading -->
         <div id="loading" class="flex flex-col items-center justify-center py-32">
             <div class="loader mb-4"></div><p class="text-slate-400 text-sm font-medium tracking-wide animate-pulse">กำลังโหลดข้อมูลระบบ...</p>
         </div>
 
+        <!-- Main Dashboard Content -->
         <div id="dashboardContent" class="hidden">
+            <!-- Cards Section -->
             <section class="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 mb-8">
                 <div class="glass-card p-4 md:p-6 rounded-2xl bg-gradient-to-br from-slate-900/80 to-blue-950/20 shadow-lg border-l-4 border-blue-500/50">
                     <p class="text-[10px] md:text-xs font-semibold uppercase tracking-wider text-slate-400">นักเรียนทั้งหมด</p>
-                    <p id="totalCount" class="text-2xl md:text-3xl font-bold text-blue-400 mt-2">0 <span class="text-xs md:text-sm font-normal text-slate-400">คน</span></p>
+                    <p id="totalCount" class="text-2xl md:text-3xl font-bold text-blue-400 mt-2">0</p>
                 </div>
                 <div class="glass-card p-4 md:p-6 rounded-2xl bg-gradient-to-br from-slate-900/80 to-red-950/20 shadow-lg border-l-4 border-red-500/50">
-                    <p id="riskTitle" class="text-[10px] md:text-xs font-semibold uppercase tracking-wider text-slate-400">กลุ่มเสี่ยง (&lt; 80%)</p>
-                    <p id="totalRiskCard" class="text-2xl md:text-3xl font-bold text-red-400 mt-2">0 <span class="text-xs md:text-sm font-normal text-slate-400">คน</span></p>
+                    <p class="text-[10px] md:text-xs font-semibold uppercase tracking-wider text-slate-400">กลุ่มเสี่ยง (&lt; 80%)</p>
+                    <p id="totalRiskCard" class="text-2xl md:text-3xl font-bold text-red-400 mt-2">0</p>
                 </div>
                 <div class="glass-card p-4 md:p-6 rounded-2xl bg-gradient-to-br from-slate-900/80 to-emerald-950/20 shadow-lg border-l-4 border-emerald-500/50">
-                    <p id="passTitle" class="text-[10px] md:text-xs font-semibold uppercase tracking-wider text-slate-400">กลุ่มผ่านเกณฑ์ (≥ 80%)</p>
-                    <p id="totalExcellentCard" class="text-2xl md:text-3xl font-bold text-emerald-400 mt-2">0 <span class="text-xs md:text-sm font-normal text-slate-400">คน</span></p>
+                    <p class="text-[10px] md:text-xs font-semibold uppercase tracking-wider text-slate-400">กลุ่มผ่านเกณฑ์ (≥ 80%)</p>
+                    <p id="totalExcellentCard" class="text-2xl md:text-3xl font-bold text-emerald-400 mt-2">0</p>
                 </div>
             </section>
 
+            <!-- Mode Switch -->
             <div class="flex gap-2 mb-6 w-full max-w-xs sm:max-w-sm">
-                <button onclick="switchMode('attendance')" id="btnAttendance" class="tab-btn tab-active px-4 py-2.5 text-xs md:text-sm font-bold rounded-xl border flex-1 text-center transition-all">การเข้าแถว</button>
-                <button onclick="switchMode('activity')" id="btnActivity" class="tab-btn tab-inactive px-4 py-2.5 text-xs md:text-sm font-bold rounded-xl border flex-1 text-center transition-all">การเข้ากิจกรรม</button>
+                <button onclick="switchMode('attendance')" id="btnAttendance" class="tab-btn tab-active px-4 py-2.5 text-xs md:text-sm font-bold rounded-xl border flex-1 text-center font-semibold">การเข้าแถว</button>
+                <button onclick="switchMode('activity')" id="btnActivity" class="tab-btn tab-inactive px-4 py-2.5 text-xs md:text-sm font-bold rounded-xl border flex-1 text-center">การเข้ากิจกรรม</button>
             </div>
 
+            <!-- Tables Section -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
+                <!-- Risk Table -->
                 <div class="glass-card rounded-2xl overflow-hidden border border-red-500/10">
                     <div class="p-4 md:p-5 border-b border-slate-800 flex justify-between items-center bg-red-500/5">
-                        <h2 class="text-sm md:text-md font-bold text-red-400" id="riskTableTitle">กลุ่มเสี่ยงเข้าแถวไม่ครบ (< 80%)</h2>
+                        <h2 class="text-sm md:text-md font-bold text-red-400" id="riskTableTitle">กลุ่มเสี่ยง</h2>
                         <span id="riskBadge" class="bg-red-500/20 text-red-400 text-xs font-bold px-3 py-1 rounded-full">0</span>
                     </div>
                     <div class="overflow-x-auto custom-scroll" style="max-height: 520px; overflow-y: auto;">
                         <table class="w-full text-sm text-left">
-                            <thead class="bg-slate-900/80 sticky top-0 border-b border-slate-800 z-10">
+                            <thead class="bg-slate-900/80 sticky top-0 border-b border-slate-800 z-10 text-[10px] uppercase text-slate-400">
                                 <tr>
-                                    <th class="px-2 py-3 md:px-4 md:py-4 text-center text-[10px] md:text-xs text-slate-400 uppercase tracking-wider whitespace-nowrap">ลำดับ</th>
-                                    <th class="px-2 py-3 md:px-6 md:py-4 text-[10px] md:text-xs text-slate-400 uppercase tracking-wider whitespace-nowrap">ข้อมูลนักเรียน</th>
-                                    <th class="px-2 py-3 md:px-6 md:py-4 text-center text-[10px] md:text-xs text-slate-400 uppercase tracking-wider whitespace-nowrap">สถิติรวม (%)</th>
-                                    <th id="thTeacherRisk" class="px-2 py-3 md:px-6 md:py-4 text-[10px] md:text-xs text-slate-400 uppercase tracking-wider whitespace-nowrap">รายละเอียด</th>
+                                    <th class="px-4 py-4 text-center">ลำดับ</th>
+                                    <th class="px-6 py-4">นักเรียน</th>
+                                    <th class="px-6 py-4 text-center">สถิติ (%)</th>
+                                    <th class="px-6 py-4 text-center">รายละเอียด</th>
                                 </tr>
                             </thead>
                             <tbody id="riskTableBody" class="divide-y divide-slate-800/50"></tbody>
@@ -113,19 +123,20 @@
                     </div>
                 </div>
 
+                <!-- Success Table -->
                 <div class="glass-card rounded-2xl overflow-hidden border border-emerald-500/10">
                     <div class="p-4 md:p-5 border-b border-slate-800 flex justify-between items-center bg-emerald-500/5">
-                        <h2 class="text-sm md:text-md font-bold text-emerald-400" id="passTableTitle">กลุ่มเข้าแถวตามเกณฑ์ (≥ 80%)</h2>
+                        <h2 class="text-sm md:text-md font-bold text-emerald-400" id="passTableTitle">กลุ่มผ่านเกณฑ์</h2>
                         <span id="excellentBadge" class="bg-emerald-500/20 text-emerald-400 text-xs font-bold px-3 py-1 rounded-full">0</span>
                     </div>
                     <div class="overflow-x-auto custom-scroll" style="max-height: 520px; overflow-y: auto;">
                         <table class="w-full text-sm text-left">
-                            <thead class="bg-slate-900/80 sticky top-0 border-b border-slate-800 z-10">
+                            <thead class="bg-slate-900/80 sticky top-0 border-b border-slate-800 z-10 text-[10px] uppercase text-slate-400">
                                 <tr>
-                                    <th class="px-2 py-3 md:px-4 md:py-4 text-center text-[10px] md:text-xs text-slate-400 uppercase tracking-wider whitespace-nowrap">ลำดับ</th>
-                                    <th class="px-2 py-3 md:px-6 md:py-4 text-[10px] md:text-xs text-slate-400 uppercase tracking-wider whitespace-nowrap">ข้อมูลนักเรียน</th>
-                                    <th class="px-2 py-3 md:px-6 md:py-4 text-center text-[10px] md:text-xs text-slate-400 uppercase tracking-wider whitespace-nowrap">สถิติรวม (%)</th>
-                                    <th id="thTeacherPass" class="px-2 py-3 md:px-6 md:py-4 text-[10px] md:text-xs text-slate-400 uppercase tracking-wider whitespace-nowrap">รายละเอียด</th>
+                                    <th class="px-4 py-4 text-center">ลำดับ</th>
+                                    <th class="px-6 py-4">นักเรียน</th>
+                                    <th class="px-6 py-4 text-center">สถิติ (%)</th>
+                                    <th class="px-6 py-4 text-center">รายละเอียด</th>
                                 </tr>
                             </thead>
                             <tbody id="excellentTableBody" class="divide-y divide-slate-800/50"></tbody>
@@ -133,17 +144,11 @@
                     </div>
                 </div>
             </div>
-
-            <div class="mt-6 glass-card p-4 rounded-xl border border-amber-500/20 bg-amber-500/5 text-center">
-                <p class="text-xs md:text-sm text-amber-400 font-medium tracking-wide">
-                    📌 <strong>หมายเหตุ:</strong> หากพบว่าข้อมูลไม่ถูกต้อง หรือสถิติการเข้าร่วมกิจกรรมไม่ครบถ้วน กรุณาติดต่อครูที่ปรึกษา หรือ งานกิจกรรม โดยด่วน
-                </p>
-            </div>
         </div>
     </div>
 
-    <!-- แผงล็อกอินแอดมิน -->
-    <div id="passwordModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[70] p-4 backdrop-blur-sm">
+    <!-- Admin Password Modal -->
+    <div id="passwordModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[100] p-4 backdrop-blur-sm">
         <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-sm w-full shadow-2xl">
             <h3 class="text-lg font-bold text-amber-400 mb-2 flex items-center gap-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
@@ -158,20 +163,21 @@
         </div>
     </div>
 
-    <!-- หน้าต่างควบคุมแอดมิน -->
+    <!-- Admin Main Modal -->
     <div id="adminModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-50 p-4 backdrop-blur-sm">
         <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 md:p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto relative shadow-2xl custom-scroll">
             <button onclick="closeAdminPanel()" class="absolute top-4 right-4 text-slate-400 hover:text-white font-bold text-lg">✖</button>
             
-            <div class="border-b border-slate-800 pb-6 mb-6">
+            <!-- Section 1: Create QR -->
+            <div class="border-b border-slate-800 pb-8 mb-8">
                 <h2 class="text-xl font-bold text-amber-400 mb-4 flex items-center gap-2"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>1. สร้างกิจกรรมใหม่</h2>
                 <div class="space-y-4">
                     <div>
                         <label class="block text-xs font-semibold text-slate-300 mb-1">ชื่อกิจกรรม</label>
-                        <input type="text" id="actName" placeholder="เช่น กิจกรรมวันไหว้ครู" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-2.5 text-sm text-white focus:border-amber-500 focus:outline-none">
+                        <input type="text" id="actName" placeholder="เช่น กิจกรรมวันไหว้ครู" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-2.5 text-sm text-white focus:border-amber-500 outline-none">
                     </div>
 
-                    <div class="border border-slate-700 p-3 rounded-lg bg-slate-800/50">
+                    <div class="border border-slate-700 p-4 rounded-lg bg-slate-800/50">
                         <label class="block text-xs font-semibold text-amber-400 mb-2">🎯 กำหนดกลุ่มเป้าหมายผู้เข้าร่วม</label>
                         <div class="mb-3">
                             <label class="flex items-center gap-2 cursor-pointer mb-2">
@@ -199,32 +205,33 @@
 							<div class="p-3 bg-slate-800/50 rounded-lg border border-emerald-500/30">
 								<label class="block text-[10px] font-bold text-emerald-400 uppercase mb-2">🟢 เวลาเริ่มเปิดรับสแกน</label>
 								<div class="flex flex-col gap-2">
-									<input type="date" id="actStartDate" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-sm text-black">
+									<input type="date" id="actStartDate" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-sm text-black outline-none">
 									<div class="flex items-center gap-1">
-										<select id="actStartHour" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-sm text-black"></select>
+										<select id="actStartHour" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-sm text-black outline-none"></select>
 										<span class="text-white">:</span>
-										<select id="actStartMinute" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-sm text-black"></select>
+										<select id="actStartMinute" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-sm text-black outline-none"></select>
 									</div>
 								</div>
 							</div>
 							<div class="p-3 bg-slate-800/50 rounded-lg border border-red-500/30">
 								<label class="block text-[10px] font-bold text-red-400 uppercase mb-2">🔴 เวลาปิดรับสแกน</label>
 								<div class="flex flex-col gap-2">
-									<input type="date" id="actDate" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-sm text-black">
+									<input type="date" id="actDate" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-sm text-black outline-none">
 									<div class="flex items-center gap-1">
-										<select id="actHour" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-sm text-black"></select>
+										<select id="actHour" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-sm text-black outline-none"></select>
 										<span class="text-white">:</span>
-										<select id="actMinute" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-sm text-black"></select>
+										<select id="actMinute" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-sm text-black outline-none"></select>
 									</div>
 								</div>
 							</div>
 						</div>
 					</div>
 
-                    <button onclick="generateQR()" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-2.5 rounded-xl shadow-lg mt-2 transition-all">สร้างคิวอาร์โค้ดกิจกรรม</button>
+                    <button onclick="generateQR()" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-3 rounded-xl shadow-lg transition-all">สร้างคิวอาร์โค้ดกิจกรรม</button>
                 </div>
 
-                <div id="qrContainer" class="hidden flex-col items-center justify-center p-4 bg-white rounded-xl mt-4">
+                <!-- QR Display -->
+                <div id="qrContainer" class="hidden flex-col items-center justify-center p-6 bg-white rounded-xl mt-6">
                     <p class="text-slate-800 font-bold text-center mb-1 text-sm" id="qrTitleShow"></p>
                     <p class="text-red-500 font-bold text-center mb-4 text-xs" id="qrTimeShow"></p>
                     <div id="qrImage" class="w-48 h-48 border border-slate-200 rounded-lg shadow-sm flex items-center justify-center p-2"></div>
@@ -233,21 +240,19 @@
                 </div>
             </div>
 
-            <div class="mt-8">
-                <h2 class="text-xl font-bold text-emerald-400 mb-2 flex items-center gap-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path></svg>
-                    2. เกณฑ์เงื่อนไขการซ่อมข้อมูลกิจกรรม/เข้าแถว
-                </h2>
+            <!-- Section 2: Rules -->
+            <div class="border-b border-slate-800 pb-8 mb-8">
+                <h2 class="text-xl font-bold text-emerald-400 mb-4 flex items-center gap-2"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path></svg>2. เกณฑ์เงื่อนไขการซ่อม</h2>
                 
-                <div class="overflow-x-auto mb-3">
+                <div class="overflow-x-auto mb-4">
                     <table class="w-full text-xs text-left">
-                        <thead class="bg-slate-800 text-slate-300 uppercase">
+                        <thead class="bg-slate-800 text-slate-300">
                             <tr>
-                                <th class="px-2 py-2 rounded-tl-lg">หมวดหมู่</th>
-                                <th class="px-2 py-2 text-center">ขั้นต่ำ (%)</th>
-                                <th class="px-2 py-2 text-center">สูงสุด (%)</th>
+                                <th class="px-2 py-2">หมวด</th>
+                                <th class="px-2 py-2 text-center">เริ่ม(%)</th>
+                                <th class="px-2 py-2 text-center">จบ(%)</th>
                                 <th class="px-2 py-2">แนวทางแก้ไข</th>
-                                <th class="px-2 py-2 rounded-tr-lg text-center">ลบ</th>
+                                <th class="px-2 py-2 text-center">ลบ</th>
                             </tr>
                         </thead>
                         <tbody id="rulesTableBody" class="divide-y divide-slate-700 text-slate-200"></tbody>
@@ -255,28 +260,71 @@
                 </div>
 
                 <div class="flex gap-2 mb-4">
-                    <button onclick="addRuleRow('attendance', 0, 79, '')" class="bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/40 px-3 py-1.5 rounded-lg text-xs font-bold transition">+ เพิ่มเกณฑ์เข้าแถว</button>
-                    <button onclick="addRuleRow('activity', 0, 79, '')" class="bg-purple-500/20 text-purple-400 border border-purple-500/30 hover:bg-purple-500/40 px-3 py-1.5 rounded-lg text-xs font-bold transition">+ เพิ่มเกณฑ์กิจกรรม</button>
+                    <button onclick="addRuleRow('attendance', 0, 79, '')" class="bg-blue-500/20 text-blue-400 border border-blue-500/30 px-3 py-1.5 rounded-lg text-[10px] font-bold">+ เพิ่มเกณฑ์เข้าแถว</button>
+                    <button onclick="addRuleRow('activity', 0, 79, '')" class="bg-purple-500/20 text-purple-400 border border-purple-500/30 px-3 py-1.5 rounded-lg text-[10px] font-bold">+ เพิ่มเกณฑ์กิจกรรม</button>
                 </div>
                 
-                <button onclick="saveRulesToAPI()" id="btnSaveRules" class="w-full bg-emerald-500 hover:bg-emerald-600 text-black font-bold py-2.5 rounded-xl text-sm shadow-lg transition-all">บันทึกเงื่อนไขทั้งหมด</button>
+                <button onclick="saveRulesToAPI()" id="btnSaveRules" class="w-full bg-emerald-500 hover:bg-emerald-600 text-black font-bold py-3 rounded-xl text-sm shadow-lg transition-all">บันทึกเงื่อนไขทั้งหมด</button>
             </div>
 
+            <!-- Section 3: Export -->
+            <div class="mb-8">
+                <h2 class="text-xl font-bold text-blue-400 mb-4 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2a4 4 0 014-4h4m0 0l-4-4m4 4l-4 4m5 2v3a2 2 0 01-2 2H5a2 2 0 01-2-2v-3a2 2 0 012-2h1"></path></svg>
+                    3. ส่งออกรายงานรายกิจกรรม
+                </h2>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1.5">เลือกกิจกรรมที่ต้องการออกรายงาน</label>
+                        <select id="exportActivityList" onchange="onExportActivityChange()" class="w-full bg-slate-800 border border-slate-600 rounded-xl p-3 text-sm text-white outline-none focus:border-blue-500">
+                            <option value="">-- กำลังโหลดกิจกรรม... --</option>
+                        </select>
+                    </div>
+
+                    <!-- 🌟 ส่วนแสดงลิงก์ด่วนสำหรับไฟล์รายงานเดิมที่เคยประมวลผลไปแล้ว (แก้ไขจุด Uncaught TypeError ค้างเรียบร้อย) -->
+                    <div id="quickLinkContainer" class="hidden p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-center">
+                        <p class="text-xs text-emerald-400 font-semibold mb-2 flex items-center justify-center gap-1.5">
+                            <span class="flex h-2 w-2 relative"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span></span>
+                            ตรวจพบไฟล์รายงานเดิมใน Google Drive
+                        </p>
+                        <a id="lnkQuickView" href="#" target="_blank" class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-black font-bold px-4 py-2 rounded-lg text-xs transition-colors">
+                            📂 คลิกเปิดดูไฟล์รายงานล่าสุด
+                        </a>
+                    </div>
+
+                    <button onclick="runSpecificExport()" id="btnSpecificExport" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-sm shadow-lg transition-all flex items-center justify-center gap-2 outline-none">
+                        สร้างรายงาน (แยกแท็บตามแผนก)
+                    </button>
+
+                    <!-- 🌟 ส่วนจัดเก็บทางลัดเปิดรายงานกิจกรรมสรุปทั้งหมดตลอดชีพ (รีเฟรชแล้วไม่หายแน่นอน ดึงจากชีตหลังบ้านขึ้นมาโชว์) -->
+                    <div class="mt-4 border-t border-slate-800 pt-4">
+                        <label class="block text-xs font-semibold text-emerald-400 mb-2.5 flex items-center gap-1.5">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                            ทางลัดเปิดรายงานกิจกรรมทั้งหมดที่สร้างไว้แล้ว
+                        </label>
+                        <div id="shortcutsContainer" class="space-y-2 max-h-48 overflow-y-auto custom-scroll pr-1">
+                            <p class="text-slate-500 italic text-center py-2 text-xs">กำลังประมวลผลประวัติรายงาน...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Buttons -->
             <div class="border-t border-slate-800 pt-4 mt-6 flex gap-3">
-                <button onclick="logoutAdmin()" class="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-500 font-bold py-2.5 rounded-xl text-sm border border-red-500/50 transition-all">ออกจากระบบแอดมิน</button>
-                <button onclick="closeAdminPanel()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 rounded-xl text-sm border border-slate-700">ปิดหน้าต่างควบคุม</button>
+                <button onclick="logoutAdmin()" class="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-500 font-bold py-3 rounded-xl text-sm border border-red-500/50">ออกจากระบบแอดมิน</button>
+                <button onclick="closeAdminPanel()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3 rounded-xl text-sm border border-slate-700">ปิดหน้าต่าง</button>
             </div>
         </div>
     </div>
 
-    <!-- Modal อื่นๆ -->
-    <div id="qrExpandedModal" class="fixed inset-0 bg-slate-950/95 hidden flex-col items-center justify-center z-[70] p-4 cursor-pointer" onclick="closeExpandedQR()">
-        <p id="qrExpandedTitle" class="text-white text-2xl md:text-4xl font-bold mb-8 text-center drop-shadow-xl tracking-wide"></p>
+    <!-- Modals for QR & Resolution -->
+    <div id="qrExpandedModal" class="fixed inset-0 bg-slate-950/95 hidden flex-col items-center justify-center z-[110] p-4 cursor-pointer" onclick="closeExpandedQR()">
+        <p id="qrExpandedTitle" class="text-white text-2xl md:text-4xl font-bold mb-8 text-center drop-shadow-xl"></p>
         <div id="qrExpandedImage" class="bg-white p-6 md:p-8 rounded-3xl shadow-2xl"></div>
-        <p class="text-slate-400 mt-8 text-xs bg-slate-900/80 px-4 py-2 rounded-full border border-slate-800">คลิกที่ใดก็ได้บนหน้าจอเพื่อย่อกลับ</p>
+        <p class="text-slate-400 mt-8 text-xs bg-slate-900/80 px-4 py-2 rounded-full border border-slate-800">คลิกที่ใดก็ได้เพื่อย่อกลับ</p>
     </div>
 
-    <div id="resolutionModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[60] p-4 backdrop-blur-sm" onclick="closeResolutionModal(event)">
+    <div id="resolutionModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[120] p-4 backdrop-blur-sm" onclick="closeResolutionModal(event)">
         <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-sm w-full shadow-2xl" onclick="event.stopPropagation()">
             <div class="text-center mb-4">
                 <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-red-500/20 text-red-500 mb-2">
@@ -288,21 +336,11 @@
             <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 mb-6 text-center">
                 <p id="resText" class="text-sm md:text-base text-amber-400 font-medium whitespace-pre-wrap"></p>
             </div>
-            <button onclick="closeResolutionModal()" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 rounded-xl text-sm border border-slate-700">รับทราบ</button>
+            <button onclick="closeResolutionModal()" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl text-sm border border-slate-700 transition-colors">รับทราบ</button>
         </div>
     </div>
 
-    <div id="iosInstallPrompt" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-slate-800 border border-blue-500/30 text-white p-5 rounded-2xl shadow-2xl z-[100] hidden w-[90%] max-w-sm transition-all">
-        <div class="flex justify-between items-start mb-3">
-            <h3 class="font-bold text-sm text-blue-400 flex items-center gap-2">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-                ติดตั้งแอปนี้บน iPhone/iPad
-            </h3>
-            <button onclick="closeIosPrompt()" class="text-slate-400 hover:text-white font-bold text-lg leading-none">✖</button>
-        </div>
-        <p class="text-[11px] text-slate-300 mb-3 leading-relaxed">เพื่อการใช้งานที่รวดเร็วและเต็มจอ</p>
-    </div>
-
+    <!-- Scripts -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
@@ -315,26 +353,20 @@
         // 🔐 การตั้งค่าระบบ
         const MASTER_HASH = "QWRtaW4yMDI2"; 
         const URL_SCANNER_APP = "https://ovtdansai2026.github.io/ATTENDANCE-MONITORING-SYSTEM/scanner.html"; 
-        const API_BASE = "https://script.google.com/macros/s/AKfycbxP17lDcuihMssL0I5AVKcD1lcRFKPdSo8R0_CJ6Hm6vao-cnt-P8g1USFwLcgFmhitFA/exec";
+        const API_BASE = "https://script.google.com/macros/s/AKfycbzEZwclY5DDyAEW5LFToH3WkK3slgHeHVTS1pTizIhvI7iEZwGUtD9GKcv-EPlWu1rE7Q/exec";
 
-        let currentMode = 'attendance'; 
-        let dataAttendance = [];
-        let dataActivity = [];
-        let activeData = [];
-        let globalRules = [];
-        let currentScannerLink = ""; 
-        let isAdminAuthenticated = false;
+        let currentMode = 'attendance', dataAttendance = [], dataActivity = [], activeData = [], globalRules = [], currentScannerLink = "", isAdminAuthenticated = false;
+        let globalReportsMap = {}; // แผนผังเก็บข้อมูล URL รายงานที่ส่งออกแล้ว
 
         function cleanHTML(str) { return !str ? "-" : str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag])); }
 
-        // 🚀 ฟังก์ชันเริ่มทำงาน
         window.onload = function() { 
             checkAdminAuth(); 
             initTimeDropdowns(); 
             fetchAllData(); 
         };
 
-        // --- 🟢 ระบบล็อกอินแอดมิน (LocalStorage) ---
+        // --- Auth System ---
         function checkAdminAuth() {
             if (localStorage.getItem('admin_authenticated') === 'true') {
                 isAdminAuthenticated = true;
@@ -344,15 +376,14 @@
 
         function openPasswordModal() { 
             if (isAdminAuthenticated) {
-                document.getElementById('adminModal').classList.remove('hidden'); 
-                document.getElementById('adminModal').classList.add('flex');
+                document.getElementById('adminModal').classList.replace('hidden', 'flex');
                 renderRulesTable();
+                loadActivities();
                 return;
             }
-            document.getElementById('passwordModal').classList.remove('hidden'); 
-            document.getElementById('passwordModal').classList.add('flex'); 
-            document.getElementById('adminPasswordInput').value = ""; 
-            document.getElementById('adminPasswordInput').focus(); 
+            document.getElementById('passwordModal').classList.replace('hidden', 'flex');
+            document.getElementById('adminPasswordInput').value = "";
+            document.getElementById('adminPasswordInput').focus();
         }
 
         function submitAdminPassword() { 
@@ -366,22 +397,20 @@
         }
 
         function logoutAdmin() {
-            if (confirm("คุณต้องการออกจากระบบแอดมินหรือไม่?")) {
+            if (confirm("ออกจากระบบแอดมิน?")) {
                 localStorage.removeItem('admin_authenticated');
                 isAdminAuthenticated = false;
                 document.getElementById('adminBtnText').innerText = "แอดมิน (จัดการระบบ)";
                 closeAdminPanel();
-                alert("🔒 ออกจากระบบแล้ว");
             }
         }
 
         function closePasswordModal() { document.getElementById('passwordModal').classList.add('hidden'); }
         function closeAdminPanel() { document.getElementById('adminModal').classList.add('hidden'); }
 
-        // --- 🟡 ระบบเวลาและข้อมูล ---
+        // --- Data & Filters ---
         function initTimeDropdowns() {
-            const hIds = ['actHour', 'actStartHour'];
-            const mIds = ['actMinute', 'actStartMinute'];
+            const hIds = ['actHour', 'actStartHour'], mIds = ['actMinute', 'actStartMinute'];
             hIds.forEach(id => {
                 const sel = document.getElementById(id); if(!sel) return; sel.innerHTML = "";
                 for(let i=0; i<24; i++) sel.add(new Option(i.toString().padStart(2,'0'), i.toString().padStart(2,'0')));
@@ -399,7 +428,7 @@
 
         async function fetchAllData() {
             try {
-                const res = await fetch(API_BASE); 
+                const res = await fetch(API_BASE);
                 const json = await res.json();
                 if (json.status === "success") {
                     dataAttendance = processData(json.attendance || []);
@@ -413,13 +442,12 @@
                 switchMode('attendance');
                 document.getElementById('loading').classList.add('hidden');
                 document.getElementById('dashboardContent').classList.remove('hidden');
-            } catch (err) { console.error(err); alert("โหลดข้อมูลไม่สำเร็จ"); }
+            } catch (err) { console.error(err); alert("โหลดข้อมูลล้มเหลว"); }
         }
 
         function processData(rawData) {
             return rawData.map(item => {
-                let d = item.department || "ไม่ระบุ";
-                let l = item.pureLevel || "";
+                let d = item.department || "ไม่ระบุ", l = item.pureLevel || "";
                 d = d.replace(/(ปวช\.\d|ปวส\.\d)/g, "").replace(/แผนกวิชา/g, "").trim();
                 if (!l) {
                     const match = item.department.match(/(ปวช\.\d|ปวส\.\d)/);
@@ -430,24 +458,15 @@
         }
 
         function switchMode(mode) {
-            const btnAtt = document.getElementById('btnAttendance'); const btnAct = document.getElementById('btnActivity');
             currentMode = mode;
-            if (mode === 'attendance') {
-                btnAtt.className = "tab-btn tab-active px-4 py-2.5 text-xs font-bold rounded-xl border flex-1 text-center";
-                btnAct.className = "tab-btn tab-inactive px-4 py-2.5 text-xs font-bold rounded-xl border flex-1 text-center";
-                document.getElementById('mainTitle').innerText = "แดชบอร์ดการเข้าแถว";
-                document.getElementById('riskTableTitle').innerText = "กลุ่มเสี่ยงเข้าแถวไม่ครบ (< 80%)";
-                document.getElementById('passTableTitle').innerText = "กลุ่มเข้าแถวตามเกณฑ์ (≥ 80%)";
-                activeData = dataAttendance;
-            } else {
-                btnAct.className = "tab-btn tab-active px-4 py-2.5 text-xs font-bold rounded-xl border flex-1 text-center";
-                btnAtt.className = "tab-btn tab-inactive px-4 py-2.5 text-xs font-bold rounded-xl border flex-1 text-center";
-                document.getElementById('mainTitle').innerText = "แดชบอร์ดการเข้ากิจกรรม";
-                document.getElementById('riskTableTitle').innerText = "กลุ่มเสี่ยงขาดกิจกรรม (< 80%)";
-                document.getElementById('passTableTitle').innerText = "กลุ่มผ่านเกณฑ์กิจกรรม (≥ 80%)";
-                activeData = dataActivity;
-            }
-            buildFilters(); filterData();
+            const isAtt = mode === 'attendance';
+            document.getElementById('btnAttendance').className = `tab-btn ${isAtt ? 'tab-active' : 'tab-inactive'} px-4 py-2.5 text-xs font-bold rounded-xl border flex-1 text-center`;
+            document.getElementById('btnActivity').className = `tab-btn ${!isAtt ? 'tab-active' : 'tab-inactive'} px-4 py-2.5 text-xs font-bold rounded-xl border flex-1 text-center`;
+            document.getElementById('mainTitle').innerText = isAtt ? "แดชบอร์ดการเข้าแถว" : "แดชบอร์ดการเข้ากิจกรรม";
+            document.getElementById('riskTableTitle').innerText = isAtt ? "กลุ่มเสี่ยงเข้าแถวไม่ครบ (< 80%)" : "กลุ่มเสี่ยงขาดกิจกรรม (< 80%)";
+            document.getElementById('passTableTitle').innerText = isAtt ? "กลุ่มเข้าแถวตามเกณฑ์ (≥ 80%)" : "กลุ่มผ่านเกณฑ์กิจกรรม (≥ 80%)";
+            activeData = isAtt ? dataAttendance : dataActivity;
+            buildFilters();
         }
 
         function buildFilters() {
@@ -456,16 +475,17 @@
             onDeptChange();
         }
 
+        // 🌟 แก้ไขจุดบั๊ก: คืนค่าฟังก์ชันสลับกรองแผนกวิชาแบบ Cascading ครบสมบูรณ์ 100%
         function onDeptChange() {
-            const dept = document.getElementById('deptFilter').value;
-            const lSel = document.getElementById('levelFilter'); lSel.innerHTML = '<option value="ALL">ทุกชั้นปี</option>';
+            const dept = document.getElementById('deptFilter').value, lSel = document.getElementById('levelFilter');
+            lSel.innerHTML = '<option value="ALL">ทุกชั้นปี</option>';
             let target = dept === "ALL" ? activeData : activeData.filter(i => i.pureDept === dept);
             [...new Set(target.map(i => i.pureLevel))].sort().forEach(l => lSel.add(new Option(l, l)));
             filterData();
         }
 
         function filterData() {
-            const dept = document.getElementById('deptFilter').value; const lvl = document.getElementById('levelFilter').value; const search = document.getElementById('searchBar').value.toLowerCase();
+            const dept = document.getElementById('deptFilter').value, lvl = document.getElementById('levelFilter').value, search = document.getElementById('searchBar').value.toLowerCase();
             let result = activeData.filter(i => (dept === "ALL" || i.pureDept === dept) && (lvl === "ALL" || i.pureLevel === lvl) && (i.studentName.toLowerCase().includes(search)));
             
             document.getElementById('totalCount').innerText = result.length;
@@ -490,30 +510,20 @@
             });
         }
 
-        function showResolutionModal(type, pct) {
-            document.getElementById('resPercent').innerText = pct;
-            let rule = globalRules.find(r => r.type === type && pct >= r.min && pct <= r.max);
-            document.getElementById('resText').innerText = rule ? rule.text : "รอการแจ้งข้อกำหนด";
-            const modal = document.getElementById('resolutionModal'); modal.classList.remove('hidden'); modal.classList.add('flex');
-        }
-
-        function closeResolutionModal() { document.getElementById('resolutionModal').classList.add('hidden'); }
-
-        // --- 🔵 ระบบสร้างคิวอาร์ (แอดมิน) ---
+        // --- Admin Controls ---
         async function generateQR() {
             if (!isAdminAuthenticated) return alert("⛔ สิทธิ์ไม่ถูกต้อง");
             const name = document.getElementById('actName').value.trim();
-            const isT = document.getElementById('enableDeadline').checked;
-            if (!name) return alert("กรุณาตั้งชื่อ!");
+            if (!name) return alert("กรุณาตั้งชื่อกิจกรรม!");
 
             let sISO = "none", dISO = "none", dTxt = "เปิดตลอดเวลา";
-            if (isT) {
+            if (document.getElementById('enableDeadline').checked) {
                 const sD = document.getElementById('actStartDate').value, sT = `${document.getElementById('actStartHour').value}:${document.getElementById('actStartMinute').value}`;
                 const eD = document.getElementById('actDate').value, eT = `${document.getElementById('actHour').value}:${document.getElementById('actMinute').value}`;
                 if (!sD || !eD) return alert("ใส่วันที่!");
                 sISO = new Date(`${sD}T${sT}:00`).toISOString();
                 dISO = new Date(`${eD}T${eT}:00`).toISOString();
-                dTxt = `เปิด: ${new Date(sISO).toLocaleString('th-TH')} ถึง: ${new Date(dISO).toLocaleString('th-TH')}`;
+                dTxt = `เปิด: ${new Date(sISO).toLocaleString('th-TH')} - ${new Date(dISO).toLocaleString('th-TH')}`;
             }
 
             const p = new URLSearchParams({ activity: name, start: sISO, deadline: dISO });
@@ -525,15 +535,21 @@
             document.getElementById('qrTitleShow').innerText = name; document.getElementById('qrTimeShow').innerText = dTxt;
             document.getElementById('qrContainer').classList.replace('hidden', 'flex');
 
+            const canvas = qrDiv.querySelector('canvas');
             setTimeout(async () => {
-                const url = qrDiv.querySelector('canvas').toDataURL("image/png");
-                await fetch(API_BASE, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: "create_qr", activityName: name, qrUrl: url, deadlineText: dTxt }) });
+                await fetch(API_BASE, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: "create_qr", activityName: name, qrUrl: canvas.toDataURL("image/png"), deadlineText: dTxt }) });
             }, 500);
         }
 
+        // 🌟 แก้ไขจุดบั๊ก: คืนค่าฟังก์ชันแสดงตารางข้อตกลงงานซ่อมแก่แอดมิน ครบสมบูรณ์ 100%
+        function renderRulesTable() {
+            const tbody = document.getElementById('rulesTableBody'); tbody.innerHTML = '';
+            if (globalRules.length > 0) { globalRules.forEach(r => addRuleRow(r.type, r.min, r.max, r.text)); } 
+            else { addRuleRow('attendance', 70, 79, ''); addRuleRow('activity', 70, 79, ''); }
+        }
+
         function addRuleRow(type, min, max, text) {
-            const tb = document.getElementById('rulesTableBody');
-            const tr = document.createElement('tr');
+            const tb = document.getElementById('rulesTableBody'), tr = document.createElement('tr');
             tr.innerHTML = `<td class="p-1"><select class="rule-type bg-slate-800 text-[11px] w-full border border-slate-600 rounded p-1"><option value="attendance" ${type==='attendance'?'selected':''}>เข้าแถว</option><option value="activity" ${type==='activity'?'selected':''}>กิจกรรม</option></select></td><td class="p-1"><input type="number" value="${min}" class="rule-min w-full bg-slate-800 text-[11px] border border-slate-600 rounded p-1 text-center"></td><td class="p-1"><input type="number" value="${max}" class="rule-max w-full bg-slate-800 text-[11px] border border-slate-600 rounded p-1 text-center"></td><td class="p-1"><input type="text" value="${text}" class="rule-text w-full bg-slate-800 text-[11px] border border-slate-600 rounded p-1"></td><td class="p-1 text-center"><button onclick="this.closest('tr').remove()" class="text-red-400">✖</button></td>`;
             tb.appendChild(tr);
         }
@@ -548,6 +564,103 @@
             } catch (err) { alert("❌ ผิดพลาด"); }
         }
 
+        // --- Specific Export ---
+        async function loadActivities() {
+            const select = document.getElementById('exportActivityList');
+            select.innerHTML = '<option value="">-- กำลังโหลดกิจกรรม... --</option>';
+            document.getElementById('quickLinkContainer').classList.add('hidden');
+            
+            const container = document.getElementById('shortcutsContainer');
+            container.innerHTML = '<p class="text-slate-500 italic text-center py-2 text-xs">กำลังประมวลผลประวัติรายงาน...</p>';
+
+            try {
+                const res = await fetch(API_BASE + "?action=get_activity_list");
+                const data = await res.json();
+                if (data.status === "success") {
+                    select.innerHTML = '<option value="">-- เลือกกิจกรรมที่ต้องการ --</option>';
+                    data.activities.forEach(act => select.add(new Option(act, act)));
+                    globalReportsMap = data.reports || {}; // บันทึกแผนที่ URL ของรายงาน
+                    
+                    renderShortcuts(); // 🌟 อัปเดตวาดรายการทางลัดรายงานกิจกรรมทั้งหมด
+                }
+            } catch (err) { 
+                select.innerHTML = '<option value="">❌ โหลดไม่สำเร็จ</option>'; 
+                container.innerHTML = '<p class="text-red-500 italic text-center py-2 text-xs">โหลดประวัติรายงานล้มเหลว</p>';
+            }
+        }
+
+        // 🌟 ฟังก์ชันวาดรายการทางลัด (Shortcuts) ทั้งหมดลงหน้าจอ เพื่อเปิดดูได้โดยไม่ต้องกดโหลดซ้ำ
+        function renderShortcuts() {
+            const container = document.getElementById('shortcutsContainer');
+            container.innerHTML = '';
+            
+            const keys = Object.keys(globalReportsMap);
+            if (keys.length === 0) {
+                container.innerHTML = '<p class="text-slate-500 italic text-center py-2 text-xs">ยังไม่มีประวัติการส่งออกรายงาน</p>';
+                return;
+            }
+            
+            keys.forEach(act => {
+                const url = globalReportsMap[act];
+                const div = document.createElement('div');
+                div.className = "flex items-center justify-between p-2 rounded-lg bg-slate-900 border border-slate-700/60 hover:border-emerald-500/40 transition-all gap-2";
+                div.innerHTML = `
+                    <span class="font-medium text-slate-300 truncate flex-1 text-xs">${cleanHTML(act)}</span>
+                    <a href="${url}" target="_blank" class="shrink-0 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 font-bold px-2.5 py-1 rounded border border-emerald-500/30 transition-all flex items-center gap-1 text-[10px]">
+                        📂 เปิดดูชีต
+                    </a>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function onExportActivityChange() {
+            const act = document.getElementById('exportActivityList').value;
+            const container = document.getElementById('quickLinkContainer');
+            const link = document.getElementById('lnkQuickView');
+            const btn = document.getElementById('btnSpecificExport');
+            
+            if (act && globalReportsMap[act]) {
+                link.href = globalReportsMap[act];
+                container.classList.remove('hidden');
+                btn.innerText = "🔄 อัปเดตข้อมูลรายงานเป็นเวอร์ชันล่าสุด";
+                btn.className = "w-full bg-amber-500 hover:bg-amber-600 text-black font-bold py-3 rounded-xl text-sm shadow-lg transition-all flex items-center justify-center gap-2 outline-none";
+            } else {
+                container.classList.add('hidden');
+                btn.innerText = "สร้างรายงาน (แยกแท็บตามแผนก)";
+                btn.className = "w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-sm shadow-lg transition-all flex items-center justify-center gap-2 outline-none";
+            }
+        }
+
+        async function runSpecificExport() {
+            const act = document.getElementById('exportActivityList').value;
+            if (!act) return alert("กรุณาเลือกกิจกรรมก่อน!");
+            const btn = document.getElementById('btnSpecificExport');
+            btn.disabled = true; btn.innerText = "กำลังประมวลผลคำนวณชีต...";
+            try {
+                const res = await fetch(API_BASE, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: "export_specific_activity", activityName: act }) });
+                const data = await res.json();
+                if (data.status === "success") {
+                    globalReportsMap[act] = data.url; // อัปเดตลิงก์ล่าสุดลงแผนที่ Global
+                    onExportActivityChange(); // เรียกอัปเดตสถานะปุ่ม
+                    
+                    if (confirm(data.isUpdate ? "อัปเดตข้อมูลรายงานล่าสุดเรียบร้อยแล้ว!\nต้องการเปิดดูไฟล์หรือไม่?" : "สร้างรายงานกิจกรรมใหม่สำเร็จ!\nต้องการเปิดดูไฟล์หรือไม่?")) {
+                        window.open(data.url, '_blank');
+                    }
+                } else {
+                    alert("❌ ผิดพลาด: " + data.message);
+                }
+            } catch (err) { alert("❌ ผิดพลาด"); } finally { btn.disabled = false; onExportActivityChange(); }
+        }
+
+        function showResolutionModal(type, pct) {
+            document.getElementById('resPercent').innerText = pct;
+            let rule = globalRules.find(r => r.type === type && pct >= r.min && pct <= r.max);
+            document.getElementById('resText').innerText = rule ? rule.text : "รอการแจ้งข้อกำหนด";
+            document.getElementById('resolutionModal').classList.replace('hidden', 'flex');
+        }
+
+        function closeResolutionModal() { document.getElementById('resolutionModal').classList.add('hidden'); }
         function expandQR() { if (currentScannerLink) { const exp = document.getElementById('qrExpandedImage'); exp.innerHTML = ""; new QRCode(exp, { text: currentScannerLink, width: 450, height: 450 }); document.getElementById('qrExpandedTitle').innerText = document.getElementById('actName').value; document.getElementById('qrExpandedModal').classList.replace('hidden', 'flex'); } }
         function closeExpandedQR() { document.getElementById('qrExpandedModal').classList.add('hidden'); }
         function toggleTimeInputs() { document.getElementById('timeInputsContainer').classList.toggle('opacity-30', !document.getElementById('enableDeadline').checked); document.getElementById('timeInputsContainer').classList.toggle('pointer-events-none', !document.getElementById('enableDeadline').checked); }
