@@ -10,8 +10,6 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Dashboard">
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3135/3135715.png">
-    
     <link class="custom-favicon" rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect x=%2212%22 y=%2250%22 width=%2220%22 height=%2240%22 rx=%224%22 fill=%22%233b82f6%22/><rect x=%2240%22 y=%2225%22 width=%2220%22 height=%2265%22 rx=%224%22 fill=%22%231e40af%22/><rect x=%2268%22 y=%2210%22 width=%2220%22 height=%2280%22 rx=%224%22 fill=%22%23172554%22/></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -45,17 +43,10 @@
                     </div>
                     <p class="text-slate-400 text-xs md:text-sm mt-1">ระบบวิเคราะห์ข้อมูลและตรวจจับความเสี่ยงแบบเรียลไทม์</p>
                 </div>
-                <div class="flex flex-wrap gap-2 w-full md:w-auto items-center">
-                                       
-                    <!-- 🌟 ปุ่มลิงก์ไปหน้าเช็คชื่อรายวิชาแบบเด่นชัดเรืองแสงพร้อมเอฟเฟกต์กระพริบดึงดูดสายตา -->
-                    <a href="classroom.html" class="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-750 text-white font-bold px-4 py-2 rounded-lg text-xs md:text-sm transition-all shadow-[0_0_15px_rgba(59,130,246,0.35)] flex items-center justify-center gap-1.5 flex-1 md:flex-none animate-pulse hover:animate-none">
-                        <svg class="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
-                        <span class="whitespace-nowrap">📝 เช็คชื่อรายวิชาเรียน</span>
-                    </a>
-
-                    <button onclick="openPasswordModal()" class="bg-slate-800 hover:bg-slate-700 text-amber-400 border border-amber-500/30 px-4 py-2 rounded-lg text-sm transition-colors flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(245,158,11,0.1)] flex-1 md:flex-none">
+                <div class="flex flex-wrap gap-2 w-full md:w-auto items-center justify-end">
+                    <button onclick="openPasswordModal()" class="bg-slate-800 hover:bg-slate-700 text-amber-400 border border-amber-500/30 px-4 py-2 rounded-lg text-xs md:text-sm transition-colors flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(245,158,11,0.1)] w-full md:w-auto">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-                        <span class="font-medium text-xs whitespace-nowrap">แอดมิน (จัดการระบบ)</span>
+                        <span id="adminBtnText" class="font-medium text-xs whitespace-nowrap">แอดมิน (จัดการระบบ)</span>
                     </button>
                 </div>
             </div>
@@ -95,8 +86,7 @@
                     <p id="totalExcellentCard" class="text-2xl md:text-3xl font-bold text-emerald-400 mt-2">0 <span class="text-xs md:text-sm font-normal text-slate-400">คน</span></p>
                 </div>
             </section>
-			
-			<!-- 🌟 2. แผงปุ่มสลับกิจกรรมและเข้าแถว (ย้ายมาอยู่ตรงนี้อย่างมีมิติ) -->
+
             <div class="flex gap-2 mb-6 w-full max-w-xs sm:max-w-sm">
                 <button onclick="switchMode('attendance')" id="btnAttendance" class="tab-btn tab-active px-4 py-2.5 text-xs md:text-sm font-bold rounded-xl border flex-1 text-center transition-all">การเข้าแถว</button>
                 <button onclick="switchMode('activity')" id="btnActivity" class="tab-btn tab-inactive px-4 py-2.5 text-xs md:text-sm font-bold rounded-xl border flex-1 text-center transition-all">การเข้ากิจกรรม</button>
@@ -152,7 +142,7 @@
         </div>
     </div>
 
-    <!-- แผงล็อกอินแอดมินสำหรับตั้งเกณฑ์เงื่อนไขและคิวอาร์โค้ดกิจกรรมส่วนกลาง -->
+    <!-- แผงล็อกอินแอดมิน -->
     <div id="passwordModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[70] p-4 backdrop-blur-sm">
         <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-sm w-full shadow-2xl">
             <h3 class="text-lg font-bold text-amber-400 mb-2 flex items-center gap-2">
@@ -168,6 +158,7 @@
         </div>
     </div>
 
+    <!-- หน้าต่างควบคุมแอดมิน -->
     <div id="adminModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-50 p-4 backdrop-blur-sm">
         <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 md:p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto relative shadow-2xl custom-scroll">
             <button onclick="closeAdminPanel()" class="absolute top-4 right-4 text-slate-400 hover:text-white font-bold text-lg">✖</button>
@@ -200,23 +191,35 @@
                     
                     <label class="flex items-center gap-2 cursor-pointer mb-2">
                         <input type="checkbox" id="enableDeadline" class="w-4 h-4 text-amber-500 bg-slate-800 border-slate-600 rounded" onchange="toggleTimeInputs()" checked>
-                        <span class="text-xs font-semibold text-slate-300">ตั้งเวลาปิดรับเช็คชื่ออัตโนมัติ</span>
+                        <span class="text-xs font-semibold text-slate-300">ตั้งช่วงเวลาเปิด-ปิดรับเช็คชื่อ</span>
                     </label>
 
-                    <div class="grid grid-cols-2 gap-4" id="timeInputsContainer">
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-400 mb-1">วันที่ปิดรับ</label>
-                            <input type="date" id="actDate" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-sm text-black focus:outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-400 mb-1">เวลาปิดรับ (น.)</label>
-                            <div class="flex items-center gap-1">
-                                <select id="actHour" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-sm text-black"></select>
-                                <span class="text-slate-300 font-bold">:</span>
-                                <select id="actMinute" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-sm text-black"></select>
-                            </div>
-                        </div>
-                    </div>
+					<div id="timeInputsContainer" class="space-y-4">
+						<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+							<div class="p-3 bg-slate-800/50 rounded-lg border border-emerald-500/30">
+								<label class="block text-[10px] font-bold text-emerald-400 uppercase mb-2">🟢 เวลาเริ่มเปิดรับสแกน</label>
+								<div class="flex flex-col gap-2">
+									<input type="date" id="actStartDate" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-sm text-black">
+									<div class="flex items-center gap-1">
+										<select id="actStartHour" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-sm text-black"></select>
+										<span class="text-white">:</span>
+										<select id="actStartMinute" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-sm text-black"></select>
+									</div>
+								</div>
+							</div>
+							<div class="p-3 bg-slate-800/50 rounded-lg border border-red-500/30">
+								<label class="block text-[10px] font-bold text-red-400 uppercase mb-2">🔴 เวลาปิดรับสแกน</label>
+								<div class="flex flex-col gap-2">
+									<input type="date" id="actDate" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-sm text-black">
+									<div class="flex items-center gap-1">
+										<select id="actHour" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-sm text-black"></select>
+										<span class="text-white">:</span>
+										<select id="actMinute" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-sm text-black"></select>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
 
                     <button onclick="generateQR()" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-2.5 rounded-xl shadow-lg mt-2 transition-all">สร้างคิวอาร์โค้ดกิจกรรม</button>
                 </div>
@@ -230,12 +233,11 @@
                 </div>
             </div>
 
-            <div>
+            <div class="mt-8">
                 <h2 class="text-xl font-bold text-emerald-400 mb-2 flex items-center gap-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path></svg>
                     2. เกณฑ์เงื่อนไขการซ่อมข้อมูลกิจกรรม/เข้าแถว
                 </h2>
-                <p class="text-xs text-slate-400 mb-3">* สามารถเพิ่มได้หลายช่วงเงื่อนไข ระบบจะดึงไปแสดงเมื่อเด็กกดปุ่ม "ดูวิธีแก้"</p>
                 
                 <div class="overflow-x-auto mb-3">
                     <table class="w-full text-xs text-left">
@@ -244,12 +246,11 @@
                                 <th class="px-2 py-2 rounded-tl-lg">หมวดหมู่</th>
                                 <th class="px-2 py-2 text-center">ขั้นต่ำ (%)</th>
                                 <th class="px-2 py-2 text-center">สูงสุด (%)</th>
-                                <th class="px-2 py-2">แนวทางแก้ไข / งานที่ต้องทำชดเชย</th>
+                                <th class="px-2 py-2">แนวทางแก้ไข</th>
                                 <th class="px-2 py-2 rounded-tr-lg text-center">ลบ</th>
                             </tr>
                         </thead>
-                        <tbody id="rulesTableBody" class="divide-y divide-slate-700 text-slate-200">
-                        </tbody>
+                        <tbody id="rulesTableBody" class="divide-y divide-slate-700 text-slate-200"></tbody>
                     </table>
                 </div>
 
@@ -261,12 +262,14 @@
                 <button onclick="saveRulesToAPI()" id="btnSaveRules" class="w-full bg-emerald-500 hover:bg-emerald-600 text-black font-bold py-2.5 rounded-xl text-sm shadow-lg transition-all">บันทึกเงื่อนไขทั้งหมด</button>
             </div>
 
-            <div class="border-t border-slate-800 pt-4 mt-6">
-                <button onclick="closeAdminPanel()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 rounded-xl text-sm border border-slate-700">ปิดหน้าต่างควบคุม</button>
+            <div class="border-t border-slate-800 pt-4 mt-6 flex gap-3">
+                <button onclick="logoutAdmin()" class="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-500 font-bold py-2.5 rounded-xl text-sm border border-red-500/50 transition-all">ออกจากระบบแอดมิน</button>
+                <button onclick="closeAdminPanel()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 rounded-xl text-sm border border-slate-700">ปิดหน้าต่างควบคุม</button>
             </div>
         </div>
     </div>
 
+    <!-- Modal อื่นๆ -->
     <div id="qrExpandedModal" class="fixed inset-0 bg-slate-950/95 hidden flex-col items-center justify-center z-[70] p-4 cursor-pointer" onclick="closeExpandedQR()">
         <p id="qrExpandedTitle" class="text-white text-2xl md:text-4xl font-bold mb-8 text-center drop-shadow-xl tracking-wide"></p>
         <div id="qrExpandedImage" class="bg-white p-6 md:p-8 rounded-3xl shadow-2xl"></div>
@@ -274,7 +277,7 @@
     </div>
 
     <div id="resolutionModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[60] p-4 backdrop-blur-sm" onclick="closeResolutionModal(event)">
-        <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-sm w-full shadow-2xl transform transition-all" onclick="event.stopPropagation()">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-sm w-full shadow-2xl" onclick="event.stopPropagation()">
             <div class="text-center mb-4">
                 <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-red-500/20 text-red-500 mb-2">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
@@ -283,11 +286,9 @@
                 <p class="text-sm text-slate-400 mt-1">สถิติปัจจุบันของคุณอยู่ที่ <span id="resPercent" class="font-bold text-red-400"></span>%</p>
             </div>
             <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 mb-6 text-center">
-                <p id="resText" class="text-sm md:text-base text-amber-400 font-medium whitespace-pre-wrap">รอแจ้งข้อกำหนด</p>
+                <p id="resText" class="text-sm md:text-base text-amber-400 font-medium whitespace-pre-wrap"></p>
             </div>
-            <div class="flex gap-2">
-                <button onclick="closeResolutionModal()" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 rounded-xl text-sm border border-slate-700 transition-colors">รับทราบ</button>
-            </div>
+            <button onclick="closeResolutionModal()" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 rounded-xl text-sm border border-slate-700">รับทราบ</button>
         </div>
     </div>
 
@@ -299,73 +300,120 @@
             </h3>
             <button onclick="closeIosPrompt()" class="text-slate-400 hover:text-white font-bold text-lg leading-none">✖</button>
         </div>
-        <p class="text-[11px] text-slate-300 mb-3 leading-relaxed">เพื่อการใช้งานที่รวดเร็วและเต็มจอ (ไม่ต้องโหลดผ่านเบราว์เซอร์ใหม่ทุกครั้ง)</p>
-        <div class="bg-slate-900 rounded-lg p-3 text-[11px] text-slate-300">
-            <p class="mb-2">1. แตะไอคอน <strong class="text-white">แชร์ (Share)</strong> ตรงแถบด้านล่าง <svg class="inline w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg></p>
-            <p>2. เลื่อนลงมาแล้วเลือก <strong class="text-white">เพิ่มไปยังหน้าจอโฮม</strong> <svg class="inline w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg></p>
-        </div>
+        <p class="text-[11px] text-slate-300 mb-3 leading-relaxed">เพื่อการใช้งานที่รวดเร็วและเต็มจอ</p>
     </div>
 
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js')
-                .then(reg => console.log('✅ Service Worker จดทะเบียนสำเร็จ!'))
-                .catch(err => console.log('❌ Service Worker ล้มเหลว:', err));
+                navigator.serviceWorker.register('sw.js').catch(err => console.log('❌ SW Failed', err));
             });
         }
     </script>
 
     <script>
-        // ==========================================
-        // 🌟 เข้ารหัสผ่านฝังบนหน้าเว็บตรงๆ (ถอดรหัสออกมาคือ Admin2026)
+        // 🔐 การตั้งค่าระบบ
         const MASTER_HASH = "QWRtaW4yMDI2"; 
-        
         const URL_SCANNER_APP = "https://ovtdansai2026.github.io/ATTENDANCE-MONITORING-SYSTEM/scanner.html"; 
-        const API_BASE = "https://script.google.com/macros/s/AKfycbzEZwclY5DDyAEW5LFToH3WkK3slgHeHVTS1pTizIhvI7iEZwGUtD9GKcv-EPlWu1rE7Q/exec";
-        const API_ATTENDANCE = `${API_BASE}?type=attendance`; 
-        const API_ACTIVITY   = `${API_BASE}?type=activity`;
-        // ==========================================
-
-        function cleanHTML(str) { return !str ? "-" : str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag])); }
+        const API_BASE = "https://script.google.com/macros/s/AKfycbxP17lDcuihMssL0I5AVKcD1lcRFKPdSo8R0_CJ6Hm6vao-cnt-P8g1USFwLcgFmhitFA/exec";
 
         let currentMode = 'attendance'; 
         let dataAttendance = [];
         let dataActivity = [];
         let activeData = [];
-        let currentScannerLink = ""; 
         let globalRules = [];
+        let currentScannerLink = ""; 
+        let isAdminAuthenticated = false;
 
+        function cleanHTML(str) { return !str ? "-" : str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag])); }
+
+        // 🚀 ฟังก์ชันเริ่มทำงาน
+        window.onload = function() { 
+            checkAdminAuth(); 
+            initTimeDropdowns(); 
+            fetchAllData(); 
+        };
+
+        // --- 🟢 ระบบล็อกอินแอดมิน (LocalStorage) ---
+        function checkAdminAuth() {
+            if (localStorage.getItem('admin_authenticated') === 'true') {
+                isAdminAuthenticated = true;
+                document.getElementById('adminBtnText').innerText = "แอดมิน (โหมดจัดการ)";
+            }
+        }
+
+        function openPasswordModal() { 
+            if (isAdminAuthenticated) {
+                document.getElementById('adminModal').classList.remove('hidden'); 
+                document.getElementById('adminModal').classList.add('flex');
+                renderRulesTable();
+                return;
+            }
+            document.getElementById('passwordModal').classList.remove('hidden'); 
+            document.getElementById('passwordModal').classList.add('flex'); 
+            document.getElementById('adminPasswordInput').value = ""; 
+            document.getElementById('adminPasswordInput').focus(); 
+        }
+
+        function submitAdminPassword() { 
+            if (btoa(document.getElementById('adminPasswordInput').value) === MASTER_HASH) { 
+                isAdminAuthenticated = true; 
+                localStorage.setItem('admin_authenticated', 'true');
+                document.getElementById('adminBtnText').innerText = "แอดมิน (โหมดจัดการ)";
+                closePasswordModal(); 
+                openPasswordModal();
+            } else { alert("❌ รหัสผ่านไม่ถูกต้อง!"); } 
+        }
+
+        function logoutAdmin() {
+            if (confirm("คุณต้องการออกจากระบบแอดมินหรือไม่?")) {
+                localStorage.removeItem('admin_authenticated');
+                isAdminAuthenticated = false;
+                document.getElementById('adminBtnText').innerText = "แอดมิน (จัดการระบบ)";
+                closeAdminPanel();
+                alert("🔒 ออกจากระบบแล้ว");
+            }
+        }
+
+        function closePasswordModal() { document.getElementById('passwordModal').classList.add('hidden'); }
+        function closeAdminPanel() { document.getElementById('adminModal').classList.add('hidden'); }
+
+        // --- 🟡 ระบบเวลาและข้อมูล ---
         function initTimeDropdowns() {
-            const hSelect = document.getElementById('actHour'); hSelect.innerHTML = "";
-            for(let i=0; i<24; i++) hSelect.add(new Option(i.toString().padStart(2,'0'), i.toString().padStart(2,'0'))); hSelect.value = "16";
-            const mSelect = document.getElementById('actMinute'); mSelect.innerHTML = "";
-            for(let i=0; i<60; i+=5) mSelect.add(new Option(i.toString().padStart(2,'0'), i.toString().padStart(2,'0'))); mSelect.value = "00";
+            const hIds = ['actHour', 'actStartHour'];
+            const mIds = ['actMinute', 'actStartMinute'];
+            hIds.forEach(id => {
+                const sel = document.getElementById(id); if(!sel) return; sel.innerHTML = "";
+                for(let i=0; i<24; i++) sel.add(new Option(i.toString().padStart(2,'0'), i.toString().padStart(2,'0')));
+            });
+            mIds.forEach(id => {
+                const sel = document.getElementById(id); if(!sel) return; sel.innerHTML = "";
+                for(let i=0; i<60; i+=5) sel.add(new Option(i.toString().padStart(2,'0'), i.toString().padStart(2,'0')));
+            });
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('actStartDate').value = today;
+            document.getElementById('actDate').value = today;
+            document.getElementById('actStartHour').value = "08";
+            document.getElementById('actHour').value = "16";
         }
 
         async function fetchAllData() {
             try {
-                const [resAtt, resAct] = await Promise.all([ fetch(API_ATTENDANCE), fetch(API_ACTIVITY) ]);
-                const jsonAtt = await resAtt.json();
-                const jsonAct = await resAct.json();
-
-                if (jsonAtt.status === "success") {
-                    dataAttendance = processData(jsonAtt.data);
-                    globalRules = jsonAtt.rules || [];
-                    
-                    const uniqueDepts = [...new Set(dataAttendance.map(i => i.pureDept))].filter(Boolean).sort();
-                    const uniqueLevels = [...new Set(dataAttendance.map(i => i.pureLevel))].filter(Boolean).sort();
-                    document.getElementById('deptTargets').innerHTML = uniqueDepts.map(d => `<label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="${d}" class="chk-dept rounded bg-slate-900 border-slate-600"> ${d}</label>`).join('');
-                    document.getElementById('levelTargets').innerHTML = uniqueLevels.map(l => `<label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="${l}" class="chk-level rounded bg-slate-900 border-slate-600"> ${l}</label>`).join('');
+                const res = await fetch(API_BASE); 
+                const json = await res.json();
+                if (json.status === "success") {
+                    dataAttendance = processData(json.attendance || []);
+                    dataActivity = processData(json.activity || []);
+                    globalRules = json.rules || [];
+                    const depts = [...new Set(dataAttendance.map(i => i.pureDept))].filter(Boolean).sort();
+                    const lvls = [...new Set(dataAttendance.map(i => i.pureLevel))].filter(Boolean).sort();
+                    document.getElementById('deptTargets').innerHTML = depts.map(d => `<label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="${d}" class="chk-dept rounded bg-slate-900 border-slate-600"> ${d}</label>`).join('');
+                    document.getElementById('levelTargets').innerHTML = lvls.map(l => `<label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="${l}" class="chk-level rounded bg-slate-900 border-slate-600"> ${l}</label>`).join('');
                 }
-                
-                if (jsonAct.status === "success") dataActivity = processData(jsonAct.data);
-
                 switchMode('attendance');
                 document.getElementById('loading').classList.add('hidden');
                 document.getElementById('dashboardContent').classList.remove('hidden');
-                checkIOSInstallPrompt();
-            } catch (error) { console.error(error); alert("โหลดข้อมูลไม่สำเร็จ กรุณารีเฟรช"); }
+            } catch (err) { console.error(err); alert("โหลดข้อมูลไม่สำเร็จ"); }
         }
 
         function processData(rawData) {
@@ -382,194 +430,127 @@
         }
 
         function switchMode(mode) {
-            currentMode = mode;
             const btnAtt = document.getElementById('btnAttendance'); const btnAct = document.getElementById('btnActivity');
+            currentMode = mode;
             if (mode === 'attendance') {
-                btnAtt.className = "tab-btn tab-active px-4 py-2 text-sm font-semibold rounded-lg border flex-1 md:flex-none";
-                btnAct.className = "tab-btn tab-inactive px-4 py-2 text-sm font-semibold rounded-lg border flex-1 md:flex-none";
-                document.getElementById('mainTitle').innerHTML = "แดชบอร์ดการเข้าแถว";
-                document.getElementById('riskTableTitle').innerText = "กลุ่มเสี่ยงเข้าแถวไม่ครบ (< 80%)"; document.getElementById('passTableTitle').innerText = "กลุ่มเข้าแถวตามเกณฑ์ (≥ 80%)";
-                document.getElementById('thTeacherRisk').innerText = "อีเมลครูที่ปรึกษา"; document.getElementById('thTeacherPass').innerText = "อีเมลครูที่ปรึกษา";
+                btnAtt.className = "tab-btn tab-active px-4 py-2.5 text-xs font-bold rounded-xl border flex-1 text-center";
+                btnAct.className = "tab-btn tab-inactive px-4 py-2.5 text-xs font-bold rounded-xl border flex-1 text-center";
+                document.getElementById('mainTitle').innerText = "แดชบอร์ดการเข้าแถว";
+                document.getElementById('riskTableTitle').innerText = "กลุ่มเสี่ยงเข้าแถวไม่ครบ (< 80%)";
+                document.getElementById('passTableTitle').innerText = "กลุ่มเข้าแถวตามเกณฑ์ (≥ 80%)";
                 activeData = dataAttendance;
             } else {
-                btnAct.className = "tab-btn tab-active px-4 py-2 text-sm font-semibold rounded-lg border flex-1 md:flex-none";
-                btnAtt.className = "tab-btn tab-inactive px-4 py-2 text-sm font-semibold rounded-lg border flex-1 md:flex-none";
-                document.getElementById('mainTitle').innerHTML = "แดชบอร์ดการเข้ากิจกรรม";
-                document.getElementById('riskTableTitle').innerText = "กลุ่มเสี่ยงขาดกิจกรรม (< 80%)"; document.getElementById('passTableTitle').innerText = "กลุ่มเข้ากิจกรรมผ่านเกณฑ์ (≥ 80%)";
-                document.getElementById('thTeacherRisk').innerText = "สถิติการมา (ครั้ง)"; document.getElementById('thTeacherPass').innerText = "สถิติการมา (ครั้ง)";
+                btnAct.className = "tab-btn tab-active px-4 py-2.5 text-xs font-bold rounded-xl border flex-1 text-center";
+                btnAtt.className = "tab-btn tab-inactive px-4 py-2.5 text-xs font-bold rounded-xl border flex-1 text-center";
+                document.getElementById('mainTitle').innerText = "แดชบอร์ดการเข้ากิจกรรม";
+                document.getElementById('riskTableTitle').innerText = "กลุ่มเสี่ยงขาดกิจกรรม (< 80%)";
+                document.getElementById('passTableTitle').innerText = "กลุ่มผ่านเกณฑ์กิจกรรม (≥ 80%)";
                 activeData = dataActivity;
             }
-            buildCascadingFilters(); filterData();
+            buildFilters(); filterData();
         }
 
-        function buildCascadingFilters() {
-            const deptSelect = document.getElementById('deptFilter'); deptSelect.innerHTML = '<option value="ALL">ทุกแผนกวิชา</option>';
-            [...new Set(activeData.map(item => item.pureDept))].sort().forEach(dept => deptSelect.add(new Option("แผนก" + dept, dept)));
+        function buildFilters() {
+            const dSel = document.getElementById('deptFilter'); dSel.innerHTML = '<option value="ALL">ทุกแผนกวิชา</option>';
+            [...new Set(activeData.map(i => i.pureDept))].sort().forEach(d => dSel.add(new Option("แผนก" + d, d)));
             onDeptChange();
         }
 
         function onDeptChange() {
-            const selectedDept = document.getElementById('deptFilter').value;
-            const levelSelect = document.getElementById('levelFilter'); levelSelect.innerHTML = '<option value="ALL">ทุกชั้นปี</option>';
-            let targetData = selectedDept === "ALL" ? activeData : activeData.filter(item => item.pureDept === selectedDept);
-            [...new Set(targetData.map(item => item.pureLevel))].sort().forEach(lvl => levelSelect.add(new Option(lvl, lvl)));
+            const dept = document.getElementById('deptFilter').value;
+            const lSel = document.getElementById('levelFilter'); lSel.innerHTML = '<option value="ALL">ทุกชั้นปี</option>';
+            let target = dept === "ALL" ? activeData : activeData.filter(i => i.pureDept === dept);
+            [...new Set(target.map(i => i.pureLevel))].sort().forEach(l => lSel.add(new Option(l, l)));
             filterData();
         }
 
         function filterData() {
-            const dept = document.getElementById('deptFilter').value; const lvl = document.getElementById('levelFilter').value; const search = document.getElementById('searchBar').value.trim().toLowerCase();
-            let result = activeData.filter(i => (dept === "ALL" || i.pureDept === dept) && (lvl === "ALL" || i.pureLevel === lvl) && (search === "" || i.studentName.toLowerCase().includes(search)));
-            document.getElementById('totalCount').innerHTML = `${result.length} <span class="text-sm font-normal text-slate-400">คน</span>`;
-            const risk = result.filter(s => s.percent < 80).sort((a,b) => a.percent - b.percent); const pass = result.filter(s => s.percent >= 80).sort((a,b) => b.percent - a.percent);
-            document.getElementById('totalRiskCard').innerHTML = `${risk.length} <span class="text-sm font-normal text-slate-400">คน</span>`; document.getElementById('totalExcellentCard').innerHTML = `${pass.length} <span class="text-sm font-normal text-slate-400">คน</span>`;
-            document.getElementById('riskBadge').textContent = risk.length; document.getElementById('excellentBadge').textContent = pass.length;
-            renderTableRows('riskTableBody', risk, 'text-red-400 bg-red-500/10 border-red-500/20'); renderTableRows('excellentTableBody', pass, 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20');
+            const dept = document.getElementById('deptFilter').value; const lvl = document.getElementById('levelFilter').value; const search = document.getElementById('searchBar').value.toLowerCase();
+            let result = activeData.filter(i => (dept === "ALL" || i.pureDept === dept) && (lvl === "ALL" || i.pureLevel === lvl) && (i.studentName.toLowerCase().includes(search)));
+            
+            document.getElementById('totalCount').innerText = result.length;
+            const risk = result.filter(s => s.percent < 80).sort((a,b) => a.percent - b.percent);
+            const pass = result.filter(s => s.percent >= 80).sort((a,b) => b.percent - a.percent);
+            
+            document.getElementById('totalRiskCard').innerText = risk.length;
+            document.getElementById('totalExcellentCard').innerText = pass.length;
+            document.getElementById('riskBadge').innerText = risk.length;
+            document.getElementById('excellentBadge').innerText = pass.length;
+            
+            renderTable('riskTableBody', risk, 'text-red-400 bg-red-500/10 border-red-500/20');
+            renderTable('excellentTableBody', pass, 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20');
         }
 
-        function renderTableRows(tbodyId, data, badgeStyle) {
-            const tbody = document.getElementById(tbodyId); tbody.innerHTML = '';
-            if (data.length === 0) { tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-12 text-center text-slate-500">ไม่พบข้อมูล</td></tr>`; return; }
-            data.forEach((student, index) => {
-                const tr = document.createElement('tr'); tr.className = "hover:bg-slate-800/30";
-                let detail = currentMode === 'attendance' ? `<div>${cleanHTML(student.teacherEmail)}</div>` : `<div class="font-bold text-slate-300">มา ${student.presentDays || 0}/${student.totalDays || 0} งาน</div>`;
-                let remarkHtml = student.remark ? `<div class="text-[10px] text-amber-400 mt-1 bg-amber-500/10 border border-amber-500/30 px-1.5 py-0.5 rounded inline-block">📝 ${cleanHTML(student.remark)}</div>` : "";
-
-                let resolveBtn = "";
-                if (student.percent < 80) {
-                    resolveBtn = `<button onclick="showResolutionModal('${currentMode}', ${student.percent})" class="mt-1.5 flex items-center justify-center mx-auto gap-1 text-[10px] bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-2 py-0.5 rounded-md transition-all"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>ดูวิธีแก้</button>`;
-                }
-
-                tr.innerHTML = `
-                    <td class="px-2 py-3 md:px-4 text-center"><span class="w-6 h-6 mx-auto flex items-center justify-center rounded-full bg-slate-800 text-[10px] font-bold border border-slate-700">${index + 1}</span></td>
-                    <td class="px-2 py-3 md:px-6"><div class="font-medium text-slate-200 text-[11px] md:text-sm">${cleanHTML(student.studentName)}</div><div class="text-[10px] text-slate-400">${cleanHTML(student.pureLevel)} แผนก${cleanHTML(student.pureDept)}</div>${remarkHtml}</td>
-                    <td class="px-2 py-3 md:px-6 text-center">
-                        <span class="inline-block px-2 py-1 rounded-md text-[10px] font-bold ${badgeStyle}">${student.percent}%</span>
-                        ${resolveBtn}
-                    </td>
-                    <td class="px-2 py-3 md:px-6 text-[10px] text-slate-400">${detail}</td>`;
-                tbody.appendChild(tr);
+        function renderTable(id, data, style) {
+            const tb = document.getElementById(id); tb.innerHTML = data.length ? '' : '<tr><td colspan="4" class="py-10 text-center text-slate-500">ไม่พบข้อมูล</td></tr>';
+            data.forEach((s, i) => {
+                let detail = currentMode === 'attendance' ? `<div>${cleanHTML(s.teacherEmail)}</div>` : (s.totalDays === 0 ? `-` : `มา ${s.presentDays}/${s.totalDays}`);
+                let resolve = s.percent < 80 ? `<button onclick="showResolutionModal('${currentMode}', ${s.percent})" class="text-[10px] text-red-400 border border-red-500/30 px-2 py-0.5 rounded mt-1 block mx-auto">ดูวิธีแก้</button>` : "";
+                tb.innerHTML += `<tr class="hover:bg-slate-800/30"><td class="px-2 py-3 text-center"><span class="w-6 h-6 inline-flex items-center justify-center rounded-full bg-slate-800 text-[10px] border border-slate-700">${i+1}</span></td><td class="px-2 py-3 text-[11px] md:text-sm"><b>${cleanHTML(s.studentName)}</b><br><span class="text-slate-400 text-[10px]">${cleanHTML(s.pureLevel)} ${cleanHTML(s.pureDept)}</span></td><td class="px-2 py-3 text-center"><span class="px-2 py-1 rounded text-[10px] font-bold ${style}">${s.percent}%</span>${resolve}</td><td class="px-2 py-3 text-[10px] text-slate-400 text-center">${detail}</td></tr>`;
             });
         }
 
-        function showResolutionModal(type, percent) {
-            document.getElementById('resPercent').innerText = percent;
-            let foundRule = globalRules.find(r => r.type === type && percent >= r.min && percent <= r.max);
-            let resText = "รอแจ้งข้อกำหนด";
-            if (foundRule && foundRule.text.trim() !== "") resText = foundRule.text;
-            document.getElementById('resText').innerText = resText;
+        function showResolutionModal(type, pct) {
+            document.getElementById('resPercent').innerText = pct;
+            let rule = globalRules.find(r => r.type === type && pct >= r.min && pct <= r.max);
+            document.getElementById('resText').innerText = rule ? rule.text : "รอการแจ้งข้อกำหนด";
             const modal = document.getElementById('resolutionModal'); modal.classList.remove('hidden'); modal.classList.add('flex');
         }
 
-        function closeResolutionModal(e) {
-            if (e && e.target !== e.currentTarget) return;
-            const modal = document.getElementById('resolutionModal'); modal.classList.add('hidden'); modal.classList.remove('flex');
-        }
+        function closeResolutionModal() { document.getElementById('resolutionModal').classList.add('hidden'); }
 
-        function checkIOSInstallPrompt() {
-            const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
-            const isInStandaloneMode = () => ('standalone' in window.navigator) && (window.navigator.standalone);
-            if (isIos() && !isInStandaloneMode() && !localStorage.getItem('iosPromptClosed')) {
-                document.getElementById('iosInstallPrompt').classList.remove('hidden');
+        // --- 🔵 ระบบสร้างคิวอาร์ (แอดมิน) ---
+        async function generateQR() {
+            if (!isAdminAuthenticated) return alert("⛔ สิทธิ์ไม่ถูกต้อง");
+            const name = document.getElementById('actName').value.trim();
+            const isT = document.getElementById('enableDeadline').checked;
+            if (!name) return alert("กรุณาตั้งชื่อ!");
+
+            let sISO = "none", dISO = "none", dTxt = "เปิดตลอดเวลา";
+            if (isT) {
+                const sD = document.getElementById('actStartDate').value, sT = `${document.getElementById('actStartHour').value}:${document.getElementById('actStartMinute').value}`;
+                const eD = document.getElementById('actDate').value, eT = `${document.getElementById('actHour').value}:${document.getElementById('actMinute').value}`;
+                if (!sD || !eD) return alert("ใส่วันที่!");
+                sISO = new Date(`${sD}T${sT}:00`).toISOString();
+                dISO = new Date(`${eD}T${eT}:00`).toISOString();
+                dTxt = `เปิด: ${new Date(sISO).toLocaleString('th-TH')} ถึง: ${new Date(dISO).toLocaleString('th-TH')}`;
             }
-        }
-        function closeIosPrompt() { document.getElementById('iosInstallPrompt').classList.add('hidden'); localStorage.setItem('iosPromptClosed', 'true'); }
 
-        // ==========================================
-        // ระบบบริหารจัดการฝั่งแอดมิน (Admin Panel)
-        // ==========================================
-        let isAdminAuthenticated = false;
-        function openPasswordModal() { document.getElementById('passwordModal').classList.remove('hidden'); document.getElementById('passwordModal').classList.add('flex'); document.getElementById('adminPasswordInput').value = ""; document.getElementById('adminPasswordInput').focus(); }
-        function closePasswordModal() { document.getElementById('passwordModal').classList.add('hidden'); document.getElementById('passwordModal').classList.remove('flex'); }
-        
-        function submitAdminPassword() { 
-            if (btoa(document.getElementById('adminPasswordInput').value) === MASTER_HASH) { 
-                isAdminAuthenticated = true; 
-                closePasswordModal(); 
-                document.getElementById('adminModal').classList.remove('hidden'); 
-                document.getElementById('adminModal').classList.add('flex'); 
-                document.getElementById('actDate').value = new Date().toISOString().split('T')[0]; 
-                renderRulesTable();
-            } else { 
-                alert("❌ รหัสผ่านไม่ถูกต้อง!"); 
-                document.getElementById('adminPasswordInput').value = ""; 
-                isAdminAuthenticated = false; 
-            } 
-        }
-        
-        function closeAdminPanel() { document.getElementById('adminModal').classList.add('hidden'); document.getElementById('adminModal').classList.remove('flex'); document.getElementById('qrContainer').classList.add('hidden'); isAdminAuthenticated = false; }
-        function toggleTimeInputs() { const isEnabled = document.getElementById('enableDeadline').checked; document.getElementById('timeInputsContainer').classList.toggle('opacity-30', !isEnabled); document.getElementById('timeInputsContainer').classList.toggle('pointer-events-none', !isEnabled); }
+            const p = new URLSearchParams({ activity: name, start: sISO, deadline: dISO });
+            if (!document.getElementById('chkAllDept').checked) p.append('dept', Array.from(document.querySelectorAll('.chk-dept:checked')).map(c => c.value).join(','));
+            if (!document.getElementById('chkAllLevel').checked) p.append('level', Array.from(document.querySelectorAll('.chk-level:checked')).map(c => c.value).join(','));
 
-        function renderRulesTable() {
-            const tbody = document.getElementById('rulesTableBody'); tbody.innerHTML = '';
-            if (globalRules.length > 0) { globalRules.forEach(r => addRuleRow(r.type, r.min, r.max, r.text)); } 
-            else { addRuleRow('attendance', 70, 79, ''); addRuleRow('activity', 70, 79, ''); }
+            currentScannerLink = `${URL_SCANNER_APP}?${p.toString()}`;
+            const qrDiv = document.getElementById('qrImage'); qrDiv.innerHTML = ""; new QRCode(qrDiv, { text: currentScannerLink, width: 176, height: 176 });
+            document.getElementById('qrTitleShow').innerText = name; document.getElementById('qrTimeShow').innerText = dTxt;
+            document.getElementById('qrContainer').classList.replace('hidden', 'flex');
+
+            setTimeout(async () => {
+                const url = qrDiv.querySelector('canvas').toDataURL("image/png");
+                await fetch(API_BASE, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: "create_qr", activityName: name, qrUrl: url, deadlineText: dTxt }) });
+            }, 500);
         }
 
         function addRuleRow(type, min, max, text) {
-            const tbody = document.getElementById('rulesTableBody'); const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td class="px-1 py-2"><select class="rule-type bg-slate-800 text-[11px] text-white border border-slate-600 rounded p-1 outline-none w-full"><option value="attendance" ${type==='attendance'?'selected':''}>เข้าแถว</option><option value="activity" ${type==='activity'?'selected':''}>กิจกรรม</option></select></td>
-                <td class="px-1 py-2 text-center"><input type="number" value="${min}" class="rule-min w-12 bg-slate-800 text-[11px] text-white border border-slate-600 rounded p-1 text-center outline-none"></td>
-                <td class="px-1 py-2 text-center"><input type="number" value="${max}" class="rule-max w-12 bg-slate-800 text-[11px] text-white border border-slate-600 rounded p-1 text-center outline-none"></td>
-                <td class="px-1 py-2"><input type="text" value="${text}" placeholder="เช่น ทำจิตอาสา 5 ชม. หรือส่งงานแก้" class="rule-text w-full bg-slate-800 text-[11px] text-white border border-slate-600 rounded p-1 outline-none"></td>
-                <td class="px-1 py-2 text-center"><button onclick="this.closest('tr').remove()" class="text-red-400 hover:text-red-300 font-bold text-sm">✖</button></td>
-            `;
-            tbody.appendChild(tr);
+            const tb = document.getElementById('rulesTableBody');
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td class="p-1"><select class="rule-type bg-slate-800 text-[11px] w-full border border-slate-600 rounded p-1"><option value="attendance" ${type==='attendance'?'selected':''}>เข้าแถว</option><option value="activity" ${type==='activity'?'selected':''}>กิจกรรม</option></select></td><td class="p-1"><input type="number" value="${min}" class="rule-min w-full bg-slate-800 text-[11px] border border-slate-600 rounded p-1 text-center"></td><td class="p-1"><input type="number" value="${max}" class="rule-max w-full bg-slate-800 text-[11px] border border-slate-600 rounded p-1 text-center"></td><td class="p-1"><input type="text" value="${text}" class="rule-text w-full bg-slate-800 text-[11px] border border-slate-600 rounded p-1"></td><td class="p-1 text-center"><button onclick="this.closest('tr').remove()" class="text-red-400">✖</button></td>`;
+            tb.appendChild(tr);
         }
 
         async function saveRulesToAPI() {
-            const rows = document.querySelectorAll('#rulesTableBody tr'); const rulesData = [];
-            rows.forEach(tr => { rulesData.push({ type: tr.querySelector('.rule-type').value, min: parseInt(tr.querySelector('.rule-min').value) || 0, max: parseInt(tr.querySelector('.rule-max').value) || 0, text: tr.querySelector('.rule-text').value.trim() }); });
-            const btn = document.getElementById('btnSaveRules'); btn.innerText = "กำลังบันทึกข้อมูลลงฐานข้อมูล..."; btn.disabled = true;
-
+            const data = Array.from(document.querySelectorAll('#rulesTableBody tr')).map(tr => ({
+                type: tr.querySelector('.rule-type').value, min: parseInt(tr.querySelector('.rule-min').value), max: parseInt(tr.querySelector('.rule-max').value), text: tr.querySelector('.rule-text').value
+            }));
             try {
-                const res = await fetch(API_BASE, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: "save_rules", rules: rulesData }) });
-                const data = await res.json();
-                if(data.status === "success") { globalRules = rulesData; alert("✅ บันทึกเกณฑ์เงื่อนไขทั้งหมดสำเร็จ!"); filterData(); } else throw new Error();
-            } catch (err) { alert("❌ เกิดข้อผิดพลาดในการบันทึก กรุณาลองใหม่อีกครั้ง"); } finally { btn.innerText = "บันทึกเงื่อนไขทั้งหมด"; btn.disabled = false; }
+                await fetch(API_BASE, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: "save_rules", rules: data }) });
+                alert("✅ บันทึกสำเร็จ");
+            } catch (err) { alert("❌ ผิดพลาด"); }
         }
 
-        async function generateQR() {
-            if (!isAdminAuthenticated) return alert("⛔ ไม่อนุญาต!");
-            const actName = document.getElementById('actName').value.trim(); const isDeadlineEnabled = document.getElementById('enableDeadline').checked;
-            const actDate = document.getElementById('actDate').value; const actTime = `${document.getElementById('actHour').value}:${document.getElementById('actMinute').value}`;
-            
-            if (!actName) return alert("กรุณาตั้งชื่อกิจกรรม!"); if (isDeadlineEnabled && !actDate) return alert("กรุณากำหนดวันที่ปิดรับ!");
-
-            let targetDepts = []; let targetLevels = [];
-            if (!document.getElementById('chkAllDept').checked) { targetDepts = Array.from(document.querySelectorAll('.chk-dept:checked')).map(cb => cb.value); if(targetDepts.length === 0) return alert("กรุณาเลือกแผนกวิชาอย่างน้อย 1 แผนก!"); }
-            if (!document.getElementById('chkAllLevel').checked) { targetLevels = Array.from(document.querySelectorAll('.chk-level:checked')).map(cb => cb.value); if(targetLevels.length === 0) return alert("กรุณาเลือกชั้นปีอย่างน้อย 1 ชั้นปี!"); }
-
-            let deadlineISO = isDeadlineEnabled ? new Date(`${actDate}T${actTime}:00`).toISOString() : "none";
-            let displayTimeText = isDeadlineEnabled ? `ปิดรับเช็คชื่อ: ${actDate} เวลา ${actTime} น.` : "เปิดรับสแกนตลอดเวลา ไม่จำกัดเวลา";
-
-            const params = new URLSearchParams({ activity: actName, deadline: deadlineISO });
-            if(targetDepts.length > 0) params.append('dept', targetDepts.join(',')); if(targetLevels.length > 0) params.append('level', targetLevels.join(','));
-            
-            currentScannerLink = `${URL_SCANNER_APP}?${params.toString()}`;
-            const qrDiv = document.getElementById('qrImage'); qrDiv.innerHTML = ""; 
-            new QRCode(qrDiv, { text: currentScannerLink, width: 176, height: 176, correctLevel : QRCode.CorrectLevel.L });
-
-            document.getElementById('qrTitleShow').innerText = actName; document.getElementById('qrTimeShow').innerText = displayTimeText;
-            document.getElementById('qrContainer').classList.remove('hidden'); document.getElementById('qrContainer').classList.add('flex');
-            const driveStatus = document.getElementById('driveStatus'); driveStatus.innerText = "กำลังสำรอง QR Code..."; driveStatus.className = "mt-4 w-full bg-blue-50 text-blue-600 text-[10px] p-2 rounded text-center animate-pulse";
-            
-            setTimeout(async () => {
-                try {
-                    const qrDataUrl = qrDiv.querySelector('canvas').toDataURL("image/png");
-                    const res = await fetch(API_BASE, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: "create_qr", activityName: actName, qrUrl: qrDataUrl, deadlineText: displayTimeText }) });
-                    const data = await res.json();
-                    if(data.status === "success") { driveStatus.innerText = "✅ สำรอง QR Code ลง Google Drive สำเร็จ!"; driveStatus.className = "mt-4 w-full bg-green-50 text-green-600 text-[10px] font-bold p-2 rounded"; } 
-                    else throw new Error();
-                } catch (err) { driveStatus.innerText = "❌ บันทึกลงไดรฟ์ไม่สำเร็จ (กดขยายใช้งานได้เลย)"; driveStatus.className = "mt-4 w-full bg-red-50 text-red-600 text-[10px] p-2 rounded"; }
-            }, 500); 
-        }
-
-        function expandQR() { if (!currentScannerLink) return; const expDiv = document.getElementById('qrExpandedImage'); expDiv.innerHTML = ""; new QRCode(expDiv, { text: currentScannerLink, width: 450, height: 450, correctLevel: QRCode.CorrectLevel.L }); document.getElementById('qrExpandedTitle').innerText = document.getElementById('actName').value; document.getElementById('qrExpandedModal').classList.remove('hidden'); document.getElementById('qrExpandedModal').classList.add('flex'); }
-        function closeExpandedQR() { document.getElementById('qrExpandedModal').classList.add('hidden'); document.getElementById('qrExpandedModal').classList.remove('flex'); }
-        document.getElementById('adminPasswordInput').addEventListener('keypress', function(e) { if (e.key === 'Enter') submitAdminPassword(); });
-        
-        window.onload = function() { initTimeDropdowns(); fetchAllData(); };
+        function expandQR() { if (currentScannerLink) { const exp = document.getElementById('qrExpandedImage'); exp.innerHTML = ""; new QRCode(exp, { text: currentScannerLink, width: 450, height: 450 }); document.getElementById('qrExpandedTitle').innerText = document.getElementById('actName').value; document.getElementById('qrExpandedModal').classList.replace('hidden', 'flex'); } }
+        function closeExpandedQR() { document.getElementById('qrExpandedModal').classList.add('hidden'); }
+        function toggleTimeInputs() { document.getElementById('timeInputsContainer').classList.toggle('opacity-30', !document.getElementById('enableDeadline').checked); document.getElementById('timeInputsContainer').classList.toggle('pointer-events-none', !document.getElementById('enableDeadline').checked); }
     </script>
 </body>
 </html>
