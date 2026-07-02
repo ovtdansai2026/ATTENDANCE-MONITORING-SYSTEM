@@ -46,28 +46,18 @@
         </form>
     </div>
 
-    <script>
-        // 🌟 ลิงก์ API ตัวล่าสุด 
+<script>
         const API_URL = "https://script.google.com/macros/s/AKfycbxP17lDcuihMssL0I5AVKcD1lcRFKPdSo8R0_CJ6Hm6vao-cnt-P8g1USFwLcgFmhitFA/exec";
         
         const params = new URLSearchParams(window.location.search);
         const activity = params.get('activity');
-        const deadline = params.get('deadline');
+        const startParam = params.get('start');
+        const deadlineParam = params.get('deadline');
         const urlDept = params.get('dept') ? params.get('dept').split(',') : null;
         const urlLevel = params.get('level') ? params.get('level').split(',') : null;
 
         document.getElementById('activityTitle').innerText = activity || "ไม่พบชื่อกิจกรรม";
         
-        let subText = "";
-        if (deadline && deadline !== "none") subText += "ปิดรับเช็คชื่อ: " + new Date(deadline).toLocaleString('th-TH');
-        
-        // 🌟 โชว์ให้เด็กรู้ว่าล็อกแผนกไหนบ้าง
-        let targetText = [];
-        if(urlDept) targetText.push("แผนก: " + urlDept.join(', '));
-        if(urlLevel) targetText.push("ชั้นปี: " + urlLevel.join(', '));
-        if(targetText.length > 0) subText += `<br><span class="text-amber-600 font-bold mt-1 inline-block">🎯 สิทธิ์เฉพาะ: ${targetText.join(' | ')}</span>`;
-        document.getElementById('deadlineText').innerHTML = subText;
-
         let allStudents = [];
         let filteredStudents = []; 
 
@@ -77,8 +67,6 @@
                 const json = await res.json();
                 
                 if(json.status === "success") {
-                    
-                    // 🌟 เพิ่มท่อนนี้: ช่วยแยกชื่อ "ช่างยนต์ ปวช.1" ให้กลายเป็น แผนก="ช่างยนต์", ชั้นปี="ปวช.1"
                     allStudents = json.data.map(s => {
                         let d = s.department || "";
                         let l = s.pureLevel || "";
@@ -87,145 +75,111 @@
                     });
 
                     filteredStudents = allStudents;
-
-                    // 🎯 ร่อนตะแกรงกรองแผนกและชั้นปี
                     if(urlDept) filteredStudents = filteredStudents.filter(s => urlDept.includes(s.department));
                     if(urlLevel) filteredStudents = filteredStudents.filter(s => urlLevel.includes(s.pureLevel));
 
+                    // --- แก้ไข: ตรวจสอบช่วงเวลา (Start - End) ---
+                    const now = new Date();
+                    const startObj = (startParam && startParam !== "none") ? new Date(startParam) : null;
+                    const endObj = (deadlineParam && deadlineParam !== "none") ? new Date(deadlineParam) : null;
+                    
+                    let isLocked = false;
+                    let timeMessage = "";
+
+                    if (startObj && now < startObj) {
+                        isLocked = true;
+                        timeMessage = `<span class="text-amber-500 font-bold">⚠️ ยังไม่ถึงเวลาเริ่ม</span><br>เปิดระบบ: ${startObj.toLocaleString('th-TH')}`;
+                    } else if (endObj && now > endObj) {
+                        isLocked = true;
+                        timeMessage = `<span class="text-red-500 font-bold">❌ หมดเวลาเช็คชื่อแล้ว</span><br>ปิดรับเมื่อ: ${endObj.toLocaleString('th-TH')}`;
+                    } else if (endObj) {
+                        timeMessage = `เปิดรับถึง: ${endObj.toLocaleString('th-TH')}`;
+                    }
+                    
+                    document.getElementById('deadlineText').innerHTML = timeMessage;
+
+                    if (isLocked) {
+                        document.getElementById('loadingStatus').innerHTML = "🚫 ระบบยังไม่เปิด หรือ หมดเวลาสแกนแล้ว";
+                        document.getElementById('loadingStatus').className = "bg-red-50 text-red-600 text-xs text-center p-2 rounded-lg mb-4";
+                        document.getElementById('submitBtn').disabled = true;
+                        document.getElementById('attendanceForm').classList.add('opacity-50', 'pointer-events-none');
+                        return; 
+                    }
+                    // ----------------------------------------
+
                     const roomSelect = document.getElementById('roomSelect');
                     if (filteredStudents.length === 0) {
-                        roomSelect.innerHTML = '<option value="">⛔ กิจกรรมนี้ไม่ได้เปิดให้แผนกของคุณ</option>';
-                        document.getElementById('loadingStatus').innerText = "คุณไม่มีสิทธิ์ลงทะเบียนกิจกรรมนี้";
-                        document.getElementById('loadingStatus').classList.replace('bg-blue-50', 'bg-red-50');
-                        document.getElementById('loadingStatus').classList.replace('text-blue-600', 'text-red-600');
+                        roomSelect.innerHTML = '<option value="">⛔ แผนกนี้ไม่มีสิทธิ์เข้าร่วม</option>';
+                        document.getElementById('loadingStatus').innerText = "คุณไม่มีสิทธิ์ลงทะเบียน";
                         return;
                     }
 
-                    // สร้างห้องเรียนจากข้อมูลที่ร่อนแล้ว
                     const rooms = [...new Set(filteredStudents.map(s => `${s.department} ${s.pureLevel}`.trim()))].sort();
-                    
-                    roomSelect.innerHTML = '<option value="">-- แตะเพื่อเลือกห้องเรียน --</option>';
+                    roomSelect.innerHTML = '<option value="">-- เลือกห้องเรียน --</option>';
                     rooms.forEach(r => roomSelect.add(new Option(r, r)));
-                    
                     roomSelect.disabled = false;
                     document.getElementById('loadingStatus').classList.add('hidden');
                     document.getElementById('submitBtn').disabled = false;
                 }
             } catch(e) {
-                document.getElementById('loadingStatus').innerText = "❌ โหลดข้อมูลล้มเหลว กรุณารีเฟรชหน้าเว็บ";
-                document.getElementById('loadingStatus').classList.replace('bg-blue-50', 'bg-red-50');
-                document.getElementById('loadingStatus').classList.replace('text-blue-600', 'text-red-600');
+                document.getElementById('loadingStatus').innerText = "❌ เกิดข้อผิดพลาดในการโหลดข้อมูล";
             }
         };
 
-        // เมื่อจิ้มห้อง ให้กรองชื่อคนในห้องนั้นมาให้เลือก
         document.getElementById('roomSelect').addEventListener('change', function() {
             const selectedRoom = this.value;
             const studentSelect = document.getElementById('studentSelect');
-            studentSelect.innerHTML = '<option value="">-- แตะเพื่อเลือกชื่อของตนเอง --</option>';
+            studentSelect.innerHTML = '<option value="">-- เลือกชื่อของตนเอง --</option>';
             if(!selectedRoom) { studentSelect.disabled = true; return; }
-
-            const studentsInRoom = filteredStudents.filter(s => `${s.department} ${s.pureLevel}`.trim() === selectedRoom)
-                                                   .sort((a,b) => a.studentName.localeCompare(b.studentName));
+            const studentsInRoom = filteredStudents.filter(s => `${s.department} ${s.pureLevel}`.trim() === selectedRoom).sort((a,b) => a.studentName.localeCompare(b.studentName));
             studentsInRoom.forEach(s => studentSelect.add(new Option(s.studentName, s.studentName)));
             studentSelect.disabled = false;
         });
 
-        // ส่งข้อมูลให้ API
         document.getElementById('attendanceForm').onsubmit = async (e) => {
             e.preventDefault();
             const btn = document.getElementById('submitBtn');
-            const selectedRoom = document.getElementById('roomSelect').value;
             const selectedName = document.getElementById('studentSelect').value;
-
-            // ดึงข้อมูลชั้นปีและแผนกที่แท้จริงจาก Object เด็กคนนั้น
+            const selectedRoom = document.getElementById('roomSelect').value;
             const studentObj = filteredStudents.find(s => s.studentName === selectedName && `${s.department} ${s.pureLevel}`.trim() === selectedRoom);
 
-            // ฟังก์ชันส่วนตัวสำหรับรีเซ็ตปุ่มเมื่อทำงานผิดพลาด
-            const resetBtn = () => {
-                btn.disabled = false; 
-                btn.classList.remove('opacity-50', 'cursor-not-allowed');
-                btn.innerText = "ส่งข้อมูลเช็คชื่อ";
-            };
-
-            btn.disabled = true; 
-            btn.classList.add('opacity-50', 'cursor-not-allowed');
-            btn.innerText = "กำลังอัปโหลดข้อมูลและรูปภาพ...";
-
+            btn.disabled = true; btn.innerText = "กำลังอัปโหลด...";
             const file = document.getElementById('imageInput').files[0];
-            if (!file) {
-                alert("❌ กรุณาเลือกหรือถ่ายภาพหลักฐานการเข้าร่วมกิจกรรม");
-                resetBtn();
-                return;
-            }
-
             const reader = new FileReader();
-            
-            // 🌟 ป้องกันค้าง: หากเปิดอ่านไฟล์รูปภาพของเครื่องเด็กไม่สำเร็จ
-            reader.onerror = function() {
-                alert("❌ ไม่สามารถเปิดไฟล์รูปภาพหลักฐานได้ กรุณาลองถ่ายรูปใหม่อีกครั้ง");
-                resetBtn();
-            };
-
             reader.readAsDataURL(file);
             reader.onload = function(event) {
-                // สร้าง Image Object เพื่อเตรียมย่อขนาด
                 const img = new Image();
                 img.src = event.target.result;
-                
-                // 🌟 ป้องกันค้าง: หากตัวเว็บโหลดข้อมูลไฟล์ภาพเพื่อย่อขนาดไม่สำเร็จ
-                img.onerror = function() {
-                    alert("❌ รูปภาพหลักฐานมีปัญหา ข้อมูลขัดข้อง กรุณาลองถ่ายรูปใหม่อีกครั้ง");
-                    resetBtn();
-                };
-
                 img.onload = async function() {
-                    // สร้าง Canvas สำหรับบีบอัด
                     const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 800; // กำหนดความกว้างสูงสุด 800 px (ชัดพอสำหรับดูหน้า)
+                    const MAX_WIDTH = 800;
                     const scaleSize = MAX_WIDTH / img.width;
-                    
                     canvas.width = MAX_WIDTH;
                     canvas.height = img.height * scaleSize;
-
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-                    // บีบอัดรูปเป็น JPEG คุณภาพ 60% (ลดขนาดจาก 2MB เหลือประมาณ 100KB)
                     const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
 
-                    // เตรียมข้อมูลส่งไปที่ API
-                    const payload = {
-                        studentName: selectedName,
-                        pureLevel: studentObj.pureLevel, 
-                        pureDept: studentObj.department, 
-                        activityName: activity,
-                        deadline: deadline,
-                        imageCode: compressedBase64 // ส่งรูปที่ย่อไซส์แล้วไปแทน
-                    };
-                    
                     try {
                         const res = await fetch(API_URL, {
                             method: "POST",
                             headers: { "Content-Type": "text/plain;charset=utf-8" },
-                            body: JSON.stringify(payload)
+                            body: JSON.stringify({
+                                studentName: selectedName,
+                                pureLevel: studentObj.pureLevel, 
+                                pureDept: studentObj.department, 
+                                activityName: activity,
+                                start: startParam,
+                                deadline: deadlineParam,
+                                imageCode: compressedBase64
+                            })
                         });
                         const result = await res.json();
-                        
-                        if (result.status === "success") {
-                            alert("✅ บันทึกข้อมูลและอัปโหลดหลักฐานเรียบร้อยแล้ว!");
-                            location.reload(); 
-                        } else {
-                            alert("❌ เกิดข้อผิดพลาดจากระบบ: " + result.message);
-                            resetBtn();
-                        }
-                    } catch (err) {
-                        alert("❌ ไม่สามารถเชื่อมต่อระบบอินเทอร์เน็ตได้ กรุณาตรวจสอบสัญญาณแล้วลองใหม่อีกครั้ง");
-                        resetBtn();
-                    }
+                        if (result.status === "success") { alert("✅ เช็คชื่อสำเร็จ!"); location.reload(); }
+                        else { alert("❌ ผิดพลาด: " + result.message); btn.disabled = false; btn.innerText = "ส่งข้อมูลอีกครั้ง"; }
+                    } catch (err) { alert("❌ ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้"); btn.disabled = false; }
                 }
             };
-
         };
     </script>
 </body>
