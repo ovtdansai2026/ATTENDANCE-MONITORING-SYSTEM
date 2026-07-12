@@ -531,7 +531,16 @@
             if (!document.getElementById('chkAllLevel').checked) p.append('level', Array.from(document.querySelectorAll('.chk-level:checked')).map(c => c.value).join(','));
 
             currentScannerLink = `${URL_SCANNER_APP}?${p.toString()}`;
-            const qrDiv = document.getElementById('qrImage'); qrDiv.innerHTML = ""; new QRCode(qrDiv, { text: currentScannerLink, width: 176, height: 176 });
+            const qrDiv = document.getElementById('qrImage'); qrDiv.innerHTML = ""; 
+            
+            // 🌟 แก้ไขจุดนี้: ปรับระดับ Error Correction เป็น 'L' (Low) เพื่อลดความหนาแน่นของจุดในคิวอาร์โค้ด
+            new QRCode(qrDiv, { 
+                text: currentScannerLink, 
+                width: 176, 
+                height: 176,
+                correctLevel: QRCode.CorrectLevel.L
+            });
+            
             document.getElementById('qrTitleShow').innerText = name; document.getElementById('qrTimeShow').innerText = dTxt;
             document.getElementById('qrContainer').classList.replace('hidden', 'flex');
 
@@ -661,7 +670,25 @@
         }
 
         function closeResolutionModal() { document.getElementById('resolutionModal').classList.add('hidden'); }
-        function expandQR() { if (currentScannerLink) { const exp = document.getElementById('qrExpandedImage'); exp.innerHTML = ""; new QRCode(exp, { text: currentScannerLink, width: 450, height: 450 }); document.getElementById('qrExpandedTitle').innerText = document.getElementById('actName').value; document.getElementById('qrExpandedModal').classList.replace('hidden', 'flex'); } }
+        
+        function expandQR() { 
+            if (currentScannerLink) { 
+                const exp = document.getElementById('qrExpandedImage'); 
+                exp.innerHTML = ""; 
+                
+                // 🌟 แก้ไขจุดนี้: ปรับระดับ Error Correction เป็น 'L' เมื่อขยายจอภาพเช่นกัน เพื่อให้สามารถสแกนได้สะดวกยิ่งขึ้น
+                new QRCode(exp, { 
+                    text: currentScannerLink, 
+                    width: 450, 
+                    height: 450,
+                    correctLevel: QRCode.CorrectLevel.L
+                }); 
+                
+                document.getElementById('qrExpandedTitle').innerText = document.getElementById('actName').value; 
+                document.getElementById('qrExpandedModal').classList.replace('hidden', 'flex'); 
+            } 
+        }
+        
         function closeExpandedQR() { document.getElementById('qrExpandedModal').classList.add('hidden'); }
         function toggleTimeInputs() { document.getElementById('timeInputsContainer').classList.toggle('opacity-30', !document.getElementById('enableDeadline').checked); document.getElementById('timeInputsContainer').classList.toggle('pointer-events-none', !document.getElementById('enableDeadline').checked); }
     </script>
