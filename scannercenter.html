@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ลงทะเบียนกิจกรรม</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>body { font-family: 'Prompt', sans-serif; background: #0f172a; }</style>
+</head>
+<body class="p-4 flex flex-col items-center min-h-screen text-slate-800">
+
+    <div class="w-full max-w-md bg-white p-6 rounded-3xl shadow-xl mt-4">
+        <div class="text-center mb-6">
+            <h1 id="activityTitle" class="text-xl font-bold text-blue-600">กำลังโหลดข้อมูล...</h1>
+            <p id="deadlineText" class="text-xs text-slate-500 mt-2"></p>
+        </div>
+
+        <div id="loadingStatus" class="bg-blue-50 text-blue-600 text-xs text-center p-2 rounded-lg mb-4 animate-pulse">
+            ⏳ กำลังดึงฐานข้อมูลและตรวจสอบสิทธิ์...
+        </div>
+
+        <form id="attendanceForm" class="space-y-4">
+            
+            <!-- 🌟 แผงเลือกกิจกรรมพิเศษ (แสดงผลเฉพาะเครื่องกลาง DeX ของอาจารย์เท่านั้น) -->
+            <div id="activitySelectContainer" class="hidden">
+                <label class="block text-sm font-semibold mb-1 text-slate-600">🎯 เลือกกิจกรรมที่ต้องการเช็คชื่อ</label>
+                <select id="activitySelect" required class="w-full border border-slate-300 rounded-lg p-3 text-sm bg-slate-50 outline-none focus:border-blue-500 focus:bg-white transition-colors">
+                    <option value="">กำลังโหลดรายการกิจกรรมทั้งหมด...</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold mb-1 text-slate-600">1. เลือกห้องเรียน/แผนก</label>
+                <select id="roomSelect" required disabled class="w-full border border-slate-300 rounded-lg p-3 text-sm bg-slate-50 outline-none focus:border-blue-500 focus:bg-white transition-colors disabled:opacity-50">
+                    <option value="">กำลังโหลดข้อมูล...</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold mb-1 text-slate-600">2. เลือกชื่อของตนเอง</label>
+                <select id="studentSelect" required disabled class="w-full border border-slate-300 rounded-lg p-3 text-sm bg-slate-50 outline-none focus:border-blue-500 focus:bg-white transition-colors disabled:opacity-50">
+                    <option value="">-- กรุณาเลือกห้องเรียนก่อน --</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold mb-2 text-slate-600">3. ถ่ายรูปหน้าตนเองในงาน</label>
+                <input type="file" id="imageInput" accept="image/*" capture="user" required class="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer">
+            </div>
+
+            <button type="submit" id="submitBtn" disabled class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                ส่งข้อมูลเช็คชื่อ
+            </button>
+        </form>
+    </div>
+
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbzEZwclY5DDyAEW5LFToH3WkK3slgHeHVTS1pTizIhvI7iEZwGUtD9GKcv-EPlWu1rE7Q/exec";
+        
+        const params = new URLSearchParams(window.location.search);
+        let activity = params.get('activity'); // 🌟 เปลี่ยนเป็น let เพื่อให้เครื่องกลางเปลี่ยนกิจกรรมได้ในหน้านี้
+        let startParam = params.get('start');
+        let deadlineParam = params.get('deadline');
+        const urlDept = params.get('dept') ? params.get('dept').split(',') : null;
+        const urlLevel = params.get('level') ? params.get('level').split(',') : null;
+
+        let allStudents = [];
+        let filteredStudents = []; 
+
+        window.onload = async () => {
+            // 🌟 ตั้งค่าเครื่องกลางแอดมินอัตโนมัติหากเข้าลิงก์ดิบ ๆ โดยไม่มีการระบุพารามิเตอร์กิจกรรม
+            if (!activity) {
+                document.getElementById('activitySelectContainer').classList.remove('hidden');
+                document.getElementById('activityTitle').innerText = "สถานีเครื่องกลางผู้ควบคุม";
+                startParam = "none";
+                deadlineParam = "none";
+                loadActivities();
+            } else {
+                document.getElementById('activityTitle').innerText = activity;
+            }
+
+            try {
+                const res = await fetch(API_URL + "?type=activity");
+                const json = await res.json();
+                
+                if(json.status === "success") {
+                    allStudents = json.data.map(s => {
+                        let d = s.department || "";
+                        let l = s.pureLevel || "";
+                        if (l && d.includes(l)) d = d.replace(l, "").trim(); 
+                        return { ...s, department: d, pureLevel: l };
+                    });
+
+                    filteredStudents = allStudents;
+                    
+                    // คัดกรองแผนกชั้นเรียน (เฉพาะกรณีการสแกนผ่าน QR ปกติที่มีชื่อกิจกรรมมา)
+                    if (activity && params.get('activity')) {
+                        if(urlDept) filteredStudents = filteredStudents.filter(s => urlDept.includes(s.department));
+                        if(urlLevel) filteredStudents = filteredStudents.filter(s => urlLevel.includes(s.pureLevel));
+                    }
+
+                    // --- ตรวจสอบช่วงเวลาเปิด-ปิดรับสิทธิ์ (ดัดแปลงจากระบบเดิมอาจารย์) ---
+                    const now = new Date();
+                    const startObj = (startParam && startParam !== "none") ? new Date(startParam) : null;
+                    const endObj = (deadlineParam && deadlineParam !== "none") ? new Date(deadlineParam) : null;
+                    
+                    let isLocked = false;
+                    let timeMessage = "";
+
+                    if (startObj && now < startObj) {
+                        isLocked = true;
+                        timeMessage = `<span class="text-amber-500 font-bold">⚠️ ยังไม่ถึงเวลาเริ่ม</span><br>เปิดระบบ: ${startObj.toLocaleString('th-TH')}`;
+                    } else if (endObj && now > endObj) {
+                        isLocked = true;
+                        timeMessage = `<span class="text-red-500 font-bold">❌ หมดเวลาเช็คชื่อแล้ว</span><br>ปิดรับเมื่อ: ${endObj.toLocaleString('th-TH')}`;
+                    } else if (endObj) {
+                        timeMessage = `เปิดรับถึง: ${endObj.toLocaleString('th-TH')}`;
+                    }
+                    
+                    if (activity && params.get('activity')) {
+                        document.getElementById('deadlineText').innerHTML = timeMessage;
+                    }
+
+                    if (isLocked && activity && params.get('activity')) {
+                        document.getElementById('loadingStatus').innerHTML = "🚫 ระบบยังไม่เปิด หรือ หมดเวลาสแกนแล้ว";
+                        document.getElementById('loadingStatus').className = "bg-red-50 text-red-600 text-xs text-center p-2 rounded-lg mb-4";
+                        document.getElementById('submitBtn').disabled = true;
+                        document.getElementById('attendanceForm').classList.add('opacity-50', 'pointer-events-none');
+                        return; 
+                    }
+                    // ------------------------------------------------------------
+
+                    const roomSelect = document.getElementById('roomSelect');
+                    if (filteredStudents.length === 0) {
+                        roomSelect.innerHTML = '<option value="">⛔ แผนกนี้ไม่มีสิทธิ์เข้าร่วม</option>';
+                        document.getElementById('loadingStatus').innerText = "คุณไม่มีสิทธิ์ลงทะเบียน";
+                        return;
+                    }
+
+                    const rooms = [...new Set(filteredStudents.map(s => `${s.department} ${s.pureLevel}`.trim()))].sort();
+                    roomSelect.innerHTML = '<option value="">-- เลือกห้องเรียน --</option>';
+                    rooms.forEach(r => roomSelect.add(new Option(r, r)));
+                    roomSelect.disabled = false;
+                    document.getElementById('loadingStatus').classList.add('hidden');
+                    document.getElementById('submitBtn').disabled = false;
+                }
+            } catch(e) {
+                document.getElementById('loadingStatus').innerText = "❌ โหลดข้อมูลล้มเหลว กรุณารีเฟรชหน้าเว็บ";
+                document.getElementById('loadingStatus').classList.replace('bg-blue-50', 'bg-red-50');
+                document.getElementById('loadingStatus').classList.replace('text-blue-600', 'text-red-600');
+            }
+        };
+
+// 🌟 ดึงข้อมูลกิจกรรมทั้งหมด และจดจำค่าล่าสุดด้วยระบบความจำเครื่อง (LocalStorage)
+        async function loadActivities() {
+            try {
+                const res = await fetch(API_URL + "?action=get_activities");
+                const json = await res.json();
+                if (json.status === "success") {
+                    const select = document.getElementById('activitySelect');
+                    select.innerHTML = '<option value="">-- แตะเลือกกิจกรรมที่ต้องการรันตอนนี้ --</option>';
+                    json.data.forEach(act => {
+                        select.add(new Option(act, act));
+                    });
+                    
+                    // 🌟 ตรวจสอบว่าในเครื่องคอมพิวเตอร์เครื่องนี้ เคยเลือกกิจกรรมใดค้างไว้ล่าสุดหรือไม่
+                    const savedActivity = localStorage.getItem('selected_activity');
+                    if (savedActivity) {
+                        select.value = savedActivity; // เลือกค่ากิจกรรมเดิมให้ผู้ดูแลออโต้!
+                        activity = savedActivity;     // สวมสิทธิ์ตัวแปรให้พร้อมสแกนทันที
+                    }
+
+                    // ปรับค่าตัวแปรเมื่อคลิกเปลี่ยนกิจกรรมบนหน้าจอ และจดจำลงความจำถาวรของบราวเซอร์เครื่องนั้น
+                    select.addEventListener('change', function() {
+                        activity = this.value;
+                        localStorage.setItem('selected_activity', this.value); // บันทึกจำค่าล่าสุดลงเครื่อง DeX
+                    });
+                }
+            } catch (e) {
+                alert("โหลดข้อมูลกิจกรรมหลังบ้านไม่สำเร็จ");
+            }
+        }
+
+        document.getElementById('roomSelect').addEventListener('change', function() {
+            const selectedRoom = this.value;
+            const studentSelect = document.getElementById('studentSelect');
+            studentSelect.innerHTML = '<option value="">-- เลือกชื่อของตนเอง --</option>';
+            if(!selectedRoom) { studentSelect.disabled = true; return; }
+            const studentsInRoom = filteredStudents.filter(s => `${s.department} ${s.pureLevel}`.trim() === selectedRoom).sort((a,b) => a.studentName.localeCompare(b.studentName));
+            studentsInRoom.forEach(s => studentSelect.add(new Option(s.studentName, s.studentName)));
+            studentSelect.disabled = false;
+        });
+
+        document.getElementById('attendanceForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('submitBtn');
+            const selectedName = document.getElementById('studentSelect').value;
+            const selectedRoom = document.getElementById('roomSelect').value;
+
+            // ตรวจสอบระบบเครื่องกลางว่าแอดมินลืมเลือกกิจกรรมหลักก่อนส่งข้อมูลหรือไม่
+            if (!activity) {
+                alert("❌ กรุณาเลือกกิจกรรมที่ต้องการเช็คชื่อด้านบนก่อนกดบันทึกส่งข้อมูล!");
+                return;
+            }
+
+            const studentObj = filteredStudents.find(s => s.studentName === selectedName && `${s.department} ${s.pureLevel}`.trim() === selectedRoom);
+
+            const resetBtn = () => {
+                btn.disabled = false; 
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                btn.innerText = "ส่งข้อมูลเช็คชื่อ";
+            };
+
+            btn.disabled = true; btn.innerText = "กำลังอัปโหลด...";
+            const file = document.getElementById('imageInput').files[0];
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = function(event) {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = async function() {
+                    const canvas = document.createElement('canvas');
+                    
+                    // 🌟 ปรับย่อยรูปภาพเหลือความกว้าง 500px ขนาดภาพเล็กลง 5 เท่า ส่งได้เร็วและประหยัดเน็ตมือถือเด็กครับ
+                    const MAX_WIDTH = 500;
+                    const scaleSize = MAX_WIDTH / img.width;
+                    canvas.width = MAX_WIDTH;
+                    canvas.height = img.height * scaleSize;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
+
+                    try {
+                        const res = await fetch(API_URL, {
+                            method: "POST",
+                            headers: { "Content-Type": "text/plain;charset=utf-8" },
+                            body: JSON.stringify({
+                                studentName: selectedName,
+                                pureLevel: studentObj.pureLevel, 
+                                pureDept: studentObj.department, 
+                                activityName: activity,
+                                start: startParam,
+                                deadline: deadlineParam,
+                                imageCode: compressedBase64
+                            })
+                        });
+                        const result = await res.json();
+                        if (result.status === "success") { alert("✅ เช็คชื่อสำเร็จ!"); location.reload(); }
+                        else { alert("❌ ผิดพลาด: " + result.message); resetBtn(); }
+                    } catch (err) { alert("❌ ไม่สามารถเชื่อมต่อระบบอินเทอร์เน็ตได้"); resetBtn(); }
+                }
+            };
+        };
+    </script>
+</body>
+</html>
