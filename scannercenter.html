@@ -42,11 +42,16 @@
         <form id="attendanceForm" class="space-y-4">
             
             <!-- 🌟 แผงเลือกกิจกรรมพิเศษ (แสดงผลเฉพาะเครื่องกลาง DeX ของอาจารย์เท่านั้น) -->
-            <div id="activitySelectContainer" class="hidden">
+            <div id="activitySelectContainer" class="hidden bg-slate-50 p-4 rounded-2xl mb-4 border border-slate-200">
                 <label class="block text-sm font-semibold mb-1 text-slate-600">🎯 เลือกกิจกรรมที่ต้องการเช็คชื่อ</label>
-                <select id="activitySelect" required class="w-full border border-slate-300 rounded-lg p-3 text-sm bg-slate-50 outline-none focus:border-blue-500 focus:bg-white transition-colors">
+                <select id="activitySelect" required class="w-full border border-slate-300 rounded-lg p-3 text-sm bg-white outline-none focus:border-blue-500 transition-colors">
                     <option value="">กำลังโหลดรายการกิจกรรมทั้งหมด...</option>
                 </select>
+                
+                <!-- ปุ่มล้างความจำเครื่อง / ออกจากระบบ (ล้างเซสชันออกจากระบบทันที) -->
+                <button type="button" id="logoutBtn" class="mt-3 w-full bg-red-100 hover:bg-red-200 text-red-700 py-2.5 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5">
+                    <span>🔒 ออกจากระบบเครื่องกลาง (ล้างค่าเครื่อง)</span>
+                </button>
             </div>
 
             <div>
@@ -99,6 +104,9 @@
         }
 
         window.onload = async () => {
+            // ล้างค่าข้อมูลของฟอร์มเดิมที่บราวเซอร์อาจบันทึกค้างไว้เมื่อเข้าเว็บครั้งแรก
+            document.getElementById('attendanceForm').reset();
+
             if (!activity) {
                 const storedSession = localStorage.getItem('station_admin_session');
                 if (storedSession === SECURE_HASH) {
@@ -238,6 +246,16 @@
             }
         }
 
+        // ระบบออกจากระบบเครื่องกลางและล้างค่าหน่วยความจำถาวร
+        document.getElementById('logoutBtn').addEventListener('click', function() {
+            if (confirm("ต้องการออกจากระบบเครื่องควบคุมส่วนกลางและล้างข้อมูลหน่วยความจำทั้งหมดใช่หรือไม่?")) {
+                localStorage.removeItem('station_admin_session');
+                localStorage.removeItem('selected_activity');
+                alert("🔒 ดำเนินการออกจากระบบเรียบร้อยแล้ว");
+                location.reload();
+            }
+        });
+
         document.getElementById('roomSelect').addEventListener('change', function() {
             const selectedRoom = this.value;
             const studentSelect = document.getElementById('studentSelect');
@@ -300,7 +318,13 @@
                             })
                         });
                         const result = await res.json();
-                        if (result.status === "success") { alert("✅ เช็คชื่อสำเร็จ!"); location.reload(); }
+                        if (result.status === "success") { 
+                            alert("✅ เช็คชื่อสำเร็จ!"); 
+                            // 🌟 เคลียร์ค่ารูปภาพและรีเซ็ตฟอร์มทั้งหมดก่อนรีโหลด เพื่อป้องกัน Android เก็บแคชรูปเก่าค้าง
+                            document.getElementById('attendanceForm').reset();
+                            document.getElementById('imageInput').value = "";
+                            location.reload(); 
+                        }
                         else { alert("❌ ผิดพลาด: " + result.message); resetBtn(); }
                     } catch (err) { alert("❌ ไม่สามารถเชื่อมต่อระบบอินเทอร์เน็ตได้"); resetBtn(); }
                 }
