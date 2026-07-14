@@ -10,7 +10,26 @@
 </head>
 <body class="p-4 flex flex-col items-center min-h-screen text-slate-800">
 
-    <div class="w-full max-w-md bg-white p-6 rounded-3xl shadow-xl mt-4">
+    <!-- 🌟 ส่วนหน้าจอตรวจสอบรหัสผ่านสิทธิ์แอดมินสำหรับเครื่องควบคุมส่วนกลาง -->
+    <div id="authOverlay" class="fixed inset-0 bg-slate-950 flex items-center justify-center z-50 hidden">
+        <div class="bg-white p-8 rounded-3xl shadow-2xl max-w-sm w-full mx-4">
+            <div class="text-center mb-6">
+                <span class="text-4xl">🔐</span>
+                <h2 class="text-lg font-bold text-slate-800 mt-2">สิทธิ์ผู้ควบคุมเครื่องกลาง</h2>
+                <p class="text-xs text-slate-500 mt-1">กรุณากรอกรหัสผ่านเพื่อตั้งค่าเปิดรับเช็คชื่อ</p>
+            </div>
+            <form id="authForm" class="space-y-4">
+                <input type="password" id="authPassword" placeholder="รหัสผ่านผู้ดูแลระบบ" required class="w-full border border-slate-300 rounded-lg p-3 text-sm outline-none focus:border-blue-500 transition-colors text-center font-mono">
+                <p id="authError" class="text-xs text-red-500 text-center hidden">⚠️ รหัสผ่านไม่ถูกต้อง</p>
+                <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 shadow-md transition-all">
+                    ยืนยันรหัสผ่าน
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 🌟 ส่วนหน้าจอแสดงฟอร์มลงทะเบียนกิจกรรมหลัก -->
+    <div id="mainContainer" class="w-full max-w-md bg-white p-6 rounded-3xl shadow-xl mt-4 opacity-0 transition-opacity duration-300">
         <div class="text-center mb-6">
             <h1 id="activityTitle" class="text-xl font-bold text-blue-600">กำลังโหลดข้อมูล...</h1>
             <p id="deadlineText" class="text-xs text-slate-500 mt-2"></p>
@@ -56,10 +75,10 @@
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbzEZwclY5DDyAEW5LFToH3WkK3slgHeHVTS1pTizIhvI7iEZwGUtD9GKcv-EPlWu1rE7Q/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbxP17lDcuihMssL0I5AVKcD1lcRFKPdSo8R0_CJ6Hm6vao-cnt-P8g1USFwLcgFmhitFA/exec";
         
         const params = new URLSearchParams(window.location.search);
-        let activity = params.get('activity'); // 🌟 เปลี่ยนเป็น let เพื่อให้เครื่องกลางเปลี่ยนกิจกรรมได้ในหน้านี้
+        let activity = params.get('activity'); 
         let startParam = params.get('start');
         let deadlineParam = params.get('deadline');
         const urlDept = params.get('dept') ? params.get('dept').split(',') : null;
@@ -68,8 +87,51 @@
         let allStudents = [];
         let filteredStudents = []; 
 
+        const SECURE_HASH = "ca13314e1421519d979da9";
+
+        // ฟังก์ชันเข้ารหัสแบบ Deterministic ปราศจากปัญหาเรื่อง Encoding ของบราวเซอร์
+        function verifyPass(input) {
+            let out = "";
+            for (let i = 0; i < input.length; i++) {
+                out += (input.charCodeAt(i) * 3 + 7).toString(16);
+            }
+            return out;
+        }
+
         window.onload = async () => {
-            // 🌟 ตั้งค่าเครื่องกลางแอดมินอัตโนมัติหากเข้าลิงก์ดิบ ๆ โดยไม่มีการระบุพารามิเตอร์กิจกรรม
+            if (!activity) {
+                const storedSession = localStorage.getItem('station_admin_session');
+                if (storedSession === SECURE_HASH) {
+                    initStation();
+                } else {
+                    document.getElementById('authOverlay').classList.remove('hidden');
+                }
+            } else {
+                initStation();
+            }
+        };
+
+        // จัดการส่งข้อมูลเพื่อยืนยันสิทธิ์
+        document.getElementById('authForm').onsubmit = function(e) {
+            e.preventDefault();
+            const inputVal = document.getElementById('authPassword').value;
+            const hashedVal = verifyPass(inputVal);
+
+            if (hashedVal === SECURE_HASH) {
+                localStorage.setItem('station_admin_session', hashedVal);
+                document.getElementById('authOverlay').classList.add('hidden');
+                initStation();
+            } else {
+                document.getElementById('authError').classList.remove('hidden');
+                document.getElementById('authPassword').value = '';
+                document.getElementById('authPassword').focus();
+            }
+        };
+
+        async function initStation() {
+            const container = document.getElementById('mainContainer');
+            container.classList.remove('opacity-0');
+            
             if (!activity) {
                 document.getElementById('activitySelectContainer').classList.remove('hidden');
                 document.getElementById('activityTitle').innerText = "สถานีเครื่องกลางผู้ควบคุม";
@@ -94,13 +156,11 @@
 
                     filteredStudents = allStudents;
                     
-                    // คัดกรองแผนกชั้นเรียน (เฉพาะกรณีการสแกนผ่าน QR ปกติที่มีชื่อกิจกรรมมา)
                     if (activity && params.get('activity')) {
                         if(urlDept) filteredStudents = filteredStudents.filter(s => urlDept.includes(s.department));
                         if(urlLevel) filteredStudents = filteredStudents.filter(s => urlLevel.includes(s.pureLevel));
                     }
 
-                    // --- ตรวจสอบช่วงเวลาเปิด-ปิดรับสิทธิ์ (ดัดแปลงจากระบบเดิมอาจารย์) ---
                     const now = new Date();
                     const startObj = (startParam && startParam !== "none") ? new Date(startParam) : null;
                     const endObj = (deadlineParam && deadlineParam !== "none") ? new Date(deadlineParam) : null;
@@ -129,7 +189,6 @@
                         document.getElementById('attendanceForm').classList.add('opacity-50', 'pointer-events-none');
                         return; 
                     }
-                    // ------------------------------------------------------------
 
                     const roomSelect = document.getElementById('roomSelect');
                     if (filteredStudents.length === 0) {
@@ -150,9 +209,8 @@
                 document.getElementById('loadingStatus').classList.replace('bg-blue-50', 'bg-red-50');
                 document.getElementById('loadingStatus').classList.replace('text-blue-600', 'text-red-600');
             }
-        };
+        }
 
-// 🌟 ดึงข้อมูลกิจกรรมทั้งหมด และจดจำค่าล่าสุดด้วยระบบความจำเครื่อง (LocalStorage)
         async function loadActivities() {
             try {
                 const res = await fetch(API_URL + "?action=get_activities");
@@ -164,17 +222,15 @@
                         select.add(new Option(act, act));
                     });
                     
-                    // 🌟 ตรวจสอบว่าในเครื่องคอมพิวเตอร์เครื่องนี้ เคยเลือกกิจกรรมใดค้างไว้ล่าสุดหรือไม่
                     const savedActivity = localStorage.getItem('selected_activity');
                     if (savedActivity) {
-                        select.value = savedActivity; // เลือกค่ากิจกรรมเดิมให้ผู้ดูแลออโต้!
-                        activity = savedActivity;     // สวมสิทธิ์ตัวแปรให้พร้อมสแกนทันที
+                        select.value = savedActivity;
+                        activity = savedActivity;
                     }
 
-                    // ปรับค่าตัวแปรเมื่อคลิกเปลี่ยนกิจกรรมบนหน้าจอ และจดจำลงความจำถาวรของบราวเซอร์เครื่องนั้น
                     select.addEventListener('change', function() {
                         activity = this.value;
-                        localStorage.setItem('selected_activity', this.value); // บันทึกจำค่าล่าสุดลงเครื่อง DeX
+                        localStorage.setItem('selected_activity', this.value);
                     });
                 }
             } catch (e) {
@@ -198,7 +254,6 @@
             const selectedName = document.getElementById('studentSelect').value;
             const selectedRoom = document.getElementById('roomSelect').value;
 
-            // ตรวจสอบระบบเครื่องกลางว่าแอดมินลืมเลือกกิจกรรมหลักก่อนส่งข้อมูลหรือไม่
             if (!activity) {
                 alert("❌ กรุณาเลือกกิจกรรมที่ต้องการเช็คชื่อด้านบนก่อนกดบันทึกส่งข้อมูล!");
                 return;
@@ -222,7 +277,6 @@
                 img.onload = async function() {
                     const canvas = document.createElement('canvas');
                     
-                    // 🌟 ปรับย่อยรูปภาพเหลือความกว้าง 500px ขนาดภาพเล็กลง 5 เท่า ส่งได้เร็วและประหยัดเน็ตมือถือเด็กครับ
                     const MAX_WIDTH = 500;
                     const scaleSize = MAX_WIDTH / img.width;
                     canvas.width = MAX_WIDTH;
