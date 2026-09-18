@@ -9,6 +9,9 @@
     <link class="custom-favicon" rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect x=%2212%22 y=%2250%22 width=%2220%22 height=%2240%22 rx=%224%22 fill=%22%233b82f6%22/><rect x=%2240%22 y=%2225%22 width=%2220%22 height=%2265%22 rx=%224%22 fill=%22%231e40af%22/><rect x=%2268%22 y=%2210%22 width=%2220%22 height=%2280%22 rx=%224%22 fill=%22%23172554%22/></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- ดึง Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
         body { font-family: 'Prompt', sans-serif; background-color: #0b0f19; }
@@ -17,7 +20,6 @@
         .custom-scroll::-webkit-scrollbar { width: 6px; }
         .custom-scroll::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); }
         .custom-scroll::-webkit-scrollbar-thumb { background: rgba(51, 65, 85, 0.5); border-radius: 4px; }
-        .custom-scroll::-webkit-scrollbar-thumb:hover { background: rgba(71, 85, 105, 0.7); }
         .loader { border: 4px solid rgba(255, 255, 255, 0.1); border-top: 4px solid #3b82f6; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
@@ -43,7 +45,7 @@
                     </p>
                 </div>
                 <div class="flex flex-wrap gap-2 w-full md:w-auto items-center justify-end">
-                    <button onclick="fetchAllData(true)" title="รีเฟรชข้อมูล" class="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 px-3 py-2 rounded-lg text-xs md:text-sm transition-colors flex items-center justify-center gap-1.5">
+                    <button onclick="fetchAllData()" title="รีเฟรชข้อมูล" class="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 px-3 py-2 rounded-lg text-xs md:text-sm transition-colors flex items-center justify-center gap-1.5">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                         <span>รีเฟรช</span>
                     </button>
@@ -78,12 +80,11 @@
         <!-- Loading -->
         <div id="loading" class="flex flex-col items-center justify-center py-32">
             <div class="loader mb-4"></div>
-            <p class="text-slate-400 text-sm font-medium tracking-wide animate-pulse">กำลังดึงข้อมูลสถิติเข้าแถว...</p>
+            <p class="text-slate-400 text-sm font-medium tracking-wide animate-pulse">กำลังโหลดข้อมูลด่วนจาก Supabase...</p>
         </div>
 
         <!-- Main Dashboard Content -->
         <div id="dashboardContent" class="hidden">
-            <!-- Cards Section -->
             <section class="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 mb-8">
                 <div class="glass-card p-4 md:p-6 rounded-2xl bg-gradient-to-br from-slate-900/80 to-blue-950/20 shadow-lg border-l-4 border-blue-500/50">
                     <p class="text-[10px] md:text-xs font-semibold uppercase tracking-wider text-slate-400">นักเรียนทั้งหมด</p>
@@ -99,9 +100,8 @@
                 </div>
             </section>
 
-            <!-- Tables Section -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
-                <!-- Risk Table -->
+                <!-- ตารางกลุ่มเสี่ยง -->
                 <div class="glass-card rounded-2xl overflow-hidden border border-red-500/10">
                     <div class="p-4 md:p-5 border-b border-slate-800 flex justify-between items-center bg-red-500/5">
                         <h2 class="text-sm md:text-base font-bold text-red-400">กลุ่มเสี่ยงเข้าแถวไม่ครบ (&lt; 80%)</h2>
@@ -122,7 +122,7 @@
                     </div>
                 </div>
 
-                <!-- Success Table -->
+                <!-- ตารางกลุ่มผ่านเกณฑ์ -->
                 <div class="glass-card rounded-2xl overflow-hidden border border-emerald-500/10">
                     <div class="p-4 md:p-5 border-b border-slate-800 flex justify-between items-center bg-emerald-500/5">
                         <h2 class="text-sm md:text-base font-bold text-emerald-400">กลุ่มเข้าแถวตามเกณฑ์ (≥ 80%)</h2>
@@ -143,36 +143,31 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
 
-            <!-- Footer Credits -->
-            <footer class="mt-12 mb-4 text-center flex flex-col items-center justify-center gap-2">
-                <div class="inline-flex items-center gap-2 bg-slate-900/80 border border-slate-800 px-4 py-1.5 rounded-full shadow-lg backdrop-blur-md">
-                    <span class="flex h-2 w-2 relative">
-                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                        <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
-                    </span>
-                    <p class="text-xs text-slate-400">
-                        Developed with 💻 by <span class="font-semibold text-blue-400 hover:text-blue-300 transition-colors">Suriyan Suwannachat</span>
-                    </p>
-                </div>
-                <p class="text-[10px] text-slate-600 tracking-wider">
-                    © 2026 Attendance Monitoring System • All Rights Reserved
-                </p>
-            </footer>
+    <!-- Modal คำแนะนำ -->
+    <div id="resolutionModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[120] p-4 backdrop-blur-sm" onclick="closeResolutionModal()">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-sm w-full shadow-2xl" onclick="event.stopPropagation()">
+            <div class="text-center mb-4">
+                <h3 class="text-lg font-bold text-slate-100">แนวทางการแก้ไข</h3>
+                <p class="text-sm text-slate-400 mt-1">สถิติการเข้าแถวของคุณอยู่ที่ <span id="resPercent" class="font-bold text-red-400"></span>%</p>
+            </div>
+            <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 mb-6 text-center">
+                <p id="resText" class="text-sm text-amber-400 font-medium whitespace-pre-wrap"></p>
+            </div>
+            <button onclick="closeResolutionModal()" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 rounded-xl text-sm border border-slate-700 transition-colors">รับทราบ</button>
         </div>
     </div>
 
     <!-- Admin Password Modal -->
     <div id="passwordModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[100] p-4 backdrop-blur-sm">
         <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-sm w-full shadow-2xl">
-            <h3 class="text-lg font-bold text-amber-400 mb-2 flex items-center gap-2">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-                สิทธิ์ผู้ดูแลระบบ
-            </h3>
+            <h3 class="text-lg font-bold text-amber-400 mb-2">สิทธิ์ผู้ดูแลระบบ</h3>
             <p class="text-xs text-slate-400 mb-4">กรุณากรอกรหัสผ่านเพื่อเข้าสู่โหมดจัดการระบบ</p>
-            <input type="password" id="adminPasswordInput" placeholder="กรอกรหัสผ่าน..." class="w-full bg-slate-800 border border-slate-600 rounded-lg p-3 text-sm text-white mb-4 outline-none focus:border-amber-500">
+            <input type="password" id="adminPasswordInput" placeholder="กรอกรหัสผ่าน..." class="w-full bg-slate-800 border border-slate-600 rounded-lg p-3 text-sm text-white mb-4 outline-none">
             <div class="flex gap-2">
-                <button onclick="closePasswordModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-medium py-2 rounded-xl text-sm border border-slate-700">ยกเลิก</button>
+                <button onclick="closePasswordModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white py-2 rounded-xl text-sm border border-slate-700">ยกเลิก</button>
                 <button onclick="submitAdminPassword()" class="flex-1 bg-amber-500 hover:bg-amber-600 text-black font-bold py-2 rounded-xl text-sm">ยืนยัน</button>
             </div>
         </div>
@@ -182,23 +177,17 @@
     <div id="adminModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-50 p-4 backdrop-blur-sm">
         <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 md:p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto relative shadow-2xl custom-scroll">
             <button onclick="closeAdminPanel()" class="absolute top-4 right-4 text-slate-400 hover:text-white font-bold text-lg">✖</button>
-            
-            <h2 class="text-xl font-bold text-amber-400 mb-6 flex items-center gap-2">
-                🛠️ แผงควบคุมระบบแอดมิน
-            </h2>
+            <h2 class="text-xl font-bold text-amber-400 mb-6">🛠️ แผงควบคุมระบบแอดมิน</h2>
 
-            <!-- Section 1: Data Sync Engine -->
             <div class="border border-blue-500/30 bg-blue-500/5 p-4 rounded-xl mb-6">
-                <h3 class="text-sm font-bold text-blue-400 mb-1 flex items-center gap-2">
-                    ⚡ สั่งประมวลผลข้อมูลใหม่ (Sync & Pre-compile)
-                </h3>
-                <p class="text-xs text-slate-400 mb-3">กดปุ่มนี้เมื่อมีการแก้ไขข้อมูลใน Google Sheets แล้วต้องการให้ระบบคำนวณและอัปเดตแคชใหม่ทันที</p>
-                <button onclick="syncDataNow()" id="btnSync" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg text-xs shadow-md transition-all flex items-center justify-center gap-2">
-                    🔄 สั่งประมวลผลข้อมูลล่าสุดเดี๋ยวนี้
+                <h3 class="text-sm font-bold text-blue-400 mb-1">⚡ สั่งประมวลผลข้อมูลชีตเข้า Supabase</h3>
+                <p class="text-xs text-slate-400 mb-3">ดึงข้อมูลล่าสุดจาก Google Sheets ส่งขึ้น Supabase ทันที</p>
+                <button onclick="syncDataFromGAS()" id="btnSync" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg text-xs transition-all">
+                    🔄 สั่งให้อัปเดตข้อมูลจาก Google Sheets เดี๋ยวนี้
                 </button>
             </div>
 
-            <!-- Section 2: Rules -->
+            <!-- Rules Section -->
             <div class="border-b border-slate-800 pb-6 mb-6">
                 <h3 class="text-base font-bold text-emerald-400 mb-2">📋 เกณฑ์และแนวทางการแก้ไขการเข้าแถว</h3>
                 <div class="overflow-x-auto mb-3">
@@ -214,51 +203,27 @@
                         <tbody id="rulesTableBody" class="divide-y divide-slate-700 text-slate-200"></tbody>
                     </table>
                 </div>
-
-                <div class="flex gap-2 mb-4">
-                    <button onclick="addRuleRow(0, 79, '')" class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-3 py-1.5 rounded-lg text-xs font-bold">+ เพิ่มเกณฑ์</button>
-                </div>
-                
-                <button onclick="saveRulesToAPI()" id="btnSaveRules" class="w-full bg-emerald-500 hover:bg-emerald-600 text-black font-bold py-2.5 rounded-xl text-xs shadow-md transition-all">บันทึกเกณฑ์เงื่อนไข</button>
+                <button onclick="addRuleRow(0, 79, '')" class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-3 py-1.5 rounded-lg text-xs font-bold mb-4">+ เพิ่มเกณฑ์</button>
+                <button onclick="saveRulesToSupabase()" id="btnSaveRules" class="w-full bg-emerald-500 hover:bg-emerald-600 text-black font-bold py-2.5 rounded-xl text-xs">บันทึกเกณฑ์เงื่อนไข</button>
             </div>
 
-            <!-- Section 3: Change Password -->
-            <div class="mb-6">
-                <h3 class="text-base font-bold text-slate-300 mb-2">🔑 เปลี่ยนรหัสผ่านแอดมิน</h3>
-                <div class="flex gap-2">
-                    <input type="password" id="newAdminPassInput" placeholder="กรอกรหัสผ่านใหม่..." class="flex-1 bg-slate-800 border border-slate-600 rounded-lg p-2.5 text-xs text-white outline-none focus:border-amber-500">
-                    <button onclick="changePassword()" class="bg-amber-500 hover:bg-amber-600 text-black font-bold px-4 py-2 rounded-lg text-xs">บันทึกรหัสผ่าน</button>
-                </div>
-            </div>
-
-            <!-- Footer Buttons -->
             <div class="border-t border-slate-800 pt-4 flex gap-3">
-                <button onclick="logoutAdmin()" class="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-500 font-bold py-2.5 rounded-xl text-xs border border-red-500/30">ออกจากระบบแอดมิน</button>
-                <button onclick="closeAdminPanel()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 rounded-xl text-xs border border-slate-700">ปิดหน้าต่าง</button>
+                <button onclick="closeAdminPanel()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 rounded-xl text-xs">ปิดหน้าต่าง</button>
             </div>
         </div>
     </div>
 
-    <!-- Resolution Modal -->
-    <div id="resolutionModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[120] p-4 backdrop-blur-sm" onclick="closeResolutionModal(event)">
-        <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-sm w-full shadow-2xl" onclick="event.stopPropagation()">
-            <div class="text-center mb-4">
-                <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-red-500/20 text-red-500 mb-2">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                </div>
-                <h3 class="text-lg font-bold text-slate-100">แนวทางการแก้ไข</h3>
-                <p class="text-sm text-slate-400 mt-1">สถิติการเข้าแถวของคุณอยู่ที่ <span id="resPercent" class="font-bold text-red-400"></span>%</p>
-            </div>
-            <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 mb-6 text-center">
-                <p id="resText" class="text-sm text-amber-400 font-medium whitespace-pre-wrap"></p>
-            </div>
-            <button onclick="closeResolutionModal()" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 rounded-xl text-sm border border-slate-700 transition-colors">รับทราบ</button>
-        </div>
-    </div>
-
-    <!-- Core Scripts -->
+	<!-- Scripts -->
     <script>
-        const API_BASE = "https://script.google.com/macros/s/AKfycbzEZwclY5DDyAEW5LFToH3WkK3slgHeHVTS1pTizIhvI7iEZwGUtD9GKcv-EPlWu1rE7Q/exec";
+        // ข้อมูลของ Supabase
+        const SUPABASE_URL = "https://fpbgujzhrzsasmqbxncj.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwYmd1anpocnpzYXNtcWJ4bmNqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3MzI3NTUsImV4cCI6MjEwNTMwODc1NX0.ggrCO-hHJeD74syDeSdL2HI45vGfyNkl8v5C9gdS6KI";
+        
+        //  เปลี่ยนชื่อจาก supabase เป็น db เพื่อไม่ให้ชนกับ CDN
+        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // URL Web App จาก Google Apps Script เดิมของคุณ
+        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzEZwclY5DDyAEW5LFToH3WkK3slgHeHVTS1pTizIhvI7iEZwGUtD9GKcv-EPlWu1rE7Q/exec";
 
         let dataAttendance = [], globalRules = [], serverAdminPass = "2IDMy4WatRWQ", isAdminAuthenticated = false;
 
@@ -266,95 +231,67 @@
             return !str ? "-" : str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag])); 
         }
 
-        window.onload = function() { 
-            checkAdminAuth(); 
-            fetchAllData(); 
+        window.onload = function() {
+            checkAdminAuth();
+            fetchAllData();
         };
 
         function checkAdminAuth() {
             if (localStorage.getItem('admin_authenticated') === 'true') {
                 isAdminAuthenticated = true;
-                document.getElementById('adminBtnText').innerText = "แอดมิน (โหมดจัดการ)";
+                const btn = document.getElementById('adminBtnText');
+                if (btn) btn.innerText = "แอดมิน (โหมดจัดการ)";
             }
         }
 
-        function openPasswordModal() { 
-            if (isAdminAuthenticated) {
-                document.getElementById('adminModal').classList.replace('hidden', 'flex');
-                renderRulesTable();
-                return;
-            }
-            document.getElementById('passwordModal').classList.replace('hidden', 'flex');
-            document.getElementById('adminPasswordInput').value = "";
-            document.getElementById('adminPasswordInput').focus();
-        }
-
-        function submitAdminPassword() { 
-            const inputVal = document.getElementById('adminPasswordInput').value;
-            if (inputVal === serverAdminPass) { 
-                isAdminAuthenticated = true; 
-                localStorage.setItem('admin_authenticated', 'true');
-                document.getElementById('adminBtnText').innerText = "แอดมิน (โหมดจัดการ)";
-                closePasswordModal(); 
-                openPasswordModal();
-            } else { 
-                alert("❌ รหัสผ่านไม่ถูกต้อง!"); 
-            } 
-        }
-
-        function logoutAdmin() {
-            if (confirm("ออกจากระบบแอดมิน?")) {
-                localStorage.removeItem('admin_authenticated');
-                isAdminAuthenticated = false;
-                document.getElementById('adminBtnText').innerText = "จัดการระบบ (แอดมิน)";
-                closeAdminPanel();
-            }
-        }
-
-        function closePasswordModal() { document.getElementById('passwordModal').classList.add('hidden'); }
-        function closeAdminPanel() { document.getElementById('adminModal').classList.add('hidden'); }
-
-        async function fetchAllData(forceRefresh = false) {
+        // ดึงข้อมูลผ่าน Supabase (db)
+        async function fetchAllData() {
             document.getElementById('loading').classList.remove('hidden');
             document.getElementById('dashboardContent').classList.add('hidden');
 
             try {
-                const url = forceRefresh ? `${API_BASE}?refresh=true` : API_BASE;
-                const res = await fetch(url);
-                const json = await res.json();
-                
-                if (json.status === "success") {
-                    dataAttendance = processData(json.attendance || []);
-                    globalRules = json.rules || [];
-                    if (json.adminPass) serverAdminPass = json.adminPass;
-                    if (json.lastUpdated) document.getElementById('lastUpdatedText').innerText = `(อัปเดต: ${json.lastUpdated})`;
+                // 1. ดึงสรุปผลนักเรียน
+                const { data: students, error: errStudents } = await db
+                    .from('attendance_summary')
+                    .select('*');
 
-                    buildFilters();
-                    filterData();
-                } else {
-                    alert("❌ เกิดข้อผิดพลาดจากเซิร์ฟเวอร์: " + json.message);
+                if (errStudents) throw errStudents;
+
+                // 2. เกณฑ์เงื่อนไข
+                const { data: rules } = await db.from('system_rules').select('*');
+                globalRules = (rules || []).map(r => ({ min: r.min_percent, max: r.max_percent, text: r.remedy_text }));
+
+                // 3. ค่าระบบ
+                const { data: settings } = await db.from('system_settings').select('*');
+                if (settings) {
+                    const passObj = settings.find(s => s.key === 'admin_password');
+                    const updatedObj = settings.find(s => s.key === 'last_updated');
+                    if (passObj) serverAdminPass = passObj.value;
+                    if (updatedObj && updatedObj.value) {
+                        document.getElementById('lastUpdatedText').innerText = `(อัปเดต: ${updatedObj.value})`;
+                    }
                 }
-            } catch (err) { 
-                console.error(err); 
-                alert("โหลดข้อมูลล้มเหลว กรุณาลองใหม่อีกครั้ง"); 
+
+                dataAttendance = (students || []).map(s => ({
+                    studentName: s.student_name,
+                    pureDept: s.department,
+                    pureLevel: s.pure_level,
+                    teacherEmail: s.teacher_email,
+                    presentDays: s.present_days,
+                    totalDays: s.total_days,
+                    percent: s.percent
+                }));
+
+                buildFilters();
+                filterData();
+
+            } catch (err) {
+                console.error(err);
+                alert("โหลดข้อมูลล้มเหลว: " + err.message);
             } finally {
                 document.getElementById('loading').classList.add('hidden');
                 document.getElementById('dashboardContent').classList.remove('hidden');
             }
-        }
-
-        function processData(rawData) {
-            return rawData
-                .filter(item => item && item.department && !item.department.includes("กิจกรรม") && item.studentName && !item.studentName.includes("กิจกรรม"))
-                .map(item => {
-                    let d = item.department || "ไม่ระบุ", l = item.pureLevel || "";
-                    d = d.replace(/(ปวช\.\d|ปวส\.\d)/g, "").replace(/แผนกวิชา/g, "").trim();
-                    if (!l) {
-                        const match = item.department.match(/(ปวช\.\d|ปวส\.\d)/);
-                        l = match ? match[1].trim() : "ไม่ระบุปี";
-                    }
-                    return { ...item, pureDept: d, pureLevel: l };
-                });
         }
 
         function buildFilters() {
@@ -406,14 +343,10 @@
             tb.innerHTML = data.length ? '' : '<tr><td colspan="4" class="py-10 text-center text-slate-500">ไม่พบข้อมูล</td></tr>';
             
             data.forEach((s, i) => {
-                let teacher = cleanHTML(s.teacherEmail);
-                let resolve = isRisk ? `<button onclick="showResolutionModal(${s.percent})" class="text-[10px] text-red-400 border border-red-500/30 hover:bg-red-500/20 px-2 py-0.5 rounded mt-1 block mx-auto transition-colors">ดูวิธีแก้</button>` : "";
-                
+                let resolve = isRisk ? `<button onclick="showResolutionModal(${s.percent})" class="text-[10px] text-red-400 border border-red-500/30 hover:bg-red-500/20 px-2 py-0.5 rounded mt-1 block mx-auto">ดูวิธีแก้</button>` : "";
                 tb.innerHTML += `
                     <tr class="hover:bg-slate-800/30">
-                        <td class="px-2 py-3 text-center">
-                            <span class="w-6 h-6 inline-flex items-center justify-center rounded-full bg-slate-800 text-[10px] border border-slate-700">${i+1}</span>
-                        </td>
+                        <td class="px-2 py-3 text-center"><span class="w-6 h-6 inline-flex items-center justify-center rounded-full bg-slate-800 text-[10px] border border-slate-700">${i+1}</span></td>
                         <td class="px-3 py-3 text-xs md:text-sm">
                             <b class="text-slate-200">${cleanHTML(s.studentName)}</b><br>
                             <span class="text-slate-400 text-[10px]">${cleanHTML(s.pureLevel)} ${cleanHTML(s.pureDept)}</span>
@@ -423,114 +356,9 @@
                             <div class="text-[10px] text-slate-500 mt-0.5">(${s.presentDays}/${s.totalDays} วัน)</div>
                             ${resolve}
                         </td>
-                        <td class="px-3 py-3 text-[10px] text-slate-400 text-center truncate max-w-[120px]" title="${teacher}">
-                            ${teacher}
-                        </td>
+                        <td class="px-3 py-3 text-[10px] text-slate-400 text-center truncate max-w-[120px]">${cleanHTML(s.teacherEmail)}</td>
                     </tr>`;
             });
-        }
-
-        async function syncDataNow() {
-            const btn = document.getElementById('btnSync');
-            btn.disabled = true;
-            btn.innerText = "⏳ กำลังประมวลผลข้อมูลใหม่...";
-
-            try {
-                const res = await fetch(API_BASE, {
-                    method: "POST",
-                    headers: { "Content-Type": "text/plain;charset=utf-8" },
-                    body: JSON.stringify({ action: "recompile" })
-                });
-                const data = await res.json();
-                if (data.status === "success") {
-                    alert("✅ ประมวลผลและสร้างแคชข้อมูลใหม่สำเร็จ!");
-                    fetchAllData(true);
-                } else {
-                    alert("❌ ล้มเหลว: " + data.message);
-                }
-            } catch (err) {
-                alert("❌ เกิดข้อผิดพลาดในการเชื่อมต่อ");
-            } finally {
-                btn.disabled = false;
-                btn.innerText = "🔄 สั่งประมวลผลข้อมูลล่าสุดเดี๋ยวนี้";
-            }
-        }
-
-        function renderRulesTable() {
-            const tbody = document.getElementById('rulesTableBody'); 
-            tbody.innerHTML = '';
-            if (globalRules.length > 0) { 
-                globalRules.forEach(r => addRuleRow(r.min, r.max, r.text)); 
-            } else { 
-                addRuleRow(70, 79, 'ส่งใบลา / ติดต่อครูที่ปรึกษา');
-                addRuleRow(0, 69, 'เข้าพบหัวหน้างานพัฒนากิจกรรมฯ'); 
-            }
-        }
-
-        function addRuleRow(min, max, text) {
-            const tb = document.getElementById('rulesTableBody');
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td class="p-1"><input type="number" value="${min}" class="rule-min w-full bg-slate-800 text-xs border border-slate-600 rounded p-1.5 text-center text-white"></td>
-                <td class="p-1"><input type="number" value="${max}" class="rule-max w-full bg-slate-800 text-xs border border-slate-600 rounded p-1.5 text-center text-white"></td>
-                <td class="p-1"><input type="text" value="${cleanHTML(text)}" class="rule-text w-full bg-slate-800 text-xs border border-slate-600 rounded p-1.5 text-white"></td>
-                <td class="p-1 text-center"><button onclick="this.closest('tr').remove()" class="text-red-400 hover:text-red-300 font-bold">✖</button></td>
-            `;
-            tb.appendChild(tr);
-        }
-
-        async function saveRulesToAPI() {
-            const btn = document.getElementById('btnSaveRules');
-            btn.disabled = true;
-            btn.innerText = "กำลังบันทึก...";
-
-            const rules = Array.from(document.querySelectorAll('#rulesTableBody tr')).map(tr => ({
-                type: 'attendance',
-                min: parseInt(tr.querySelector('.rule-min').value) || 0,
-                max: parseInt(tr.querySelector('.rule-max').value) || 0,
-                text: tr.querySelector('.rule-text').value.trim()
-            }));
-
-            try {
-                const res = await fetch(API_BASE, {
-                    method: "POST",
-                    headers: { "Content-Type": "text/plain;charset=utf-8" },
-                    body: JSON.stringify({ action: "save_rules", rules: rules })
-                });
-                const data = await res.json();
-                if (data.status === "success") {
-                    alert("✅ บันทึกเกณฑ์เงื่อนไขสำเร็จ");
-                    globalRules = rules;
-                } else {
-                    alert("❌ ผิดพลาด: " + data.message);
-                }
-            } catch (err) {
-                alert("❌ เกิดข้อผิดพลาดในการเชื่อมต่อ");
-            } finally {
-                btn.disabled = false;
-                btn.innerText = "บันทึกเกณฑ์เงื่อนไข";
-            }
-        }
-
-        async function changePassword() {
-            const newPass = document.getElementById('newAdminPassInput').value.trim();
-            if (!newPass) return alert("กรุณากรอกรหัสผ่านใหม่");
-
-            try {
-                const res = await fetch(API_BASE, {
-                    method: "POST",
-                    headers: { "Content-Type": "text/plain;charset=utf-8" },
-                    body: JSON.stringify({ action: "change_password", newPass: newPass })
-                });
-                const data = await res.json();
-                if (data.status === "success") {
-                    serverAdminPass = newPass;
-                    document.getElementById('newAdminPassInput').value = "";
-                    alert("✅ เปลี่ยนรหัสผ่านสำเร็จ!");
-                }
-            } catch (err) {
-                alert("❌ เปลี่ยนรหัสผ่านล้มเหลว");
-            }
         }
 
         function showResolutionModal(pct) {
@@ -540,8 +368,96 @@
             document.getElementById('resolutionModal').classList.replace('hidden', 'flex');
         }
 
-        function closeResolutionModal() { 
-            document.getElementById('resolutionModal').classList.add('hidden'); 
+        function closeResolutionModal() { document.getElementById('resolutionModal').classList.add('hidden'); }
+        function openPasswordModal() { 
+            if (isAdminAuthenticated) {
+                document.getElementById('adminModal').classList.replace('hidden', 'flex');
+                renderRulesTable();
+                return;
+            }
+            document.getElementById('passwordModal').classList.replace('hidden', 'flex'); 
+            document.getElementById('adminPasswordInput').value = "";
+            document.getElementById('adminPasswordInput').focus();
+        }
+        function closePasswordModal() { document.getElementById('passwordModal').classList.add('hidden'); }
+        function closeAdminPanel() { document.getElementById('adminModal').classList.add('hidden'); }
+
+        function submitAdminPassword() { 
+            const val = document.getElementById('adminPasswordInput').value;
+            if (val === serverAdminPass) {
+                isAdminAuthenticated = true;
+                localStorage.setItem('admin_authenticated', 'true');
+                document.getElementById('adminBtnText').innerText = "แอดมิน (โหมดจัดการ)";
+                closePasswordModal();
+                document.getElementById('adminModal').classList.replace('hidden', 'flex');
+                renderRulesTable();
+            } else {
+                alert("❌ รหัสผ่านไม่ถูกต้อง");
+            }
+        }
+
+        function renderRulesTable() {
+            const tbody = document.getElementById('rulesTableBody'); 
+            tbody.innerHTML = '';
+            if (globalRules.length > 0) {
+                globalRules.forEach(r => addRuleRow(r.min, r.max, r.text));
+            } else {
+                addRuleRow(70, 79, 'ส่งใบลา / ติดต่อครูที่ปรึกษา');
+                addRuleRow(0, 69, 'เข้าพบหัวหน้างานพัฒนากิจกรรมฯ');
+            }
+        }
+
+        function addRuleRow(min, max, text) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="p-1"><input type="number" value="${min}" class="rule-min w-full bg-slate-800 text-xs border border-slate-600 rounded p-1.5 text-center text-white"></td>
+                <td class="p-1"><input type="number" value="${max}" class="rule-max w-full bg-slate-800 text-xs border border-slate-600 rounded p-1.5 text-center text-white"></td>
+                <td class="p-1"><input type="text" value="${cleanHTML(text)}" class="rule-text w-full bg-slate-800 text-xs border border-slate-600 rounded p-1.5 text-white"></td>
+                <td class="p-1 text-center"><button onclick="this.closest('tr').remove()" class="text-red-400 font-bold">✖</button></td>
+            `;
+            document.getElementById('rulesTableBody').appendChild(tr);
+        }
+
+        async function saveRulesToSupabase() {
+            const rules = Array.from(document.querySelectorAll('#rulesTableBody tr')).map(tr => ({
+                rule_type: 'attendance',
+                min_percent: parseInt(tr.querySelector('.rule-min').value) || 0,
+                max_percent: parseInt(tr.querySelector('.rule-max').value) || 0,
+                remedy_text: tr.querySelector('.rule-text').value.trim()
+            }));
+
+            await db.from('system_rules').delete().gt('id', 0);
+            const { error } = await db.from('system_rules').insert(rules);
+            if (!error) {
+                alert("✅ บันทึกเกณฑ์เงื่อนไขสำเร็จ!");
+                fetchAllData();
+            }
+        }
+
+        async function syncDataFromGAS() {
+            const btn = document.getElementById('btnSync');
+            btn.innerText = "⏳ กำลังประมวลผลข้อมูลชีตส่งเข้า Supabase...";
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(GAS_API_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "text/plain;charset=utf-8" },
+                    body: JSON.stringify({ action: "sync_to_supabase" })
+                });
+                const data = await res.json();
+                if (data.status === "success") {
+                    alert("✅ อัปเดตข้อมูลขึ้น Supabase สำเร็จ!");
+                    fetchAllData();
+                } else {
+                    alert("❌ เกิดข้อผิดพลาด: " + data.message);
+                }
+            } catch (err) {
+                alert("❌ ซิงค์ข้อมูลล้มเหลว กรุณาลองใหม่");
+            } finally {
+                btn.innerText = "🔄 สั่งให้อัปเดตข้อมูลจาก Google Sheets เดี๋ยวนี้";
+                btn.disabled = false;
+            }
         }
     </script>
 </body>
