@@ -100,7 +100,7 @@
     <!-- Main Container -->
     <main class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 flex-1 w-full space-y-4 sm:space-y-6">
 
-        <!-- 🌟 Metrics Overview: จบบรรทัดเดียวในมือถือ (4 คอลัมน์ ไม่แตก 3 บรรทัด) -->
+        <!-- 🌟 Metrics Overview: แถวเดียวจบ ไม่แตก 3 บรรทัดบนมือถือ -->
         <section class="grid grid-cols-4 gap-1.5 sm:gap-4">
             <!-- Total -->
             <div class="bg-white p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
@@ -229,7 +229,7 @@
 
         <!-- Content Section -->
         <section id="contentContainer" class="hidden">
-            <!-- 📱 โฉมใหม่! การ์ดบนมือถือแบบ Compact สบายตา ประหยัดพื้นที่ เห็นรายชื่อได้จุใจ -->
+            <!-- 📱 โฉมใหม่! การ์ดบนมือถือ กะทัดรัด สบายตา ไม่กินพื้นที่ -->
             <div id="mobileCardList" class="md:hidden space-y-2"></div>
 
             <!-- 💻 โหมดคอมพิวเตอร์ -->
@@ -291,7 +291,8 @@
                 <span id="resPercentBadge" class="font-mono text-sm font-bold px-2.5 py-0.5 rounded-lg"></span>
             </div>
 
-            <div id="resActivitiesListWrap" class="hidden mb-4 space-y-1.5 max-h-48 overflow-y-auto custom-scroll pr-1"></div>
+            <!-- กล่องแสดงรายการกิจกรรม (ขยายให้อ่านสบายตาขึ้น) -->
+            <div id="resActivitiesListWrap" class="hidden mb-4 space-y-2 max-h-60 overflow-y-auto custom-scroll pr-1"></div>
 
             <div class="mb-5">
                 <label class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block mb-1.5">คำแนะนำจากระบบ / วิธีแก้ไข</label>
@@ -300,7 +301,8 @@
                 </div>
             </div>
 
-            <a href="https://lin.ee/67sXaBk" target="_blank" class="w-full py-2.5 px-4 mb-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm transition-all shadow-md shadow-emerald-200 flex items-center justify-center gap-2 cursor-pointer">
+            <!-- 📱 ปุ่ม LINE: ซ่อนอัตโนมัติในโหมดเข้าแถว แสดงเฉพาะกิจกรรมกลาง -->
+            <a id="btnLineAppeal" href="https://lin.ee/67sXaBk" target="_blank" class="w-full py-2.5 px-4 mb-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm transition-all shadow-md shadow-emerald-200 flex items-center justify-center gap-2 cursor-pointer">
                 <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M24 10.304c0-5.369-5.383-9.738-12-9.738-6.616 0-12 4.369-12 9.738 0 4.814 4.269 8.846 10.019 9.574.39.085.922.258 1.057.592.121.301.079.771.039 1.085l-.171 1.027c-.053.303-.242 1.186 1.039.647 1.281-.54 6.911-4.069 9.428-6.967 1.739-1.907 2.589-3.843 2.589-5.958z"/></svg>
                 <span>เปิด LINE ส่งรูปแก้ตกหล่น</span>
             </a>
@@ -412,6 +414,7 @@
             }
         }
 
+        // 🚀 ดึงข้อมูลแบบ Pagination ทะลุข้อจำกัด 1,000 แถว
         async function fetchAllRows(client, tableName, select = '*') {
             let allRows = [];
             let from = 0;
@@ -519,6 +522,7 @@
             }
         }
 
+        // ตรวจสอบการเข้าร่วมทั้ง s.id และ s.student_id
         function getStudentPassedSet(s, attMap) {
             const passed = new Set();
             const idStr = String(s.id || '').trim();
@@ -692,7 +696,7 @@
             renderDisplay(result);
         }
 
-        // แสดงผลลัพธ์: ปรับโฉม Mobile Card ให้กะทัดรัด (Compact) สบายตา ประหยัดพื้นที่
+        // แสดงผลลัพธ์: การ์ดมือถือแบบกะทัดรัด (Compact) สบายตา ประหยัดพื้นที่
         function renderDisplay(list) {
             const emptyState = document.getElementById('emptyState');
             const mobileContainer = document.getElementById('mobileCardList');
@@ -708,7 +712,7 @@
 
             const isActMode = systemMode === 'activities';
 
-            // 1. Mobile Cards View: กะทัดรัด สวยงาม มีแถบสีเขียว-แดงบอกสถานะชัดเจน
+            // 1. Mobile Cards View
             let mobileHTML = '';
             list.forEach((s, idx) => {
                 const isRisk = s.percent < 80;
@@ -720,7 +724,7 @@
                 <div class="p-3 bg-white rounded-xl border border-slate-200 border-l-4 ${borderAccent} shadow-xs space-y-2">
                     <div class="flex items-center justify-between gap-2">
                         <div class="flex items-center gap-2 min-w-0">
-                            <!-- ลำดับที่ (ตัด # ออก เป็นป้ายวงกลมคลีนๆ) -->
+                            <!-- ลำดับที่แบบป้ายคลีนๆ ไม่มีเครื่องหมาย # -->
                             <span class="w-5 h-5 rounded-md bg-slate-100 text-slate-500 text-[10px] font-bold font-mono flex items-center justify-center flex-shrink-0">
                                 ${idx + 1}
                             </span>
@@ -744,7 +748,7 @@
                                 ${isActMode ? 'แก้ตกหล่น' : 'ดูวิธีแก้'} ›
                             </button>
                         ` : `
-                            <button onclick="openResolutionModal('${escapeHTML(s.name)}', ${s.percent}, '${escapeHTML(String(s.id))}')" class="text-[11px] text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2 py-1 rounded-lg font-medium border border-emerald-200 transition-colors flex-shrink-0 cursor-pointer">
+                            <button onclick="openResolutionModal('${escapeHTML(s.name)}', ${s.percent}, '${escapeHTML(String(s.id))}')" class="text-[11px] text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-lg font-medium border border-emerald-200 transition-colors flex-shrink-0 cursor-pointer">
                                 ดูข้อมูล
                             </button>
                         `}
@@ -812,6 +816,7 @@
             const heading = document.getElementById('resModalHeading');
             const statLabel = document.getElementById('resStatLabelText');
             const actWrap = document.getElementById('resActivitiesListWrap');
+            const lineBtn = document.getElementById('btnLineAppeal') || document.querySelector('a[href*="lin.ee"]');
 
             badge.innerText = `${pct}%`;
 
@@ -830,29 +835,41 @@
                 statLabel.innerText = "ร้อยละการเข้าร่วม";
                 actWrap.classList.remove('hidden');
 
+                // 🟢 ฝั่งกิจกรรมกลาง: แสดงปุ่ม LINE ตลอดเวลา (ผ่านหรือไม่ผ่านก็ขึ้นให้กดได้)
+                if (lineBtn) lineBtn.classList.remove('hidden');
+
+                if (pct < 80) {
+                    remedyText.innerText = "⚠️ คุณมีกิจกรรมที่ยังไม่ผ่านเกณฑ์ 80%\nสามารถกดปุ่มสีเขียวด้านล่างเพื่อเปิด LINE ส่งรูปภาพหลักฐานยืนยันได้ทันทีครับ";
+                } else {
+                    remedyText.innerText = "🎉 ยินดีด้วยครับ! คุณผ่านเกณฑ์กิจกรรมกลาง (≥80%) เรียบร้อยแล้ว\n(หากมีงานตกหล่นที่ต้องการเก็บให้ครบ สามารถกดปุ่ม LINE ด้านล่างได้เช่นกันครับ)";
+                }
+
                 const std = masterStudents.find(s => String(s.id) === String(studentId));
                 const passedSet = std ? std.passedSet : new Set();
 
+                // 🌟 ป้ายสถานะชัดเจน ใช้คำว่า "✕ ไม่พบการเข้าร่วม" พร้อมจุด 🟢/🔴
                 actWrap.innerHTML = rcActivities.map(act => {
                     const actKey = String(act.id || '').trim().toLowerCase();
                     const isPassed = passedSet.has(actKey);
                     return `
-                        <div class="flex items-center justify-between p-2 rounded-lg ${isPassed ? 'bg-emerald-50/70 border border-emerald-100' : 'bg-rose-50/70 border border-rose-100'} text-xs">
-                            <span class="${isPassed ? 'text-emerald-900 font-medium' : 'text-rose-900 font-bold'}">${escapeHTML(act.name)}</span>
-                            <span class="px-2 py-0.5 rounded font-bold ${isPassed ? 'bg-emerald-200/80 text-emerald-800' : 'bg-rose-200/80 text-rose-800'}">
-                                ${isPassed ? '✓ เข้าร่วม' : '✕ ตกหล่น'}
+                        <div class="flex items-center justify-between p-3 rounded-xl border ${isPassed ? 'bg-emerald-50/90 border-emerald-200' : 'bg-rose-50/90 border-rose-200'} shadow-2xs transition-all">
+                            <div class="flex items-center gap-2.5 min-w-0 pr-2">
+                                <span class="text-sm">${isPassed ? '🟢' : '🔴'}</span>
+                                <span class="text-xs sm:text-sm font-bold ${isPassed ? 'text-emerald-950' : 'text-rose-950'} truncate">
+                                    ${escapeHTML(act.name)}
+                                </span>
+                            </div>
+                            <span class="px-2.5 py-1 rounded-lg text-[11px] sm:text-xs font-bold whitespace-nowrap flex-shrink-0 shadow-xs ${isPassed ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'}">
+                                ${isPassed ? '✓ เข้าร่วม' : '✕ ไม่พบการเข้าร่วม'}
                             </span>
                         </div>
                     `;
                 }).join('');
 
-                if (pct < 80) {
-                    remedyText.innerText = "⚠️ คุณมีกิจกรรมตกหล่นและยังไม่ผ่านเกณฑ์ 80%\nสามารถกดปุ่มสีเขียวด้านล่างเพื่อเปิด LINE ส่งรูปภาพหลักฐาน หรือตอบคำถาม 2 ข้อยืนยันได้ทันทีครับ";
-                } else {
-                    remedyText.innerText = "🎉 ยินดีด้วยครับ! คุณผ่านเกณฑ์กิจกรรมกลาง (≥80%) เรียบร้อยแล้ว";
-                }
-
             } else {
+                // 🚩 โหมดเข้าแถว: ซ่อนปุ่ม LINE เสมอ!
+                if (lineBtn) lineBtn.classList.add('hidden');
+
                 heading.innerText = "แนวทางการแก้ไข (เข้าแถว)";
                 statLabel.innerText = "สถิติเข้าแถวปัจจุบัน";
                 actWrap.classList.add('hidden');
