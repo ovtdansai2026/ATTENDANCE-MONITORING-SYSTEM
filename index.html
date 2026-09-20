@@ -98,73 +98,73 @@
     </div>
 
     <!-- Main Container -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full space-y-6">
+    <main class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 flex-1 w-full space-y-4 sm:space-y-6">
 
-        <!-- Metrics Overview (Cards) -->
-        <section class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+        <!-- 🌟 Metrics Overview: จบบรรทัดเดียวในมือถือ (4 คอลัมน์ ไม่แตก 3 บรรทัด) -->
+        <section class="grid grid-cols-4 gap-1.5 sm:gap-4">
             <!-- Total -->
-            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
-                <div class="flex items-center justify-between text-slate-500 mb-1">
-                    <span class="text-xs font-medium">นักเรียนทั้งหมด</span>
-                    <span class="w-2 h-2 rounded-full bg-slate-400"></span>
+            <div class="bg-white p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
+                <div class="flex items-center justify-between text-slate-500 mb-0.5 sm:mb-1">
+                    <span class="text-[11px] sm:text-xs font-medium truncate">ทั้งหมด</span>
+                    <span class="hidden sm:inline-block w-2 h-2 rounded-full bg-slate-400"></span>
                 </div>
                 <div class="flex items-baseline gap-1">
-                    <span id="statTotal" class="text-2xl sm:text-3xl font-bold font-mono text-slate-900">0</span>
-                    <span class="text-xs text-slate-500">คน</span>
+                    <span id="statTotal" class="text-base sm:text-3xl font-bold font-mono text-slate-900">0</span>
+                    <span class="text-[10px] sm:text-xs text-slate-400">คน</span>
                 </div>
-                <div class="w-full bg-slate-100 h-1.5 rounded-full mt-3 overflow-hidden">
+                <div class="w-full bg-slate-100 h-1 sm:h-1.5 rounded-full mt-1.5 sm:mt-3 overflow-hidden">
                     <div class="bg-slate-800 h-full w-full rounded-full"></div>
                 </div>
             </div>
 
             <!-- Risk (<80%) -->
-            <div class="bg-white p-4 rounded-2xl border border-rose-100 shadow-sm relative overflow-hidden">
-                <div class="flex items-center justify-between text-rose-700 mb-1">
-                    <span class="text-xs font-medium" id="statRiskLabel">เสี่ยงตกเกณฑ์ (&lt;80%)</span>
-                    <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+            <div class="bg-white p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-rose-100 shadow-xs flex flex-col justify-between">
+                <div class="flex items-center justify-between text-rose-700 mb-0.5 sm:mb-1">
+                    <span class="text-[11px] sm:text-xs font-medium truncate" id="statRiskLabel">เสี่ยงตก</span>
+                    <span class="hidden sm:inline-block w-2 h-2 rounded-full bg-rose-500"></span>
                 </div>
                 <div class="flex items-baseline gap-1">
-                    <span id="statRisk" class="text-2xl sm:text-3xl font-bold font-mono text-rose-600">0</span>
-                    <span class="text-xs text-rose-600/70">คน</span>
+                    <span id="statRisk" class="text-base sm:text-3xl font-bold font-mono text-rose-600">0</span>
+                    <span class="text-[10px] sm:text-xs text-rose-400">คน</span>
                 </div>
-                <div class="w-full bg-rose-50 h-1.5 rounded-full mt-3 overflow-hidden">
+                <div class="w-full bg-rose-50 h-1 sm:h-1.5 rounded-full mt-1.5 sm:mt-3 overflow-hidden">
                     <div id="statRiskBar" class="bg-rose-500 h-full w-0 rounded-full transition-all duration-500"></div>
                 </div>
             </div>
 
             <!-- Pass (>=80%) -->
-            <div class="bg-white p-4 rounded-2xl border border-emerald-100 shadow-sm relative overflow-hidden">
-                <div class="flex items-center justify-between text-emerald-700 mb-1">
-                    <span class="text-xs font-medium">ผ่านเกณฑ์ (≥80%)</span>
-                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <div class="bg-white p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-emerald-100 shadow-xs flex flex-col justify-between">
+                <div class="flex items-center justify-between text-emerald-700 mb-0.5 sm:mb-1">
+                    <span class="text-[11px] sm:text-xs font-medium truncate">ผ่านเกณฑ์</span>
+                    <span class="hidden sm:inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
                 </div>
                 <div class="flex items-baseline gap-1">
-                    <span id="statPass" class="text-2xl sm:text-3xl font-bold font-mono text-emerald-600">0</span>
-                    <span class="text-xs text-emerald-600/70">คน</span>
+                    <span id="statPass" class="text-base sm:text-3xl font-bold font-mono text-emerald-600">0</span>
+                    <span class="text-[10px] sm:text-xs text-emerald-400">คน</span>
                 </div>
-                <div class="w-full bg-emerald-50 h-1.5 rounded-full mt-3 overflow-hidden">
+                <div class="w-full bg-emerald-50 h-1 sm:h-1.5 rounded-full mt-1.5 sm:mt-3 overflow-hidden">
                     <div id="statPassBar" class="bg-emerald-500 h-full w-0 rounded-full transition-all duration-500"></div>
                 </div>
             </div>
 
             <!-- Average Rate -->
-            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden col-span-2 md:col-span-1">
-                <div class="flex items-center justify-between text-slate-500 mb-1">
-                    <span class="text-xs font-medium">อัตราผ่านเฉลี่ย</span>
-                    <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+            <div class="bg-white p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-indigo-100 shadow-xs flex flex-col justify-between">
+                <div class="flex items-center justify-between text-indigo-700 mb-0.5 sm:mb-1">
+                    <span class="text-[11px] sm:text-xs font-medium truncate">เฉลี่ย</span>
+                    <span class="hidden sm:inline-block w-2 h-2 rounded-full bg-indigo-500"></span>
                 </div>
                 <div class="flex items-baseline gap-1">
-                    <span id="statAvgRate" class="text-2xl sm:text-3xl font-bold font-mono text-indigo-900">0%</span>
+                    <span id="statAvgRate" class="text-base sm:text-3xl font-bold font-mono text-indigo-900">0%</span>
                 </div>
-                <div class="w-full bg-indigo-50 h-1.5 rounded-full mt-3 overflow-hidden">
+                <div class="w-full bg-indigo-50 h-1 sm:h-1.5 rounded-full mt-1.5 sm:mt-3 overflow-hidden">
                     <div id="statAvgBar" class="bg-indigo-600 h-full w-0 rounded-full transition-all duration-500"></div>
                 </div>
             </div>
         </section>
 
         <!-- Search & Filtering Toolbar -->
-        <section class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3.5">
-            <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+        <section class="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+            <div class="grid grid-cols-1 sm:grid-cols-12 gap-2.5 sm:gap-3">
 				<div class="sm:col-span-6 relative">
 					<svg class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
 					
@@ -176,36 +176,38 @@
 						   spellcheck="false" 
 						   oninput="applyFilters()" 
 						   placeholder="พิมพ์ชื่อหรือนามสกุลเพื่อค้นหา..." 
-						   class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl pl-10 pr-9 py-2.5 focus:outline-none focus:bg-white focus:border-slate-400 transition-all placeholder:text-slate-400">
+						   class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs sm:text-sm rounded-xl pl-9 pr-8 py-2 sm:py-2.5 focus:outline-none focus:bg-white focus:border-slate-400 transition-all placeholder:text-slate-400">
 					
 					<button onclick="clearSearch()" id="btnClearSearch" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer">
 						<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
 					</button>
 				</div>
 
-                <div class="sm:col-span-3">
-                    <select id="deptSelect" onchange="onDeptSelectChange()" class="w-full bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:bg-white focus:border-slate-400 transition-all cursor-pointer">
-                        <option value="ALL">ทุกแผนกวิชา</option>
-                    </select>
-                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-6 sm:col-span-6 gap-2">
+                    <div class="sm:col-span-3">
+                        <select id="deptSelect" onchange="onDeptSelectChange()" class="w-full bg-slate-50 border border-slate-200 text-slate-700 text-xs sm:text-sm rounded-xl px-2.5 py-2 sm:py-2.5 focus:outline-none focus:bg-white focus:border-slate-400 transition-all cursor-pointer">
+                            <option value="ALL">ทุกแผนกวิชา</option>
+                        </select>
+                    </div>
 
-                <div class="sm:col-span-3">
-                    <select id="levelSelect" onchange="applyFilters()" class="w-full bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:bg-white focus:border-slate-400 transition-all cursor-pointer">
-                        <option value="ALL">ทุกชั้นปี</option>
-                    </select>
+                    <div class="sm:col-span-3">
+                        <select id="levelSelect" onchange="applyFilters()" class="w-full bg-slate-50 border border-slate-200 text-slate-700 text-xs sm:text-sm rounded-xl px-2.5 py-2 sm:py-2.5 focus:outline-none focus:bg-white focus:border-slate-400 transition-all cursor-pointer">
+                            <option value="ALL">ทุกชั้นปี</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
             <!-- Segmented Filter Tabs -->
             <div class="flex items-center justify-between pt-2 border-t border-slate-100">
                 <div class="inline-flex p-1 bg-slate-100 rounded-xl border border-slate-200/60 text-xs w-full sm:w-auto">
-                    <button onclick="setStatusTab('ALL')" id="tabALL" class="tab-btn flex-1 sm:flex-initial px-4 py-1.5 rounded-lg font-medium transition-all text-slate-900 bg-white shadow-sm cursor-pointer">
+                    <button onclick="setStatusTab('ALL')" id="tabALL" class="tab-btn flex-1 sm:flex-initial px-3 sm:px-4 py-1.5 rounded-lg font-medium transition-all text-slate-900 bg-white shadow-sm cursor-pointer text-center">
                         ทั้งหมด (<span id="tabCountAll">0</span>)
                     </button>
-                    <button onclick="setStatusTab('RISK')" id="tabRISK" class="tab-btn flex-1 sm:flex-initial px-4 py-1.5 rounded-lg font-medium transition-all text-slate-600 hover:text-slate-900 cursor-pointer">
+                    <button onclick="setStatusTab('RISK')" id="tabRISK" class="tab-btn flex-1 sm:flex-initial px-3 sm:px-4 py-1.5 rounded-lg font-medium transition-all text-slate-600 hover:text-slate-900 cursor-pointer text-center">
                         เสี่ยงตก (<span id="tabCountRisk">0</span>)
                     </button>
-                    <button onclick="setStatusTab('PASS')" id="tabPASS" class="tab-btn flex-1 sm:flex-initial px-4 py-1.5 rounded-lg font-medium transition-all text-slate-600 hover:text-slate-900 cursor-pointer">
+                    <button onclick="setStatusTab('PASS')" id="tabPASS" class="tab-btn flex-1 sm:flex-initial px-3 sm:px-4 py-1.5 rounded-lg font-medium transition-all text-slate-600 hover:text-slate-900 cursor-pointer text-center">
                         ผ่านเกณฑ์ (<span id="tabCountPass">0</span>)
                     </button>
                 </div>
@@ -219,16 +221,18 @@
         </section>
 
         <!-- Skeleton Loading -->
-        <section id="loadingSkeleton" class="space-y-3">
-            <div class="h-16 rounded-2xl shimmer border border-slate-200"></div>
-            <div class="h-16 rounded-2xl shimmer border border-slate-200"></div>
-            <div class="h-16 rounded-2xl shimmer border border-slate-200"></div>
+        <section id="loadingSkeleton" class="space-y-2.5">
+            <div class="h-14 rounded-xl shimmer border border-slate-200"></div>
+            <div class="h-14 rounded-xl shimmer border border-slate-200"></div>
+            <div class="h-14 rounded-xl shimmer border border-slate-200"></div>
         </section>
 
         <!-- Content Section -->
         <section id="contentContainer" class="hidden">
-            <div id="mobileCardList" class="md:hidden space-y-3"></div>
+            <!-- 📱 โฉมใหม่! การ์ดบนมือถือแบบ Compact สบายตา ประหยัดพื้นที่ เห็นรายชื่อได้จุใจ -->
+            <div id="mobileCardList" class="md:hidden space-y-2"></div>
 
+            <!-- 💻 โหมดคอมพิวเตอร์ -->
             <div class="hidden md:block bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
                 <table class="w-full text-left border-collapse text-sm">
                     <thead>
@@ -287,7 +291,6 @@
                 <span id="resPercentBadge" class="font-mono text-sm font-bold px-2.5 py-0.5 rounded-lg"></span>
             </div>
 
-            <!-- กล่องแจกแจงกิจกรรมกลาง -->
             <div id="resActivitiesListWrap" class="hidden mb-4 space-y-1.5 max-h-48 overflow-y-auto custom-scroll pr-1"></div>
 
             <div class="mb-5">
@@ -297,7 +300,6 @@
                 </div>
             </div>
 
-            <!-- ปุ่มเด้งเข้า LINE -->
             <a href="https://lin.ee/67sXaBk" target="_blank" class="w-full py-2.5 px-4 mb-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm transition-all shadow-md shadow-emerald-200 flex items-center justify-center gap-2 cursor-pointer">
                 <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M24 10.304c0-5.369-5.383-9.738-12-9.738-6.616 0-12 4.369-12 9.738 0 4.814 4.269 8.846 10.019 9.574.39.085.922.258 1.057.592.121.301.079.771.039 1.085l-.171 1.027c-.053.303-.242 1.186 1.039.647 1.281-.54 6.911-4.069 9.428-6.967 1.739-1.907 2.589-3.843 2.589-5.958z"/></svg>
                 <span>เปิด LINE ส่งรูปแก้ตกหล่น</span>
@@ -340,7 +342,6 @@
                 <button onclick="closeAdminPanel()" class="text-slate-400 hover:text-slate-600 text-lg cursor-pointer">✖</button>
             </div>
 
-            <!-- Sync Section -->
             <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 mb-5">
                 <span class="text-xs font-bold text-slate-700 block mb-1">⚡ สั่งอัปเดตข้อมูลชีตเข้าแถว</span>
                 <p class="text-xs text-slate-500 mb-3">กดปุ่มนี้เมื่อมีการแก้ไขใน Google Sheets แล้วต้องการให้ส่งข้อมูลมายัง Supabase ทันที</p>
@@ -350,7 +351,6 @@
                 </button>
             </div>
 
-            <!-- ลิงก์ไปหน้าเว็บ Admin Portal ของกิจกรรมกลาง -->
             <div class="p-4 rounded-xl bg-sky-50 border border-sky-200 mb-5">
                 <span class="text-xs font-bold text-sky-900 block mb-1">🎓 หน้าเว็บแอดมินกิจกรรมกลาง (ReCheck)</span>
                 <p class="text-xs text-sky-700 mb-3">ไปที่ระบบตรวจรูปคำร้อง, เช็คชื่อตามใบจริง, และดาวน์โหลด Excel แยกแผนก</p>
@@ -359,7 +359,6 @@
                 </a>
             </div>
 
-            <!-- Rules Config -->
             <div class="mb-5">
                 <div class="flex items-center justify-between mb-2">
                     <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">เกณฑ์และแนวทางการแก้ไข (เข้าแถว)</h3>
@@ -380,19 +379,17 @@
 
     <!-- Script Logic -->
     <script>
-        // 1. ฐานข้อมูลเข้าแถว
         const ASSEMBLY_URL = "https://fpbgujzhrzsasmqbxncj.supabase.co";
         const ASSEMBLY_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwYmd1anpocnpzYXNtcWJ4bmNqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3MzI3NTUsImV4cCI6MjEwNTMwODc1NX0.ggrCO-hHJeD74syDeSdL2HI45vGfyNkl8v5C9gdS6KI";
         const dbAssembly = window.supabase.createClient(ASSEMBLY_URL, ASSEMBLY_KEY);
 
-        // 2. ฐานข้อมูลกิจกรรมกลาง ReCheck
         const RECHECK_URL = "https://pksezyqbkxztwxoddwtl.supabase.co";
         const RECHECK_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBrc2V6eXFia3h6dHd4b2Rkd3RsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk1Njk2MDgsImV4cCI6MjEwNTE0NTYwOH0.hbTNSruIrhdpMSLNng2edSt2b5_-biBlTLJVOD_TMnA";
         const dbReCheck = window.supabase.createClient(RECHECK_URL, RECHECK_KEY);
 
         const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzEZwclY5DDyAEW5LFToH3WkK3slgHeHVTS1pTizIhvI7iEZwGUtD9GKcv-EPlWu1rE7Q/exec";
 
-        let systemMode = 'assembly'; // 'assembly' หรือ 'activities'
+        let systemMode = 'assembly';
         let masterStudents = [];
         let globalRules = [];
         let serverAdminPass = "2IDMy4WatRWQ";
@@ -415,7 +412,6 @@
             }
         }
 
-        // 🚀 ฟังก์ชันดึงข้อมูลแบบ Loop ทีละ 1,000 แถวจนครบ (แก้ปัญหาข้อมูลเกิน 1,000 แถวแล้วโดนตัด)
         async function fetchAllRows(client, tableName, select = '*') {
             let allRows = [];
             let from = 0;
@@ -435,7 +431,6 @@
             return allRows;
         }
 
-        // สลับโหมดการทำงาน
         function switchSystemMode(mode) {
             if (systemMode === mode) return;
             systemMode = mode;
@@ -475,7 +470,6 @@
             }
         }
 
-        // โหมดเข้าแถว: ดึงทะลุ 1,000 แถว + เรียงจากร้อยละน้อยไปมากเสมอ
         async function fetchAssemblyData() {
             const icon = document.getElementById('refreshIcon');
             icon.classList.add('animate-spin');
@@ -483,7 +477,6 @@
             document.getElementById('contentContainer').classList.add('hidden');
 
             try {
-                // ดึงข้อมูลเข้าแถวทั้งหมดโดยไม่ติดเพดาน 1,000 แถว
                 const students = await fetchAllRows(dbAssembly, 'attendance_summary', '*');
 
                 const { data: rules } = await dbAssembly.from('system_rules').select('*').order('min_percent', { ascending: false });
@@ -526,7 +519,6 @@
             }
         }
 
-        // ฟังก์ชันสากลสำหรับหาว่านักเรียนผ่านกิจกรรมใดบ้าง (เช็คทั้ง s.id และ s.student_id)
         function getStudentPassedSet(s, attMap) {
             const passed = new Set();
             const idStr = String(s.id || '').trim();
@@ -541,7 +533,6 @@
             return passed;
         }
 
-        // โหมดกิจกรรมกลาง: ดึงครบทุกแถว + ตัดแถวซ้ำ + ผูก ID 2 ชั้น (แก้เคสนายอติกานต์)
         async function fetchActivitiesData() {
             const icon = document.getElementById('refreshIcon');
             icon.classList.add('animate-spin');
@@ -549,7 +540,6 @@
             document.getElementById('contentContainer').classList.add('hidden');
 
             try {
-                // ดึงข้อมูลทั้งหมดด้วย fetchAllRows ไม่มีแถวตกหล่น
                 const [students, activities, attendances] = await Promise.all([
                     fetchAllRows(dbReCheck, 'students', '*'),
                     fetchAllRows(dbReCheck, 'activities', '*'),
@@ -561,7 +551,6 @@
 
                 const totalActs = rcActivities.length || 1;
 
-                // รวบรวม Attendances โดยแปลง activity_id เป็นพิมพ์เล็กทั้งหมด
                 const attMap = {};
                 rcAttendances.forEach(a => {
                     const sid = String(a.student_id || '').trim();
@@ -644,9 +633,9 @@
             ['ALL', 'RISK', 'PASS'].forEach(t => {
                 const el = document.getElementById('tab' + t);
                 if (t === tab) {
-                    el.className = "tab-btn flex-1 sm:flex-initial px-4 py-1.5 rounded-lg font-medium transition-all text-slate-900 bg-white shadow-sm cursor-pointer";
+                    el.className = "tab-btn flex-1 sm:flex-initial px-3 sm:px-4 py-1.5 rounded-lg font-medium transition-all text-slate-900 bg-white shadow-sm cursor-pointer text-center";
                 } else {
-                    el.className = "tab-btn flex-1 sm:flex-initial px-4 py-1.5 rounded-lg font-medium transition-all text-slate-600 hover:text-slate-900 cursor-pointer";
+                    el.className = "tab-btn flex-1 sm:flex-initial px-3 sm:px-4 py-1.5 rounded-lg font-medium transition-all text-slate-600 hover:text-slate-900 cursor-pointer text-center";
                 }
             });
             applyFilters();
@@ -703,6 +692,7 @@
             renderDisplay(result);
         }
 
+        // แสดงผลลัพธ์: ปรับโฉม Mobile Card ให้กะทัดรัด (Compact) สบายตา ประหยัดพื้นที่
         function renderDisplay(list) {
             const emptyState = document.getElementById('emptyState');
             const mobileContainer = document.getElementById('mobileCardList');
@@ -718,50 +708,44 @@
 
             const isActMode = systemMode === 'activities';
 
-            // 1. Mobile Cards View
+            // 1. Mobile Cards View: กะทัดรัด สวยงาม มีแถบสีเขียว-แดงบอกสถานะชัดเจน
             let mobileHTML = '';
             list.forEach((s, idx) => {
                 const isRisk = s.percent < 80;
                 const badgeColor = isRisk ? 'text-rose-700 bg-rose-50 border-rose-200' : 'text-emerald-700 bg-emerald-50 border-emerald-200';
-                const barColor = isRisk ? 'bg-rose-500' : 'bg-emerald-500';
-                const statText = isActMode ? `ผ่าน: ${s.present}/${s.total} งาน` : `เข้าแถว: ${s.present}/${s.total} วัน`;
+                const borderAccent = isRisk ? 'border-l-rose-500' : 'border-l-emerald-500';
+                const statText = isActMode ? `${s.present}/${s.total} งาน` : `${s.present}/${s.total} วัน`;
 
                 mobileHTML += `
-                <div class="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-3">
-                    <div class="flex items-start justify-between gap-2">
-                        <div class="min-w-0">
-                            <div class="flex items-center gap-1.5">
-                                <span class="text-xs text-slate-400 font-mono">#${idx + 1}</span>
-                                <h4 class="text-sm font-semibold text-slate-900 truncate">${escapeHTML(s.name)}</h4>
-                            </div>
-                            <p class="text-xs text-slate-500 mt-0.5">${escapeHTML(s.level)} • แผนก${escapeHTML(s.dept)}</p>
+                <div class="p-3 bg-white rounded-xl border border-slate-200 border-l-4 ${borderAccent} shadow-xs space-y-2">
+                    <div class="flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <!-- ลำดับที่ (ตัด # ออก เป็นป้ายวงกลมคลีนๆ) -->
+                            <span class="w-5 h-5 rounded-md bg-slate-100 text-slate-500 text-[10px] font-bold font-mono flex items-center justify-center flex-shrink-0">
+                                ${idx + 1}
+                            </span>
+                            <h4 class="text-xs sm:text-sm font-bold text-slate-800 truncate">${escapeHTML(s.name)}</h4>
                         </div>
-                        <span class="px-2.5 py-1 rounded-xl text-xs font-mono font-bold border ${badgeColor}">
+                        <span class="px-2 py-0.5 rounded-lg text-xs font-mono font-bold border ${badgeColor} flex-shrink-0">
                             ${s.percent}%
                         </span>
                     </div>
 
-                    <div class="space-y-1">
-                        <div class="flex justify-between text-[11px] text-slate-500 font-mono">
-                            <span>${statText}</span>
-                            <span>${isRisk ? 'เสี่ยงตกเกณฑ์' : 'ผ่านเกณฑ์'}</span>
+                    <div class="flex items-center justify-between text-xs text-slate-500 pt-0.5">
+                        <div class="flex items-center gap-1.5 truncate text-[11px]">
+                            <span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-medium">${escapeHTML(s.level)}</span>
+                            <span class="truncate">${escapeHTML(s.dept)}</span>
+                            <span class="text-slate-300">•</span>
+                            <span class="font-mono text-slate-700 font-medium">${statText}</span>
                         </div>
-                        <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                            <div class="${barColor} h-full rounded-full" style="width: ${s.percent}%"></div>
-                        </div>
-                    </div>
 
-                    <div class="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
-                        <span class="text-slate-500 truncate max-w-[160px]">
-                            ${isActMode ? '📋 เกณฑ์ประเมิน 80%' : '🧑‍🏫 ' + escapeHTML(s.teacher)}
-                        </span>
                         ${isRisk ? `
-                            <button onclick="openResolutionModal('${escapeHTML(s.name)}', ${s.percent}, '${escapeHTML(String(s.id))}')" class="text-xs text-rose-700 bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-xl font-medium border border-rose-200 transition-colors cursor-pointer">
-                                ${isActMode ? 'ยื่นแก้ตกหล่น ›' : 'ดูวิธีแก้'}
+                            <button onclick="openResolutionModal('${escapeHTML(s.name)}', ${s.percent}, '${escapeHTML(String(s.id))}')" class="text-[11px] text-rose-700 bg-rose-50 hover:bg-rose-100 px-2.5 py-1 rounded-lg font-semibold border border-rose-200 transition-colors flex-shrink-0 cursor-pointer">
+                                ${isActMode ? 'แก้ตกหล่น' : 'ดูวิธีแก้'} ›
                             </button>
                         ` : `
-                            <button onclick="openResolutionModal('${escapeHTML(s.name)}', ${s.percent}, '${escapeHTML(String(s.id))}')" class="text-[11px] text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-lg font-medium border border-emerald-200 transition-colors cursor-pointer">
-                                ดูรายละเอียด
+                            <button onclick="openResolutionModal('${escapeHTML(s.name)}', ${s.percent}, '${escapeHTML(String(s.id))}')" class="text-[11px] text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2 py-1 rounded-lg font-medium border border-emerald-200 transition-colors flex-shrink-0 cursor-pointer">
+                                ดูข้อมูล
                             </button>
                         `}
                     </div>
