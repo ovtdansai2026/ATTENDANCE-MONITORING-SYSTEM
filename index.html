@@ -570,7 +570,7 @@
         // ==========================================
         // 🚩 ข้อมูล "เข้าแถว" (แก้เรียง % และเกณฑ์วันรวม)
         // ==========================================
-        async function fetchAssemblyData() {
+		async function fetchAssemblyData() {
             const icon = document.getElementById('refreshIcon');
             icon.classList.add('animate-spin');
             document.getElementById('loadingSkeleton').classList.remove('hidden');
@@ -600,20 +600,23 @@
                     }
                 }
 
-                // คำนวณเปอร์เซ็นต์เป็นตัวเลข Number แท้ 100% ป้องกัน NaN เรียงมั่ว
+                // คำนวณโดยล็อกเพดานวันมาให้ตันที่ 65 วันพอดีเป๊ะ (ไม่ให้โผล่ 77/65)
                 masterStudents = (students || []).map(s => {
-                    const present = parseInt(s.present_days, 10) || 0;
-                    const total = globalBaseTotalDays > 0 ? globalBaseTotalDays : (parseInt(s.total_days, 10) || 76);
+                    const rawPresent = parseInt(s.present_days, 10) || 0;
+                    const total = globalBaseTotalDays > 0 ? globalBaseTotalDays : (parseInt(s.total_days, 10) || 65);
+                    
+                    // ✅ ล็อกวันมาให้ตันสูงสุดเท่ากับวันรวม (ตันที่ 65 วัน ไม่เกินแน่นอน)
+                    const present = Math.min(total, rawPresent);
                     
                     let pct = 0;
                     if (globalBaseTotalDays > 0) {
-                        pct = total > 0 ? Math.round((present / total) * 100) : 0;
+                        pct = total > 0 ? Math.min(100, Math.round((present / total) * 100)) : 0;
                     } else if (s.percent !== undefined && s.percent !== null && String(s.percent).trim() !== '') {
                         const cleaned = String(s.percent).replace(/[^0-9.-]/g, '');
                         const parsed = parseFloat(cleaned);
-                        pct = isNaN(parsed) ? (total > 0 ? Math.round((present / total) * 100) : 0) : Math.round(parsed);
+                        pct = isNaN(parsed) ? (total > 0 ? Math.min(100, Math.round((present / total) * 100)) : 0) : Math.min(100, Math.round(parsed));
                     } else {
-                        pct = total > 0 ? Math.round((present / total) * 100) : 0;
+                        pct = total > 0 ? Math.min(100, Math.round((present / total) * 100)) : 0;
                     }
 
                     return {
@@ -622,7 +625,7 @@
                         dept: s.department || 'ทั่วไป',
                         level: s.pure_level || 'ไม่ระบุ',
                         teacher: s.teacher_email || '-',
-                        present: present,
+                        present: present, // จะโชว์ 65/65 วัน พอดีเป๊ะ
                         total: total,
                         percent: Number(pct) || 0
                     };
