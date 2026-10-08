@@ -1,1361 +1,1385 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ระบบติดตามการเข้าแถวและกิจกรรมกลาง • Attendance & Activity Monitor</title>
-	<link class="custom-favicon" rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect x=%2212%22 y=%2250%22 width=%2220%22 height=%2240%22 rx=%224%22 fill=%22%233b82f6%22/><rect x=%2240%22 y=%2225%22 width=%2220%22 height=%2265%22 rx=%224%22 fill=%22%231e40af%22/><rect x=%2268%22 y=%2210%22 width=%2220%22 height=%2280%22 rx=%224%22 fill=%22%23172554%22/></svg>">
-    <meta name="theme-color" content="#ffffff">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ระบบติดตามการเข้าแถวและกิจกรรมกลาง • Attendance & Activity Monitor</title>
+  <link class="custom-favicon" rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect x=%2212%22 y=%2250%22 width=%2220%22 height=%2240%22 rx=%224%22 fill=%22%233b82f6%22/><rect x=%2240%22 y=%2225%22 width=%2220%22 height=%2265%22 rx=%224%22 fill=%22%231e40af%22/><rect x=%2268%22 y=%2210%22 width=%2220%22 height=%2280%22 rx=%224%22 fill=%22%23172554%22/></svg>">
+  <meta name="theme-color" content="#ffffff">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Prompt', 'Plus Jakarta Sans', 'sans-serif'],
-                        mono: ['Plus Jakarta Sans', 'monospace']
-                    },
-                    colors: {
-                        primary: '#0284c7'
-                    }
-                }
-            }
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Prompt', 'Plus Jakarta Sans', 'sans-serif'],
+            mono: ['Plus Jakarta Sans', 'monospace']
+          },
+          colors: {
+            primary: '#0284c7'
+          }
         }
-    </script>
+      }
+    }
+  </script>
 
-    <style>
-        body {
-            background-color: #f8fafc;
-            color: #1e293b;
-            -webkit-tap-highlight-color: transparent;
-        }
-        .custom-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
-        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
-        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
-        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        
-        .shimmer {
-            background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
-            background-size: 200% 100%;
-            animation: shimmer 1.8s infinite;
-        }
-        @keyframes shimmer {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
-        }
-    </style>
+  <style>
+    body {
+      background-color: #f8fafc;
+      color: #1e293b;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .custom-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
+    .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+    .custom-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    
+    .shimmer {
+      background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.8s infinite;
+    }
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+  </style>
 </head>
 <body class="min-h-screen flex flex-col antialiased selection:bg-slate-200 selection:text-slate-900">
 
-    <!-- Top Navigation Bar -->
-    <nav class="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200/80">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-16 gap-3">
-                <div class="flex items-center gap-3 min-w-0">
-                    <div class="w-10 h-10 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-sm flex-shrink-0 text-lg font-bold" id="navIcon">
-                        🚩
-                    </div>
-                    <div class="min-w-0">
-                        <div class="flex items-center gap-2">
-                            <h1 id="pageMainTitle" class="text-base sm:text-lg font-bold text-slate-900 tracking-tight truncate">สรุปผลการเข้าแถว</h1>
-                            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200/60">
-                                ฐานข้อมูลปัจจุบัน
-                            </span>
-                        </div>
-                        <p id="lastUpdatedText" class="text-[11px] text-slate-500 truncate font-mono">กำลังเชื่อมต่อฐานข้อมูล...</p>
-                    </div>
-                </div>
-
-                <div class="flex items-center gap-2 flex-shrink-0">
-                    <button onclick="fetchCurrentModeData()" id="btnRefresh" title="รีเฟรชข้อมูล" class="p-2 sm:px-3 sm:py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 border border-slate-200 transition-all flex items-center gap-1.5 active:scale-95 text-xs font-medium shadow-sm cursor-pointer">
-                        <svg id="refreshIcon" class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                        <span class="hidden sm:inline">รีเฟรช</span>
-                    </button>
-                    <button onclick="openPasswordModal()" id="btnAdmin" class="p-2 sm:px-3 sm:py-2 rounded-xl bg-amber-50 hover:bg-amber-100/70 text-amber-800 border border-amber-200 transition-all flex items-center gap-1.5 active:scale-95 text-xs font-medium shadow-sm cursor-pointer">
-                        <svg class="w-4 h-4 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-                        <span id="adminBtnText" class="hidden sm:inline">ระบบแอดมิน</span>
-                    </button>
-                </div>
+  <!-- Top Navigation Bar -->
+  <nav class="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200/80">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16 gap-3">
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="w-10 h-10 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-sm flex-shrink-0 text-lg font-bold" id="navIcon">
+            🚩
+          </div>
+          <div class="min-w-0">
+            <div class="flex items-center gap-2">
+              <h1 id="pageMainTitle" class="text-base sm:text-lg font-bold text-slate-900 tracking-tight truncate">สรุปผลการเข้าแถว</h1>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+                ฐานข้อมูลปัจจุบัน
+              </span>
             </div>
+            <p id="lastUpdatedText" class="text-[11px] text-slate-500 truncate font-mono">กำลังเชื่อมต่อฐานข้อมูล...</p>
+          </div>
         </div>
-    </nav>
 
-    <!-- แถบสลับโหมด -->
-    <div class="bg-slate-100/80 border-b border-slate-200/80 py-2.5 px-4">
-        <div class="max-w-xs sm:max-w-sm mx-auto grid grid-cols-2 p-1 bg-white rounded-2xl border border-slate-200/80 shadow-sm gap-1">
-            <button onclick="switchSystemMode('assembly')" id="btnModeAssembly" class="py-2 px-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-white bg-slate-900 shadow-sm flex items-center justify-center gap-1 cursor-pointer">
-                <span>🚩</span><span>เข้าแถว</span>
-            </button>
-            <button onclick="switchSystemMode('activities')" id="btnModeActivities" class="py-2 px-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1 cursor-pointer">
-                <span>🎓</span><span>กิจกรรมกลาง</span>
-            </button>
+        <div class="flex items-center gap-2 flex-shrink-0">
+          <button onclick="fetchCurrentModeData()" id="btnRefresh" title="รีเฟรชข้อมูล" class="p-2 sm:px-3 sm:py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 border border-slate-200 transition-all flex items-center gap-1.5 active:scale-95 text-xs font-medium shadow-sm cursor-pointer">
+            <svg id="refreshIcon" class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            <span class="hidden sm:inline">รีเฟรช</span>
+          </button>
+          <button onclick="openPasswordModal()" id="btnAdmin" class="p-2 sm:px-3 sm:py-2 rounded-xl bg-amber-50 hover:bg-amber-100/70 text-amber-800 border border-amber-200 transition-all flex items-center gap-1.5 active:scale-95 text-xs font-medium shadow-sm cursor-pointer">
+            <svg class="w-4 h-4 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+            <span id="adminBtnText" class="hidden sm:inline">ระบบแอดมิน</span>
+          </button>
         </div>
+      </div>
     </div>
+  </nav>
 
-    <!-- Main Container -->
-    <main class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 flex-1 w-full space-y-4 sm:space-y-6">
-
-        <!-- 🌟 Metrics Overview -->
-        <section class="grid grid-cols-4 gap-1.5 sm:gap-4">
-            <!-- Total -->
-            <div class="bg-white p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
-                <div class="flex items-center justify-between text-slate-500 mb-0.5 sm:mb-1">
-                    <span class="text-[11px] sm:text-xs font-medium truncate">ทั้งหมด</span>
-                    <span class="hidden sm:inline-block w-2 h-2 rounded-full bg-slate-400"></span>
-                </div>
-                <div class="flex items-baseline gap-1">
-                    <span id="statTotal" class="text-base sm:text-3xl font-bold font-mono text-slate-900">0</span>
-                    <span class="text-[10px] sm:text-xs text-slate-400">คน</span>
-                </div>
-                <div class="w-full bg-slate-100 h-1 sm:h-1.5 rounded-full mt-1.5 sm:mt-3 overflow-hidden">
-                    <div class="bg-slate-800 h-full w-full rounded-full"></div>
-                </div>
-            </div>
-
-            <!-- Risk (<80%) -->
-            <div class="bg-white p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-rose-100 shadow-xs flex flex-col justify-between">
-                <div class="flex items-center justify-between text-rose-700 mb-0.5 sm:mb-1">
-                    <span class="text-[11px] sm:text-xs font-medium truncate" id="statRiskLabel">เสี่ยงตก</span>
-                    <span class="hidden sm:inline-block w-2 h-2 rounded-full bg-rose-500"></span>
-                </div>
-                <div class="flex items-baseline gap-1">
-                    <span id="statRisk" class="text-base sm:text-3xl font-bold font-mono text-rose-600">0</span>
-                    <span class="text-[10px] sm:text-xs text-rose-400">คน</span>
-                </div>
-                <div class="w-full bg-rose-50 h-1 sm:h-1.5 rounded-full mt-1.5 sm:mt-3 overflow-hidden">
-                    <div id="statRiskBar" class="bg-rose-500 h-full w-0 rounded-full transition-all duration-500"></div>
-                </div>
-            </div>
-
-            <!-- Pass (>=80%) -->
-            <div class="bg-white p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-emerald-100 shadow-xs flex flex-col justify-between">
-                <div class="flex items-center justify-between text-emerald-700 mb-0.5 sm:mb-1">
-                    <span class="text-[11px] sm:text-xs font-medium truncate">ผ่านเกณฑ์</span>
-                    <span class="hidden sm:inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
-                </div>
-                <div class="flex items-baseline gap-1">
-                    <span id="statPass" class="text-base sm:text-3xl font-bold font-mono text-emerald-600">0</span>
-                    <span class="text-[10px] sm:text-xs text-emerald-400">คน</span>
-                </div>
-                <div class="w-full bg-emerald-50 h-1 sm:h-1.5 rounded-full mt-1.5 sm:mt-3 overflow-hidden">
-                    <div id="statPassBar" class="bg-emerald-500 h-full w-0 rounded-full transition-all duration-500"></div>
-                </div>
-            </div>
-
-            <!-- Average Rate -->
-            <div class="bg-white p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-indigo-100 shadow-xs flex flex-col justify-between">
-                <div class="flex items-center justify-between text-indigo-700 mb-0.5 sm:mb-1">
-                    <span class="text-[11px] sm:text-xs font-medium truncate">เฉลี่ย</span>
-                    <span class="hidden sm:inline-block w-2 h-2 rounded-full bg-indigo-500"></span>
-                </div>
-                <div class="flex items-baseline gap-1">
-                    <span id="statAvgRate" class="text-base sm:text-3xl font-bold font-mono text-indigo-900">0%</span>
-                </div>
-                <div class="w-full bg-indigo-50 h-1 sm:h-1.5 rounded-full mt-1.5 sm:mt-3 overflow-hidden">
-                    <div id="statAvgBar" class="bg-indigo-600 h-full w-0 rounded-full transition-all duration-500"></div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Search & Filtering Toolbar -->
-        <section class="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-            <div class="grid grid-cols-1 sm:grid-cols-12 gap-2.5 sm:gap-3">
-				<div class="sm:col-span-6 relative">
-					<svg class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-					
-					<input type="search" 
-						   id="searchInput" 
-						   name="student_search_keyword" 
-						   autocomplete="off" 
-						   autocorrect="off" 
-						   spellcheck="false" 
-						   oninput="applyFilters()" 
-						   placeholder="พิมพ์ชื่อหรือนามสกุลเพื่อค้นหา..." 
-						   class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs sm:text-sm rounded-xl pl-9 pr-8 py-2 sm:py-2.5 focus:outline-none focus:bg-white focus:border-slate-400 transition-all placeholder:text-slate-400">
-					
-					<button onclick="clearSearch()" id="btnClearSearch" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer">
-						<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-					</button>
-				</div>
-
-                <div class="grid grid-cols-2 sm:grid-cols-6 sm:col-span-6 gap-2">
-                    <div class="sm:col-span-3">
-                        <select id="deptSelect" onchange="onDeptSelectChange()" class="w-full bg-slate-50 border border-slate-200 text-slate-700 text-xs sm:text-sm rounded-xl px-2.5 py-2 sm:py-2.5 focus:outline-none focus:bg-white focus:border-slate-400 transition-all cursor-pointer">
-                            <option value="ALL">ทุกแผนกวิชา</option>
-                        </select>
-                    </div>
-
-                    <div class="sm:col-span-3">
-                        <select id="levelSelect" onchange="applyFilters()" class="w-full bg-slate-50 border border-slate-200 text-slate-700 text-xs sm:text-sm rounded-xl px-2.5 py-2 sm:py-2.5 focus:outline-none focus:bg-white focus:border-slate-400 transition-all cursor-pointer">
-                            <option value="ALL">ทุกชั้นปี</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Segmented Filter Tabs -->
-            <div class="flex items-center justify-between pt-2 border-t border-slate-100">
-                <div class="inline-flex p-1 bg-slate-100 rounded-xl border border-slate-200/60 text-xs w-full sm:w-auto">
-                    <button onclick="setStatusTab('ALL')" id="tabALL" class="tab-btn flex-1 sm:flex-initial px-3 sm:px-4 py-1.5 rounded-lg font-medium transition-all text-slate-900 bg-white shadow-sm cursor-pointer text-center">
-                        ทั้งหมด (<span id="tabCountAll">0</span>)
-                    </button>
-                    <button onclick="setStatusTab('RISK')" id="tabRISK" class="tab-btn flex-1 sm:flex-initial px-3 sm:px-4 py-1.5 rounded-lg font-medium transition-all text-slate-600 hover:text-slate-900 cursor-pointer text-center">
-                        เสี่ยงตก (<span id="tabCountRisk">0</span>)
-                    </button>
-                    <button onclick="setStatusTab('PASS')" id="tabPASS" class="tab-btn flex-1 sm:flex-initial px-3 sm:px-4 py-1.5 rounded-lg font-medium transition-all text-slate-600 hover:text-slate-900 cursor-pointer text-center">
-                        ผ่านเกณฑ์ (<span id="tabCountPass">0</span>)
-                    </button>
-                </div>
-
-				<div class="hidden sm:flex items-center gap-1.5 text-xs text-slate-500">
-					แสดงผล <span id="filteredResultCount" class="font-mono font-semibold text-slate-800">0</span> รายการ 
-					<span class="text-slate-300">|</span> 
-					<span class="text-rose-600 font-medium">เรียง % น้อยไปมาก</span>
-				</div>
-            </div>
-        </section>
-
-        <!-- Skeleton Loading -->
-        <section id="loadingSkeleton" class="space-y-2.5">
-            <div class="h-14 rounded-xl shimmer border border-slate-200"></div>
-            <div class="h-14 rounded-xl shimmer border border-slate-200"></div>
-            <div class="h-14 rounded-xl shimmer border border-slate-200"></div>
-        </section>
-
-        <!-- Content Section -->
-        <section id="contentContainer" class="hidden">
-            <!-- 📱 โฉมใหม่! การ์ดบนมือถือ -->
-            <div id="mobileCardList" class="md:hidden space-y-2"></div>
-
-            <!-- 💻 โหมดคอมพิวเตอร์ -->
-            <div class="hidden md:block bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-                <table class="w-full text-left border-collapse text-sm">
-                    <thead>
-                        <tr class="bg-slate-50/80 border-b border-slate-200 text-[11px] uppercase tracking-wider text-slate-500 font-semibold">
-                            <th class="py-3.5 px-4 text-center w-14">ลำดับ</th>
-                            <th class="py-3.5 px-4">ชื่อ - นามสกุล</th>
-                            <th class="py-3.5 px-4">ระดับชั้น • แผนก</th>
-                            <th class="py-3.5 px-4 text-center w-52" id="thStatColTitle">สถิติการเข้าแถว</th>
-                            <th class="py-3.5 px-4 text-center" id="thTeacherColTitle">ครูที่ปรึกษา</th>
-                            <th class="py-3.5 px-4 text-right pr-6 w-48">การจัดการ</th>
-                        </tr>
-                    </thead>
-                    <tbody id="desktopTableBody" class="divide-y divide-slate-100"></tbody>
-                </table>
-            </div>
-
-            <!-- Empty State -->
-            <div id="emptyState" class="hidden py-16 text-center bg-white rounded-2xl border border-slate-200">
-                <div class="w-12 h-12 mx-auto rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mb-2">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                </div>
-                <h3 class="text-sm font-semibold text-slate-700">ไม่พบรายชื่อที่ค้นหา</h3>
-                <p class="text-xs text-slate-400 mt-0.5">ลองตรวจสอบตัวสะกด หรือรีเซ็ตตัวกรองด้านบน</p>
-            </div>
-        </section>
-
-    </main>
-
-    <!-- Footer -->
-    <footer class="border-t border-slate-200 mt-auto py-5 bg-white text-center text-xs text-slate-400">
-        <p>© 2026 ระบบติดตามการเข้าแถวและกิจกรรมกลาง • วิทยาลัยการอาชีพด่านซ้าย</p>
-    </footer>
-
-    <!-- ⚡ Modal ยืนยันสองชั้น (2-Step Verification แก้ 80%) -->
-    <div id="remediationModal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm hidden items-center justify-center p-4 transition-all" onclick="closeRemediationModal()">
-        <div class="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 max-w-md w-full shadow-2xl relative space-y-4" onclick="event.stopPropagation()">
-            <!-- Header -->
-            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-                <div class="flex items-center gap-2.5">
-                    <div class="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center text-lg font-bold">
-                        ⚡
-                    </div>
-                    <div>
-                        <h3 class="text-sm sm:text-base font-bold text-slate-900">ยืนยันสองชั้น: บันทึกแก้กิจกรรม (80%)</h3>
-                        <p class="text-[11px] text-slate-400">ระบบเข้าแถว • วิทยาลัยการอาชีพด่านซ้าย</p>
-                    </div>
-                </div>
-                <button onclick="closeRemediationModal()" class="text-slate-400 hover:text-slate-600 text-sm cursor-pointer p-1">✖</button>
-            </div>
-
-            <!-- ชั้นที่ 1: ข้อมูลนักเรียนและการคำนวณ -->
-            <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2 text-xs">
-                <div class="flex items-center justify-between">
-                    <span class="text-slate-500">นักเรียน:</span>
-                    <span id="remStudentName" class="font-bold text-slate-800 text-sm"></span>
-                </div>
-                <div class="flex items-center justify-between">
-                    <span class="text-slate-500">ระดับชั้น • แผนก:</span>
-                    <span id="remStudentDept" class="font-medium text-slate-700"></span>
-                </div>
-                <div class="pt-2 border-t border-slate-200/60 flex items-center justify-between">
-                    <span class="text-slate-500">สถิติปัจจุบัน:</span>
-                    <span id="remCurrentStat" class="font-mono font-semibold text-rose-600"></span>
-                </div>
-                <div class="flex items-center justify-between bg-amber-50 p-2.5 rounded-lg border border-amber-200/60">
-                    <span class="text-amber-800 font-medium">ปรับเป็น "มา" เพิ่ม:</span>
-                    <span id="remTargetStat" class="font-mono font-bold text-amber-900"></span>
-                </div>
-            </div>
-
-            <!-- ชั้นที่ 2: กรอกรหัสผ่านแอดมินยืนยันทุกรอบ -->
-            <div class="space-y-1.5">
-                <label class="text-xs font-bold text-slate-700 block">
-                    🔐 ชั้นที่ 2: กรอกรหัสผ่านแอดมินยืนยันสิทธิ์
-                </label>
-                <p class="text-[11px] text-slate-500">ระบบความปลอดภัย: ต้องยืนยันรหัสผ่านทุกครั้งก่อนส่งคำสั่งแก้ไฟล์</p>
-                
-                <div class="relative mt-2">
-                    <input type="password" 
-                           id="remAdminPassInput" 
-                           placeholder="กรอกรหัสผ่านแอดมิน..." 
-                           onkeydown="if(event.key === 'Enter') submitRemediationProcess()"
-                           class="w-full bg-white border border-slate-200 rounded-xl pl-3.5 pr-10 py-2.5 text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-slate-400">
-                    <button type="button" onclick="toggleRemPassVisibility()" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer" title="แสดง/ซ่อนรหัสผ่าน">
-                        <svg id="remEyeOpenIcon" class="w-4 h-4 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                        <svg id="remEyeClosedIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18"/></svg>
-                    </button>
-                </div>
-                <p id="remPassError" class="text-[11px] text-rose-600 hidden font-medium">❌ รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง</p>
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="flex gap-2 pt-2">
-                <button type="button" onclick="closeRemediationModal()" id="btnRemCancel" class="w-1/3 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold cursor-pointer transition-all">
-                    ยกเลิก
-                </button>
-                <button type="button" onclick="submitRemediationProcess()" id="btnRemConfirm" class="flex-1 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shadow-md shadow-amber-200 flex items-center justify-center gap-1.5 cursor-pointer transition-all">
-                    <span>⚡ ยืนยันแก้ 80% (Google Drive)</span>
-                </button>
-            </div>
-        </div>
+  <!-- แถบสลับโหมด -->
+  <div class="bg-slate-100/80 border-b border-slate-200/80 py-2.5 px-4">
+    <div class="max-w-xs sm:max-w-sm mx-auto grid grid-cols-2 p-1 bg-white rounded-2xl border border-slate-200/80 shadow-sm gap-1">
+      <button onclick="switchSystemMode('assembly')" id="btnModeAssembly" class="py-2 px-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-white bg-slate-900 shadow-sm flex items-center justify-center gap-1 cursor-pointer">
+        <span>🚩</span><span>เข้าแถว</span>
+      </button>
+      <button onclick="switchSystemMode('activities')" id="btnModeActivities" class="py-2 px-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1 cursor-pointer">
+        <span>🎓</span><span>กิจกรรมกลาง</span>
+      </button>
     </div>
+  </div>
 
-    <!-- Resolution Modal -->
-    <div id="resolutionModal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm hidden items-end sm:items-center justify-center p-0 sm:p-4 transition-all" onclick="closeResolutionModal()">
-        <div class="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl border border-slate-200 p-6 shadow-xl relative" onclick="event.stopPropagation()">
-            <div class="w-10 h-1 bg-slate-300 rounded-full mx-auto mb-4 sm:hidden"></div>
+  <!-- Main Container -->
+  <main class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 flex-1 w-full space-y-4 sm:space-y-6">
 
-            <div class="flex items-start justify-between gap-3 mb-4">
+    <!-- 🌟 Metrics Overview -->
+    <section class="grid grid-cols-4 gap-1.5 sm:gap-4">
+      <div class="bg-white p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
+        <div class="flex items-center justify-between text-slate-500 mb-0.5 sm:mb-1">
+          <span class="text-[11px] sm:text-xs font-medium truncate">ทั้งหมด</span>
+          <span class="hidden sm:inline-block w-2 h-2 rounded-full bg-slate-400"></span>
+        </div>
+        <div class="flex items-baseline gap-1">
+          <span id="statTotal" class="text-base sm:text-3xl font-bold font-mono text-slate-900">0</span>
+          <span class="text-[10px] sm:text-xs text-slate-400">คน</span>
+        </div>
+        <div class="w-full bg-slate-100 h-1 sm:h-1.5 rounded-full mt-1.5 sm:mt-3 overflow-hidden">
+          <div class="bg-slate-800 h-full w-full rounded-full"></div>
+        </div>
+      </div>
+
+      <div class="bg-white p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-rose-100 shadow-xs flex flex-col justify-between">
+        <div class="flex items-center justify-between text-rose-700 mb-0.5 sm:mb-1">
+          <span class="text-[11px] sm:text-xs font-medium truncate" id="statRiskLabel">เสี่ยงตก</span>
+          <span class="hidden sm:inline-block w-2 h-2 rounded-full bg-rose-500"></span>
+        </div>
+        <div class="flex items-baseline gap-1">
+          <span id="statRisk" class="text-base sm:text-3xl font-bold font-mono text-rose-600">0</span>
+          <span class="text-[10px] sm:text-xs text-rose-400">คน</span>
+        </div>
+        <div class="w-full bg-rose-50 h-1 sm:h-1.5 rounded-full mt-1.5 sm:mt-3 overflow-hidden">
+          <div id="statRiskBar" class="bg-rose-500 h-full w-0 rounded-full transition-all duration-500"></div>
+        </div>
+      </div>
+
+      <div class="bg-white p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-emerald-100 shadow-xs flex flex-col justify-between">
+        <div class="flex items-center justify-between text-emerald-700 mb-0.5 sm:mb-1">
+          <span class="text-[11px] sm:text-xs font-medium truncate">ผ่านเกณฑ์</span>
+          <span class="hidden sm:inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
+        </div>
+        <div class="flex items-baseline gap-1">
+          <span id="statPass" class="text-base sm:text-3xl font-bold font-mono text-emerald-600">0</span>
+          <span class="text-[10px] sm:text-xs text-emerald-400">คน</span>
+        </div>
+        <div class="w-full bg-emerald-50 h-1 sm:h-1.5 rounded-full mt-1.5 sm:mt-3 overflow-hidden">
+          <div id="statPassBar" class="bg-emerald-500 h-full w-0 rounded-full transition-all duration-500"></div>
+        </div>
+      </div>
+
+      <div class="bg-white p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-indigo-100 shadow-xs flex flex-col justify-between">
+        <div class="flex items-center justify-between text-indigo-700 mb-0.5 sm:mb-1">
+          <span class="text-[11px] sm:text-xs font-medium truncate">มาแถวเฉลี่ย</span>
+          <span class="hidden sm:inline-block w-2 h-2 rounded-full bg-indigo-500"></span>
+        </div>
+        <div class="flex items-baseline gap-1">
+          <span id="statAvgRate" class="text-base sm:text-3xl font-bold font-mono text-indigo-900">0%</span>
+        </div>
+        <div class="w-full bg-indigo-50 h-1 sm:h-1.5 rounded-full mt-1.5 sm:mt-3 overflow-hidden">
+          <div id="statAvgBar" class="bg-indigo-600 h-full w-0 rounded-full transition-all duration-500"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Search & Filtering Toolbar -->
+    <section class="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+      <div class="grid grid-cols-1 sm:grid-cols-12 gap-2.5 sm:gap-3">
+        <div class="sm:col-span-6 relative">
+          <svg class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          <input type="search" id="searchInput" name="student_search_keyword" autocomplete="off" autocorrect="off" spellcheck="false" oninput="applyFilters()" placeholder="พิมพ์ชื่อหรือนามสกุลเพื่อค้นหา..." class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs sm:text-sm rounded-xl pl-9 pr-8 py-2 sm:py-2.5 focus:outline-none focus:bg-white focus:border-slate-400 transition-all placeholder:text-slate-400">
+          <button onclick="clearSearch()" id="btnClearSearch" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-6 sm:col-span-6 gap-2">
+          <div class="sm:col-span-3">
+            <select id="deptSelect" onchange="onDeptSelectChange()" class="w-full bg-slate-50 border border-slate-200 text-slate-700 text-xs sm:text-sm rounded-xl px-2.5 py-2 sm:py-2.5 focus:outline-none focus:bg-white focus:border-slate-400 transition-all cursor-pointer">
+              <option value="ALL">ทุกแผนกวิชา</option>
+            </select>
+          </div>
+
+          <div class="sm:col-span-3">
+            <select id="levelSelect" onchange="applyFilters()" class="w-full bg-slate-50 border border-slate-200 text-slate-700 text-xs sm:text-sm rounded-xl px-2.5 py-2 sm:py-2.5 focus:outline-none focus:bg-white focus:border-slate-400 transition-all cursor-pointer">
+              <option value="ALL">ทุกชั้นปี</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+        <div class="inline-flex p-1 bg-slate-100 rounded-xl border border-slate-200/60 text-xs w-full sm:w-auto">
+          <button onclick="setStatusTab('ALL')" id="tabALL" class="tab-btn flex-1 sm:flex-initial px-3 sm:px-4 py-1.5 rounded-lg font-medium transition-all text-slate-900 bg-white shadow-sm cursor-pointer text-center">
+            ทั้งหมด (<span id="tabCountAll">0</span>)
+          </button>
+          <button onclick="setStatusTab('RISK')" id="tabRISK" class="tab-btn flex-1 sm:flex-initial px-3 sm:px-4 py-1.5 rounded-lg font-medium transition-all text-slate-600 hover:text-slate-900 cursor-pointer text-center">
+            เสี่ยงตก (<span id="tabCountRisk">0</span>)
+          </button>
+          <button onclick="setStatusTab('PASS')" id="tabPASS" class="tab-btn flex-1 sm:flex-initial px-3 sm:px-4 py-1.5 rounded-lg font-medium transition-all text-slate-600 hover:text-slate-900 cursor-pointer text-center">
+            ผ่านเกณฑ์ (<span id="tabCountPass">0</span>)
+          </button>
+        </div>
+
+        <div class="hidden sm:flex items-center gap-1.5 text-xs text-slate-500">
+          แสดงผล <span id="filteredResultCount" class="font-mono font-semibold text-slate-800">0</span> รายการ 
+          <span class="text-slate-300">|</span> 
+          <span class="text-rose-600 font-medium">เกณฑ์กลาง 65 วัน (80% = 52 วัน)</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Skeleton Loading -->
+    <section id="loadingSkeleton" class="space-y-2.5">
+      <div class="h-14 rounded-xl shimmer border border-slate-200"></div>
+      <div class="h-14 rounded-xl shimmer border border-slate-200"></div>
+      <div class="h-14 rounded-xl shimmer border border-slate-200"></div>
+    </section>
+
+    <!-- Content Section -->
+    <section id="contentContainer" class="hidden">
+      <!-- 📱 การ์ดบนมือถือ -->
+      <div id="mobileCardList" class="md:hidden space-y-2"></div>
+
+      <!-- 💻 โหมดคอมพิวเตอร์ -->
+      <div class="hidden md:block bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+        <table class="w-full text-left border-collapse text-sm">
+          <thead>
+            <tr class="bg-slate-50/80 border-b border-slate-200 text-[11px] uppercase tracking-wider text-slate-500 font-semibold">
+              <th class="py-3.5 px-4 text-center w-14">ลำดับ</th>
+              <th class="py-3.5 px-4">ชื่อ - นามสกุล</th>
+              <th class="py-3.5 px-4">ระดับชั้น • แผนก</th>
+              <th class="py-3.5 px-4 text-center w-52" id="thStatColTitle">สถิติการเข้าแถว</th>
+              <th class="py-3.5 px-4 text-center w-60" id="thTeacherColTitle">ครูที่ปรึกษา</th>
+              <th class="py-3.5 px-4 text-right pr-6 w-48">การจัดการ</th>
+            </tr>
+          </thead>
+          <tbody id="desktopTableBody" class="divide-y divide-slate-100"></tbody>
+        </table>
+      </div>
+
+      <!-- Empty State -->
+      <div id="emptyState" class="hidden py-16 text-center bg-white rounded-2xl border border-slate-200">
+        <div class="w-12 h-12 mx-auto rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mb-2">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+        <h3 class="text-sm font-semibold text-slate-700">ไม่พบรายชื่อที่ค้นหา</h3>
+        <p class="text-xs text-slate-400 mt-0.5">ลองตรวจสอบตัวสะกด หรือรีเซ็ตตัวกรองด้านบน</p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-200 mt-auto py-5 bg-white text-center text-xs text-slate-400">
+    <p>© 2026 ระบบติดตามการเข้าแถวและกิจกรรมกลาง • วิทยาลัยการอาชีพด่านซ้าย</p>
+  </footer>
+
+  <!-- ⚡ Modal ยืนยันสองชั้น (2-Step Verification แก้ 80%) -->
+  <div id="remediationModal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm hidden items-center justify-center p-4 transition-all" onclick="closeRemediationModal()">
+    <div class="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 max-w-md w-full shadow-2xl relative space-y-4" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center text-lg font-bold">
+            ⚡
+          </div>
+          <div>
+            <h3 class="text-sm sm:text-base font-bold text-slate-900">ยืนยันสองชั้น: บันทึกแก้กิจกรรม (80%)</h3>
+            <p class="text-[11px] text-slate-400">ระบบเข้าแถว • เกณฑ์กลาง 65 วัน</p>
+          </div>
+        </div>
+        <button onclick="closeRemediationModal()" class="text-slate-400 hover:text-slate-600 text-sm cursor-pointer p-1">✖</button>
+      </div>
+
+      <!-- สรุปตัวเลขการปรับแตะ 80% -->
+      <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2 text-xs">
+        <div class="flex items-center justify-between">
+          <span class="text-slate-500">นักเรียน:</span>
+          <span id="remStudentName" class="font-bold text-slate-800 text-sm"></span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-slate-500">ระดับชั้น • แผนก:</span>
+          <span id="remStudentDept" class="font-medium text-slate-700"></span>
+        </div>
+        <div class="pt-2 border-t border-slate-200/60 flex items-center justify-between">
+          <span class="text-slate-500">สถิติเกณฑ์กลาง:</span>
+          <span id="remCurrentStat" class="font-mono font-semibold text-rose-600"></span>
+        </div>
+        
+        <!-- โชว์ยอดจริงที่ครูเช็คในชีตให้แอดมินเห็น -->
+        <div class="flex items-center justify-between text-slate-600">
+          <span class="text-slate-500">📌 ยอดจริงในชีตครู:</span>
+          <span id="remTeacherActualStat" class="font-mono font-semibold text-indigo-700"></span>
+        </div>
+
+        <div class="flex items-center justify-between bg-amber-50 p-2.5 rounded-lg border border-amber-200/60 mt-1">
+          <span class="text-amber-800 font-medium">ปรับเป็น "มา" เพิ่ม:</span>
+          <span id="remTargetStat" class="font-mono font-bold text-amber-900"></span>
+        </div>
+      </div>
+
+      <!-- กรอกรหัสแอดมินยืนยันทุกรอบ -->
+      <div class="space-y-1.5">
+        <label class="text-xs font-bold text-slate-700 block">
+          🔐 ขั้นตอนที่ 2: กรอกรหัสผ่านแอดมินยืนยันสิทธิ์
+        </label>
+        <p class="text-[11px] text-slate-500">ระบบความปลอดภัย: ต้องยืนยันรหัสผ่านทุกครั้งก่อนส่งคำสั่งแก้ไฟล์</p>
+        
+        <div class="relative mt-2">
+          <input type="password" 
+                 id="remAdminPassInput" 
+                 placeholder="กรอกรหัสผ่านแอดมิน..." 
+                 onkeydown="if(event.key === 'Enter') submitRemediationProcess()"
+                 class="w-full bg-white border border-slate-200 rounded-xl pl-3.5 pr-10 py-2.5 text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-slate-400">
+          <button type="button" onclick="toggleRemPassVisibility()" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer" title="แสดง/ซ่อนรหัสผ่าน">
+            <svg id="remEyeOpenIcon" class="w-4 h-4 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+            <svg id="remEyeClosedIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18"/></svg>
+          </button>
+        </div>
+        <p id="remPassError" class="text-[11px] text-rose-600 hidden font-medium">❌ รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง</p>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex gap-2 pt-2">
+        <button type="button" onclick="closeRemediationModal()" id="btnRemCancel" class="w-1/3 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold cursor-pointer transition-all">
+          ยกเลิก
+        </button>
+        <button type="button" onclick="submitRemediationProcess()" id="btnRemConfirm" class="flex-1 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shadow-md shadow-amber-200 flex items-center justify-center gap-1.5 cursor-pointer transition-all">
+          <span>⚡ ยืนยันแก้ 80% (Google Drive)</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Resolution Modal -->
+  <div id="resolutionModal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm hidden items-end sm:items-center justify-center p-0 sm:p-4 transition-all" onclick="closeResolutionModal()">
+    <div class="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl border border-slate-200 p-6 shadow-xl relative" onclick="event.stopPropagation()">
+      <div class="w-10 h-1 bg-slate-300 rounded-full mx-auto mb-4 sm:hidden"></div>
+
+      <div class="flex items-start justify-between gap-3 mb-4">
+        <div class="flex items-center gap-3">
+          <div id="resIconWrap" class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0">
+            <svg id="resIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"></svg>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-slate-900" id="resModalHeading">แนวทางการแก้ไข</h3>
+            <p id="resStudentTitle" class="text-xs text-slate-500 mt-0.5 truncate"></p>
+          </div>
+        </div>
+        <button onclick="closeResolutionModal()" class="text-slate-400 hover:text-slate-600 p-1 cursor-pointer">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between mb-4">
+        <span class="text-xs font-medium text-slate-600" id="resStatLabelText">สถิติปัจจุบัน</span>
+        <span id="resPercentBadge" class="font-mono text-sm font-bold px-2.5 py-0.5 rounded-lg"></span>
+      </div>
+
+      <div id="resActivitiesListWrap" class="hidden mb-4 space-y-2 max-h-60 overflow-y-auto custom-scroll pr-1"></div>
+
+      <div class="mb-5">
+        <label class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block mb-1.5">คำแนะนำจากระบบ / วิธีแก้ไข</label>
+        <div class="bg-amber-50/50 border border-amber-200/80 p-4 rounded-xl">
+          <p id="resRemedyText" class="text-sm text-amber-900 leading-relaxed whitespace-pre-wrap font-medium"></p>
+        </div>
+      </div>
+
+      <a id="btnLineAppeal" href="https://lin.ee/67sXaBk" target="_blank" class="w-full py-2.5 px-4 mb-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm transition-all shadow-md shadow-emerald-200 flex items-center justify-center gap-2 cursor-pointer">
+        <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M24 10.304c0-5.369-5.383-9.738-12-9.738-6.616 0-12 4.369-12 9.738 0 4.814 4.269 8.846 10.019 9.574.39.085.922.258 1.057.592.121.301.079.771.039 1.085l-.171 1.027c-.053.303-.242 1.186 1.039.647 1.281-.54 6.911-4.069 9.428-6.967 1.739-1.907 2.589-3.843 2.589-5.958z"/></svg>
+        <span>เปิด LINE ส่งรูปแก้ตกหล่น</span>
+      </a>
+
+      <button onclick="closeResolutionModal()" class="w-full py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium text-xs transition-all cursor-pointer">
+        ปิดหน้าต่าง
+      </button>
+    </div>
+  </div>
+
+  <!-- Admin Password Modal -->
+  <div id="passwordModal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm hidden items-center justify-center p-4" onclick="closePasswordModal()">
+    <div class="bg-white border border-slate-200 rounded-2xl p-6 max-w-sm w-full shadow-xl" onclick="event.stopPropagation()">
+      <h3 class="text-base font-bold text-slate-900 mb-1 flex items-center gap-2">
+        <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+        สิทธิ์ผู้ดูแลระบบ
+      </h3>
+      <p class="text-xs text-slate-500 mb-4">กรุณากรอกรหัสผ่านเพื่อเข้าสู่โหมดจัดการระบบ</p>
+      
+      <div class="relative mb-4">
+        <input type="password" 
+               id="adminPassInput" 
+               name="admin_auth_key"
+               autocomplete="new-password" 
+               placeholder="รหัสผ่านแอดมิน..." 
+               onkeydown="if(event.key === 'Enter') submitAdminPass()"
+               class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-3.5 pr-10 py-2.5 text-sm text-slate-900 focus:outline-none focus:bg-white focus:border-slate-400">
+        <button type="button" onclick="togglePassVisibility()" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer" title="แสดง/ซ่อนรหัสผ่าน">
+          <svg id="eyeOpenIcon" class="w-4 h-4 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+          <svg id="eyeClosedIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18"/></svg>
+        </button>
+      </div>
+
+      <div class="flex gap-2">
+        <button onclick="closePasswordModal()" class="flex-1 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-medium cursor-pointer">ยกเลิก</button>
+        <button onclick="submitAdminPass()" class="flex-1 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs shadow-sm cursor-pointer">ยืนยัน</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin Panel Modal -->
+  <div id="adminPanelModal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm hidden items-center justify-center p-3 sm:p-6" onclick="closeAdminPanel()">
+    <div class="bg-white border border-slate-200 rounded-2xl p-5 sm:p-7 max-w-xl w-full max-h-[90vh] overflow-y-auto custom-scroll shadow-2xl relative" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-200 mb-4">
+        <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+          🛠️ การตั้งค่าระบบ (แอดมิน)
+        </h2>
+        <button onclick="closeAdminPanel()" class="text-slate-400 hover:text-slate-600 text-lg cursor-pointer">✖</button>
+      </div>
+
+      <!-- ตั้งค่าจำนวนวันเข้าแถวรวมทั้งระบบ (65 วัน) -->
+      <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 mb-5">
+        <span class="text-xs font-bold text-slate-700 block mb-1">📅 กำหนดเกณฑ์จำนวนวันเข้าแถวทั้งหมด (ทั้งระบบ)</span>
+        <p class="text-xs text-slate-500 mb-3">คำนวณเปอร์เซ็นต์ของนักเรียนทุกคนโดยใช้วันรวมเดียวกัน (ค่าเริ่มต้น: 65 วัน / 80% = 52 วัน)</p>
+        <div class="flex items-center gap-2">
+          <div class="relative flex-1">
+            <input type="number" id="adminBaseTotalDaysInput" min="1" max="365" placeholder="เช่น 65" class="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-xl px-3 py-2.5 font-mono focus:outline-none focus:border-slate-400">
+            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 pointer-events-none">วัน</span>
+          </div>
+          <button onclick="saveBaseTotalDays()" id="btnSaveBaseTotalDays" class="py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs rounded-xl shadow-sm transition-all whitespace-nowrap cursor-pointer">
+            บันทึกเกณฑ์วัน
+          </button>
+        </div>
+      </div>
+
+      <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 mb-5">
+        <span class="text-xs font-bold text-slate-700 block mb-1">⚡ สั่งอัปเดตข้อมูลชีตเข้าแถว</span>
+        <p class="text-xs text-slate-500 mb-3">กดปุ่มนี้เมื่อมีการแก้ไขใน Google Sheets แล้วต้องการให้ส่งข้อมูลมายัง Supabase ทันที</p>
+        <button onclick="triggerGASSync()" id="btnSyncTrigger" class="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          <span>สั่งประมวลผลข้อมูลชีตล่าสุด</span>
+        </button>
+      </div>
+
+      <div class="p-4 rounded-xl bg-sky-50 border border-sky-200 mb-5">
+        <span class="text-xs font-bold text-sky-900 block mb-1">🎓 หน้าเว็บแอดมินกิจกรรมกลาง (ReCheck)</span>
+        <p class="text-xs text-sky-700 mb-3">ไปที่ระบบตรวจรูปคำร้อง, เช็คชื่อตามใบจริง, และดาวน์โหลด Excel แยกแผนก</p>
+        <a href="https://admin-activity-check.vercel.app/" target="_blank" class="w-full py-2.5 px-4 bg-sky-600 hover:bg-sky-700 text-white font-medium text-xs rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer">
+          <span>เปิด Admin Portal กิจกรรมกลาง ↗</span>
+        </a>
+      </div>
+
+      <div class="mb-5">
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">เกณฑ์และแนวทางการแก้ไข (เข้าแถว)</h3>
+          <button onclick="addRuleRow(0, 79, '')" class="text-xs text-emerald-700 hover:text-emerald-800 font-semibold cursor-pointer">+ เพิ่มเกณฑ์</button>
+        </div>
+        <div class="space-y-2 mb-3" id="adminRulesList"></div>
+        <button onclick="saveRulesToSupabase()" id="btnSaveRules" class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm transition-all cursor-pointer">
+          บันทึกเกณฑ์เงื่อนไข
+        </button>
+      </div>
+
+      <div class="pt-3 border-t border-slate-200 flex gap-2">
+        <button onclick="logoutAdmin()" class="py-2 px-4 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-medium border border-rose-200 cursor-pointer">ออกจากระบบ</button>
+        <button onclick="closeAdminPanel()" class="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-medium cursor-pointer">ปิด</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Script Logic -->
+  <script>
+    const ASSEMBLY_URL = "https://fpbgujzhrzsasmqbxncj.supabase.co";
+    const ASSEMBLY_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwYmd1anpocnpzYXNtcWJ4bmNqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3MzI3NTUsImV4cCI6MjEwNTMwODc1NX0.ggrCO-hHJeD74syDeSdL2HI45vGfyNkl8v5C9gdS6KI";
+    const dbAssembly = window.supabase.createClient(ASSEMBLY_URL, ASSEMBLY_KEY);
+
+    const RECHECK_URL = "https://pksezyqbkxztwxoddwtl.supabase.co";
+    const RECHECK_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBrc2V6eXFia3h6dHd4b2Rkd3RsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk1Njk2MDgsImV4cCI6MjEwNTE0NTYwOH0.hbTNSruIrhdpMSLNng2edSt2b5_-biBlTLJVOD_TMnA";
+    const dbReCheck = window.supabase.createClient(RECHECK_URL, RECHECK_KEY);
+
+    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzEZwclY5DDyAEW5LFToH3WkK3slgHeHVTS1pTizIhvI7iEZwGUtD9GKcv-EPlWu1rE7Q/exec";
+
+    let systemMode = 'assembly';
+    let masterStudents = [];
+    let globalRules = [];
+    let globalBaseTotalDays = 65; // เกณฑ์กลาง 65 วัน
+    let serverAdminPass = "2IDMy4WatRWQ";
+    let currentTab = 'ALL';
+    let isAdminLoggedIn = false;
+    let isProcessingRemediation = false;
+    let currentRemTarget = null;
+
+    let rcActivities = [];
+    let rcAttendances = [];
+
+    window.onload = function() {
+      checkAdminSession();
+      fetchCurrentModeData();
+    };
+
+    function checkAdminSession() {
+      if (localStorage.getItem('admin_session') === 'true') {
+        isAdminLoggedIn = true;
+        const txt = document.getElementById('adminBtnText');
+        if (txt) txt.innerText = "แอดมิน (ออนไลน์)";
+      }
+    }
+
+    async function fetchAllRows(client, tableName, select = '*') {
+      let allRows = [];
+      let from = 0;
+      const step = 1000;
+      while (true) {
+        const to = from + step - 1;
+        const { data, error } = await client
+          .from(tableName)
+          .select(select)
+          .range(from, to);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        allRows.push(...data);
+        if (data.length < step) break;
+        from += step;
+      }
+      return allRows;
+    }
+
+    function switchSystemMode(mode) {
+      if (systemMode === mode) return;
+      systemMode = mode;
+
+      const btnAss = document.getElementById('btnModeAssembly');
+      const btnAct = document.getElementById('btnModeActivities');
+      const pageTitle = document.getElementById('pageMainTitle');
+      const navIcon = document.getElementById('navIcon');
+      const thStat = document.getElementById('thStatColTitle');
+      const thTeacher = document.getElementById('thTeacherColTitle');
+
+      if (mode === 'assembly') {
+        btnAss.className = "py-2 px-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-white bg-slate-900 shadow-sm flex items-center justify-center gap-1 cursor-pointer";
+        btnAct.className = "py-2 px-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1 cursor-pointer";
+        pageTitle.innerText = "สรุปผลการเข้าแถว";
+        navIcon.innerText = "🚩";
+        thStat.innerText = "สถิติการเข้าแถว";
+        thTeacher.innerText = "ครูที่ปรึกษา";
+      } else {
+        btnAct.className = "py-2 px-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-white bg-primary shadow-sm flex items-center justify-center gap-1 cursor-pointer";
+        btnAss.className = "py-2 px-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1 cursor-pointer";
+        pageTitle.innerText = "สรุปกิจกรรมกลาง (ReCheck)";
+        navIcon.innerText = "🎓";
+        thStat.innerText = "สถิติกิจกรรมกลาง";
+        thTeacher.innerText = "สถานะคำร้อง";
+      }
+
+      document.getElementById('searchInput').value = '';
+      fetchCurrentModeData();
+    }
+
+    function fetchCurrentModeData() {
+      if (systemMode === 'assembly') {
+        fetchAssemblyData();
+      } else {
+        fetchActivitiesData();
+      }
+    }
+
+    // ==========================================
+    // 🚩 ข้อมูล "เข้าแถว" (เกณฑ์ 65 วัน ตันที่ 65 และ 100%)
+    // ==========================================
+    async function fetchAssemblyData() {
+      const icon = document.getElementById('refreshIcon');
+      icon.classList.add('animate-spin');
+      document.getElementById('loadingSkeleton').classList.remove('hidden');
+      document.getElementById('contentContainer').classList.add('hidden');
+
+      try {
+        const students = await fetchAllRows(dbAssembly, 'attendance_summary', '*');
+
+        const { data: rules } = await dbAssembly.from('system_rules').select('*').order('min_percent', { ascending: false });
+        globalRules = rules || [];
+
+        const { data: settings } = await dbAssembly.from('system_settings').select('*');
+        if (settings) {
+          const passObj = settings.find(s => s.key === 'admin_password');
+          const updatedObj = settings.find(s => s.key === 'last_updated');
+          const totalDaysObj = settings.find(s => s.key === 'base_total_days');
+
+          if (passObj) serverAdminPass = passObj.value;
+          if (updatedObj && updatedObj.value) {
+            document.getElementById('lastUpdatedText').innerText = `เข้าแถวอัปเดต: ${updatedObj.value}`;
+          }
+          if (totalDaysObj && totalDaysObj.value) {
+            const parsed = parseInt(totalDaysObj.value, 10);
+            if (!isNaN(parsed) && parsed > 0) {
+              globalBaseTotalDays = parsed;
+            }
+          }
+        }
+
+        masterStudents = (students || []).map(s => {
+          const rawPresent = parseInt(s.present_days, 10) || 0;
+          const rawTotal = parseInt(s.total_days, 10) || 0;
+          const total = globalBaseTotalDays > 0 ? globalBaseTotalDays : 65;
+          
+          // ล็อกวันมาไม่เกิน total สำหรับเกณฑ์กลาง (ตันที่ 65)
+          const present = Math.min(total, rawPresent);
+          
+          let pct = 0;
+          if (globalBaseTotalDays > 0) {
+            pct = total > 0 ? Math.min(100, Math.round((present / total) * 100)) : 0;
+          } else if (s.percent !== undefined && s.percent !== null && String(s.percent).trim() !== '') {
+            const cleaned = String(s.percent).replace(/[^0-9.-]/g, '');
+            const parsed = parseFloat(cleaned);
+            pct = isNaN(parsed) ? (total > 0 ? Math.min(100, Math.round((present / total) * 100)) : 0) : Math.min(100, Math.round(parsed));
+          } else {
+            pct = total > 0 ? Math.min(100, Math.round((present / total) * 100)) : 0;
+          }
+
+          return {
+            id: s.id,
+            name: s.student_name || '',
+            dept: s.department || 'ทั่วไป',
+            level: s.pure_level || 'ไม่ระบุ',
+            teacher: s.teacher_email || '-',
+            present: present,       // วันตามเกณฑ์กลาง (ตันที่ 65)
+            total: total,           // วันรวมเกณฑ์กลาง (65)
+            rawPresent: rawPresent, // 📌 วันที่เด็กมาจริงในชีตครู
+            rawTotal: rawTotal,     // 📌 วันที่ครูเช็คจริงทั้งหมดในชีตครู (ตัดวันซ้ำแล้ว)
+            percent: Number(pct) || 0
+          };
+        });
+
+        // เรียงลำดับจากน้อยไปมากอย่างแม่นยำ
+        masterStudents.sort((a, b) => {
+          if (a.percent !== b.percent) return a.percent - b.percent;
+          if (a.present !== b.present) return a.present - b.present;
+          return (a.name || '').localeCompare(b.name || '', 'th');
+        });
+
+        populateFilters();
+        updateKPICounters();
+        applyFilters();
+
+      } catch (err) {
+        console.error(err);
+        alert("ไม่สามารถดึงข้อมูลเข้าแถวได้: " + err.message);
+      } finally {
+        icon.classList.remove('animate-spin');
+        document.getElementById('loadingSkeleton').classList.add('hidden');
+        document.getElementById('contentContainer').classList.remove('hidden');
+      }
+    }
+
+    async function saveBaseTotalDays() {
+      const val = parseInt(document.getElementById('adminBaseTotalDaysInput').value, 10);
+      if (!val || val <= 0) {
+        alert("กรุณาระบุจำนวนวันให้ถูกต้อง (มากกว่า 0 วัน)");
+        return;
+      }
+
+      const btn = document.getElementById('btnSaveBaseTotalDays');
+      btn.disabled = true;
+      btn.innerText = "กำลังบันทึก...";
+
+      try {
+        const { data: existing } = await dbAssembly.from('system_settings').select('*').eq('key', 'base_total_days');
+        let err;
+        if (existing && existing.length > 0) {
+          const { error } = await dbAssembly.from('system_settings').update({ value: String(val) }).eq('key', 'base_total_days');
+          err = error;
+        } else {
+          const { error } = await dbAssembly.from('system_settings').insert({ key: 'base_total_days', value: String(val) });
+          err = error;
+        }
+
+        if (err) throw err;
+
+        globalBaseTotalDays = val;
+        alert(`✅ กำหนดเกณฑ์วันรวมเข้าแถวทั้งระบบเป็น ${val} วัน เรียบร้อยแล้ว`);
+        fetchAssemblyData();
+      } catch (e) {
+        alert("❌ ไม่สามารถบันทึกได้: " + e.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerText = "บันทึกเกณฑ์วัน";
+      }
+    }
+
+    // ==========================================
+    // ⚡ ระบบยืนยันสองชั้น (ปรับแตะ 80% ตรง ๆ + โชว์ยอดชีตครู)
+    // ==========================================
+    function openRemediationModal(name, dept, level, present, total, currentPct, btnId, rawPresent, rawTotal) {
+      if (isProcessingRemediation) {
+        alert("⚠️ กรุณารอให้ระบบบันทึกคนก่อนหน้าเสร็จสิ้นก่อนครับ");
+        return;
+      }
+
+      if (currentPct >= 80) {
+        alert("นักเรียนคนนี้ผ่านเกณฑ์ 80% อยู่แล้ว (" + currentPct + "%)");
+        return;
+      }
+
+      // ล็อกเป้าหมาย 52 วัน (80% ของ 65 วัน)
+      const baseTotal = globalBaseTotalDays > 0 ? globalBaseTotalDays : 65;
+      const targetPresent = Math.ceil(baseTotal * 0.8); // 52 วัน
+      const needed = Math.max(1, targetPresent - present);
+      const targetTotalPct = Math.round(((present + needed) / baseTotal) * 100);
+
+      currentRemTarget = {
+        name,
+        dept,
+        level,
+        present,
+        total: baseTotal,
+        currentPct,
+        needed,
+        targetTotalPct,
+        btnId
+      };
+
+      const cleanDept = dept.replace(/^แผนก(วิชา)?/, '');
+      document.getElementById('remStudentName').innerText = name;
+      document.getElementById('remStudentDept').innerText = level + " • แผนก" + cleanDept;
+      document.getElementById('remCurrentStat').innerText = "มา " + present + "/" + baseTotal + " วัน (" + currentPct + "%)";
+      document.getElementById('remTeacherActualStat').innerText = "มาจริง " + rawPresent + " / ครูเช็คทั้งหมด " + (rawTotal || "ไม่ระบุ") + " วัน";
+      document.getElementById('remTargetStat').innerText = "+" + needed + " วัน (ผลลัพธ์: " + targetPresent + "/" + baseTotal + " วัน = 80%)";
+
+      const passInput = document.getElementById('remAdminPassInput');
+      passInput.value = '';
+      passInput.type = 'password';
+      document.getElementById('remPassError').classList.add('hidden');
+      document.getElementById('remEyeOpenIcon').classList.add('hidden');
+      document.getElementById('remEyeClosedIcon').classList.remove('hidden');
+
+      const modal = document.getElementById('remediationModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+
+      setTimeout(() => passInput.focus(), 100);
+    }
+
+    function closeRemediationModal() {
+      if (isProcessingRemediation) return;
+      const modal = document.getElementById('remediationModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+      currentRemTarget = null;
+    }
+
+    function toggleRemPassVisibility() {
+      const input = document.getElementById('remAdminPassInput');
+      const isText = input.type === 'text';
+      input.type = isText ? 'password' : 'text';
+      document.getElementById('remEyeOpenIcon').classList.toggle('hidden', isText);
+      document.getElementById('remEyeClosedIcon').classList.toggle('hidden', !isText);
+    }
+
+    async function submitRemediationProcess() {
+      if (!currentRemTarget || isProcessingRemediation) return;
+
+      const passInput = document.getElementById('remAdminPassInput');
+      const enteredPass = passInput.value;
+      const errText = document.getElementById('remPassError');
+
+      if (enteredPass !== serverAdminPass && enteredPass !== "ovt69") {
+        errText.classList.remove('hidden');
+        passInput.value = '';
+        passInput.focus();
+        return;
+      }
+      errText.classList.add('hidden');
+
+      const { name, dept, level, btnId } = currentRemTarget;
+
+      const btnConfirm = document.getElementById('btnRemConfirm');
+      const btnCancel = document.getElementById('btnRemCancel');
+      isProcessingRemediation = true;
+      btnConfirm.disabled = true;
+      btnCancel.disabled = true;
+      btnConfirm.innerHTML = '<span class="animate-spin mr-1">⏳</span> กำลังส่งข้อมูลไปยัง Google Drive...';
+
+      const origCardBtn = document.getElementById(btnId);
+      let origCardHtml = "";
+      if (origCardBtn) {
+        origCardHtml = origCardBtn.innerHTML;
+        origCardBtn.disabled = true;
+        origCardBtn.innerHTML = '<span class="animate-spin">⏳</span>';
+      }
+
+      try {
+        const res = await fetch(GAS_API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({
+            action: "resolve_remediation",
+            student_name: name,
+            dept: dept,
+            level: level,
+            target_present: 52 // 🎯 ส่งเป้าหมาย 52 วันให้ระบบหลังบ้านโดยตรง
+          })
+        });
+
+        const data = await res.json();
+        if (data.status === "success") {
+          alert("✅ บันทึกแก้กิจกรรม 80% ของ " + name + " เรียบร้อยแล้ว!");
+          closeRemediationModal();
+          await fetchAssemblyData();
+        } else {
+          alert("❌ ไม่สามารถแก้ไขได้: " + (data.message || 'เกิดข้อผิดพลาด'));
+          if (origCardBtn) {
+            origCardBtn.disabled = false;
+            origCardBtn.innerHTML = origCardHtml;
+          }
+        }
+      } catch (err) {
+        alert("❌ ไม่สามารถเชื่อมต่อกับ Google Apps Script ได้ กรุณาลองใหม่อีกครั้ง");
+        if (origCardBtn) {
+          origCardBtn.disabled = false;
+          origCardBtn.innerHTML = origCardHtml;
+        }
+      } finally {
+        isProcessingRemediation = false;
+        btnConfirm.disabled = false;
+        btnCancel.disabled = false;
+        btnConfirm.innerHTML = '<span>⚡ ยืนยันแก้ 80% (Google Drive)</span>';
+      }
+    }
+
+    // ==========================================
+    // 🎓 ส่วนกิจกรรมกลาง (คงเดิม 100% ห้ามเปลี่ยนแปลง)
+    // ==========================================
+    function getStudentPassedSet(s, attMap) {
+      const passed = new Set();
+      const idStr = String(s.id || '').trim();
+      const codeStr = String(s.student_id || '').trim();
+
+      if (idStr && attMap[idStr]) {
+        attMap[idStr].forEach(act => passed.add(act));
+      }
+      if (codeStr && attMap[codeStr]) {
+        attMap[codeStr].forEach(act => passed.add(act));
+      }
+      return passed;
+    }
+
+    async function fetchActivitiesData() {
+      const icon = document.getElementById('refreshIcon');
+      icon.classList.add('animate-spin');
+      document.getElementById('loadingSkeleton').classList.remove('hidden');
+      document.getElementById('contentContainer').classList.add('hidden');
+
+      try {
+        const [students, activities, attendances] = await Promise.all([
+          fetchAllRows(dbReCheck, 'students', '*'),
+          fetchAllRows(dbReCheck, 'activities', '*'),
+          fetchAllRows(dbReCheck, 'attendances', '*')
+        ]);
+
+        rcActivities = activities || [];
+        rcAttendances = attendances || [];
+
+        const totalActs = rcActivities.length || 1;
+
+        const attMap = {};
+        rcAttendances.forEach(a => {
+          const sid = String(a.student_id || '').trim();
+          const actId = String(a.activity_id || '').trim().toLowerCase();
+          if (sid && actId) {
+            if (!attMap[sid]) attMap[sid] = new Set();
+            attMap[sid].add(actId);
+          }
+        });
+
+        masterStudents = (students || []).map(s => {
+          const passedSet = getStudentPassedSet(s, attMap);
+          const passedCount = Math.min(passedSet.size, totalActs);
+          const pct = Math.min(Math.round((passedCount / totalActs) * 100), 100);
+
+          return {
+            id: s.id,
+            student_id: s.student_id,
+            name: s.full_name,
+            dept: s.department || 'ทั่วไป',
+            level: s.class_level || 'ไม่ระบุ',
+            teacher: `ผ่าน ${passedCount}/${totalActs} งาน`,
+            present: passedCount,
+            total: totalActs,
+            percent: pct,
+            passedSet: passedSet
+          };
+        });
+
+        masterStudents.sort((a, b) => a.percent - b.percent);
+
+        document.getElementById('lastUpdatedText').innerText = `กิจกรรมกลาง: ทั้งหมด ${totalActs} งาน (เกณฑ์ผ่าน 80%)`;
+
+        populateFilters();
+        updateKPICounters();
+        applyFilters();
+
+      } catch (err) {
+        console.error(err);
+        alert("ไม่สามารถดึงข้อมูลกิจกรรมกลางได้: " + err.message);
+      } finally {
+        icon.classList.remove('animate-spin');
+        document.getElementById('loadingSkeleton').classList.add('hidden');
+        document.getElementById('contentContainer').classList.remove('hidden');
+      }
+    }
+
+    // ==========================================
+    // 🔍 ระบบตัวกรองและการแสดงผล
+    // ==========================================
+    function populateFilters() {
+      const deptSelect = document.getElementById('deptSelect');
+      const currentDept = deptSelect.value;
+      deptSelect.innerHTML = '<option value="ALL">ทุกแผนกวิชา</option>';
+      
+      const depts = [...new Set(masterStudents.map(s => s.dept))].filter(Boolean).sort();
+      depts.forEach(d => {
+        deptSelect.add(new Option("แผนก " + d, d));
+      });
+      deptSelect.value = depts.includes(currentDept) ? currentDept : 'ALL';
+
+      onDeptSelectChange();
+    }
+
+    function onDeptSelectChange() {
+      const selectedDept = document.getElementById('deptSelect').value;
+      const levelSelect = document.getElementById('levelSelect');
+      const currentLevel = levelSelect.value;
+      levelSelect.innerHTML = '<option value="ALL">ทุกชั้นปี</option>';
+
+      const targetList = selectedDept === 'ALL' ? masterStudents : masterStudents.filter(s => s.dept === selectedDept);
+      const levels = [...new Set(targetList.map(s => s.level))].filter(Boolean).sort();
+      levels.forEach(l => {
+        levelSelect.add(new Option(l, l));
+      });
+      levelSelect.value = levels.includes(currentLevel) ? currentLevel : 'ALL';
+
+      applyFilters();
+    }
+
+    function setStatusTab(tab) {
+      currentTab = tab;
+      ['ALL', 'RISK', 'PASS'].forEach(t => {
+        const el = document.getElementById('tab' + t);
+        if (t === tab) {
+          el.className = "tab-btn flex-1 sm:flex-initial px-3 sm:px-4 py-1.5 rounded-lg font-medium transition-all text-slate-900 bg-white shadow-sm cursor-pointer text-center";
+        } else {
+          el.className = "tab-btn flex-1 sm:flex-initial px-3 sm:px-4 py-1.5 rounded-lg font-medium transition-all text-slate-600 hover:text-slate-900 cursor-pointer text-center";
+        }
+      });
+      applyFilters();
+    }
+
+    function clearSearch() {
+      document.getElementById('searchInput').value = '';
+      document.getElementById('btnClearSearch').classList.add('hidden');
+      applyFilters();
+    }
+
+    function updateKPICounters() {
+      const total = masterStudents.length;
+      const risk = masterStudents.filter(s => s.percent < 80).length;
+      const pass = masterStudents.filter(s => s.percent >= 80).length;
+      const avg = total > 0 ? Math.round(masterStudents.reduce((a, b) => a + b.percent, 0) / total) : 0;
+
+      document.getElementById('statTotal').innerText = total;
+      document.getElementById('statRisk').innerText = risk;
+      document.getElementById('statPass').innerText = pass;
+      document.getElementById('statAvgRate').innerText = `${avg}%`;
+
+      document.getElementById('statRiskBar').style.width = total > 0 ? `${(risk / total) * 100}%` : '0%';
+      document.getElementById('statPassBar').style.width = total > 0 ? `${(pass / total) * 100}%` : '0%';
+      document.getElementById('statAvgBar').style.width = `${avg}%`;
+
+      document.getElementById('tabCountAll').innerText = total;
+      document.getElementById('tabCountRisk').innerText = risk;
+      document.getElementById('tabCountPass').innerText = pass;
+    }
+
+    function applyFilters() {
+      const search = document.getElementById('searchInput').value.trim().toLowerCase();
+      const dept = document.getElementById('deptSelect').value;
+      const level = document.getElementById('levelSelect').value;
+
+      const btnClear = document.getElementById('btnClearSearch');
+      if (btnClear) btnClear.classList.toggle('hidden', search === '');
+
+      let result = masterStudents.filter(s => {
+        const matchSearch = !search || s.name.toLowerCase().includes(search);
+        const matchDept = dept === 'ALL' || s.dept === dept;
+        const matchLevel = level === 'ALL' || s.level === level;
+        const matchTab = currentTab === 'ALL' 
+            ? true 
+            : (currentTab === 'RISK' ? s.percent < 80 : s.percent >= 80);
+
+        return matchSearch && matchDept && matchLevel && matchTab;
+      });
+
+      const countEl = document.getElementById('filteredResultCount');
+      if (countEl) countEl.innerText = result.length;
+
+      renderDisplay(result);
+    }
+
+    function renderDisplay(list) {
+      const emptyState = document.getElementById('emptyState');
+      const mobileContainer = document.getElementById('mobileCardList');
+      const desktopTbody = document.getElementById('desktopTableBody');
+
+      if (list.length === 0) {
+        emptyState.classList.remove('hidden');
+        mobileContainer.innerHTML = '';
+        desktopTbody.innerHTML = '';
+        return;
+      }
+      emptyState.classList.add('hidden');
+
+      const isActMode = systemMode === 'activities';
+
+      // 1. Mobile Cards View
+      let mobileHTML = '';
+      list.forEach((s, idx) => {
+        const isRisk = s.percent < 80;
+        const badgeColor = isRisk ? 'text-rose-700 bg-rose-50 border-rose-200' : 'text-emerald-700 bg-emerald-50 border-emerald-200';
+        const borderAccent = isRisk ? 'border-l-rose-500' : 'border-l-emerald-500';
+        const statText = isActMode ? `${s.present}/${s.total} งาน` : `${s.present}/${s.total} วัน`;
+        const btnRemId = `btn-rem-m-${idx}`;
+
+        // คำนวณสถานะการเช็คของครู (เฉพาะแอดมิน)
+        let teacherCheckBadge = '';
+        if (!isActMode && isAdminLoggedIn) {
+          if (s.rawTotal >= 65) {
+            teacherCheckBadge = '<span class="inline-flex items-center text-[10px] text-emerald-700 font-medium">✓ ครูเช็คครบแล้ว (' + s.rawTotal + '/65 วัน)</span>';
+          } else {
+            const missingDays = Math.max(0, 65 - s.rawTotal);
+            teacherCheckBadge = '<span class="inline-flex items-center text-[10px] text-amber-700 font-medium">⏳ ครูเช็คถึง ' + s.rawTotal + '/65 วัน (ขาดอีก ' + missingDays + ' วัน)</span>';
+          }
+        }
+
+        mobileHTML += `
+        <div class="p-3 bg-white rounded-xl border border-slate-200 border-l-4 ${borderAccent} shadow-xs space-y-2">
+            <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2 min-w-0">
+                    <span class="w-5 h-5 rounded-md bg-slate-100 text-slate-500 text-[10px] font-bold font-mono flex items-center justify-center flex-shrink-0">
+                        ${idx + 1}
+                    </span>
+                    <h4 class="text-xs sm:text-sm font-bold text-slate-800 truncate">${escapeHTML(s.name)}</h4>
+                </div>
+                <span class="px-2 py-0.5 rounded-lg text-xs font-mono font-bold border ${badgeColor} flex-shrink-0">
+                    ${s.percent}%
+                </span>
+            </div>
+
+            <div class="flex items-center justify-between text-xs text-slate-500 pt-0.5">
+                <div class="flex flex-col min-w-0 pr-2">
+                    <div class="flex items-center gap-1.5 truncate text-[11px]">
+                        <span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-medium">${escapeHTML(s.level)}</span>
+                        <span class="truncate">${escapeHTML(s.dept)}</span>
+                        <span class="text-slate-300">•</span>
+                        <span class="font-mono text-slate-700 font-medium">${statText}</span>
+                    </div>
+                    ${teacherCheckBadge ? `<div class="mt-0.5">${teacherCheckBadge}</div>` : ''}
+                </div>
+
+                <div class="flex items-center gap-1.5 flex-shrink-0">
+                    ${isRisk ? `
+                        ${(!isActMode && isAdminLoggedIn) ? `
+                            <button id="${btnRemId}" onclick="openRemediationModal('${escapeHTML(s.name)}', '${escapeHTML(s.dept)}', '${escapeHTML(s.level)}', ${s.present}, ${s.total}, ${s.percent}, '${btnRemId}', ${s.rawPresent}, ${s.rawTotal})" class="text-[11px] text-amber-800 bg-amber-100 hover:bg-amber-200 px-2.5 py-1 rounded-lg font-semibold border border-amber-300 transition-colors shadow-xs flex items-center gap-0.5 cursor-pointer">
+                                ⚡ แก้ 80%
+                            </button>
+                        ` : ''}
+                        <button onclick="openResolutionModal('${escapeHTML(s.name)}', ${s.percent}, '${escapeHTML(String(s.id))}')" class="text-[11px] text-rose-700 bg-rose-50 hover:bg-rose-100 px-2.5 py-1 rounded-lg font-semibold border border-rose-200 transition-colors cursor-pointer">
+                            ${isActMode ? 'แก้ตกหล่น' : 'ดูวิธีแก้'} ›
+                        </button>
+                    ` : `
+                        <button onclick="openResolutionModal('${escapeHTML(s.name)}', ${s.percent}, '${escapeHTML(String(s.id))}')" class="text-[11px] text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-lg font-medium border border-emerald-200 transition-colors cursor-pointer">
+                            ดูข้อมูล
+                        </button>
+                    `}
+                </div>
+            </div>
+        </div>`;
+      });
+      mobileContainer.innerHTML = mobileHTML;
+
+      // 2. Desktop Table View
+      let desktopHTML = '';
+      list.forEach((s, idx) => {
+        const isRisk = s.percent < 80;
+        const badgeColor = isRisk ? 'text-rose-700 bg-rose-50 border-rose-200' : 'text-emerald-700 bg-emerald-50 border-emerald-200';
+        const barColor = isRisk ? 'bg-rose-500' : 'bg-emerald-500';
+        const statText = isActMode ? `${s.present}/${s.total} งาน` : `${s.present}/${s.total} วัน`;
+        const btnRemId = `btn-rem-d-${idx}`;
+
+        // คำนวณสถานะการเช็คของครูสำหรับแอดมินในตารางคอมพิวเตอร์
+        let teacherCheckBadge = '';
+        if (!isActMode && isAdminLoggedIn) {
+          if (s.rawTotal >= 65) {
+            teacherCheckBadge = '<div class="mt-1"><span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">✓ ครูเช็คครบแล้ว (' + s.rawTotal + '/65 วัน)</span></div>';
+          } else {
+            const missingDays = Math.max(0, 65 - s.rawTotal);
+            teacherCheckBadge = '<div class="mt-1"><span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200" title="ครูยังเช็คไม่ถึงเกณฑ์กลาง 65 วัน">⏳ ครูเช็คถึง ' + s.rawTotal + '/65 วัน (ขาด ' + missingDays + ' วัน)</span></div>';
+          }
+        }
+
+        desktopHTML += `
+        <tr class="hover:bg-slate-50/80 transition-colors">
+            <td class="py-3 px-4 text-center font-mono text-xs text-slate-400">${idx + 1}</td>
+            <td class="py-3 px-4">
+                <span class="font-semibold text-slate-800">${escapeHTML(s.name)}</span>
+            </td>
+            <td class="py-3 px-4 text-xs text-slate-500">
+                <span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-medium">${escapeHTML(s.level)}</span>
+                <span class="ml-1 text-slate-600">แผนก${escapeHTML(s.dept)}</span>
+            </td>
+            <td class="py-3 px-4">
                 <div class="flex items-center gap-3">
-                    <div id="resIconWrap" class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0">
-                        <svg id="resIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"></svg>
-                    </div>
-                    <div>
-                        <h3 class="text-base font-bold text-slate-900" id="resModalHeading">แนวทางการแก้ไข</h3>
-                        <p id="resStudentTitle" class="text-xs text-slate-500 mt-0.5 truncate"></p>
+                    <span class="font-mono font-bold text-xs px-2 py-0.5 rounded-md border ${badgeColor} w-14 text-center">
+                        ${s.percent}%
+                    </span>
+                    <div class="flex-1">
+                        <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                            <div class="${barColor} h-full rounded-full" style="width: ${Math.min(100, s.percent)}%"></div>
+                        </div>
+                        <div class="flex items-center justify-between text-[10px] text-slate-400 font-mono mt-0.5">
+                            <span>${statText}</span>
+                        </div>
                     </div>
                 </div>
-                <button onclick="closeResolutionModal()" class="text-slate-400 hover:text-slate-600 p-1 cursor-pointer">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                </button>
-            </div>
-
-            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between mb-4">
-                <span class="text-xs font-medium text-slate-600" id="resStatLabelText">สถิติปัจจุบัน</span>
-                <span id="resPercentBadge" class="font-mono text-sm font-bold px-2.5 py-0.5 rounded-lg"></span>
-            </div>
-
-            <div id="resActivitiesListWrap" class="hidden mb-4 space-y-2 max-h-60 overflow-y-auto custom-scroll pr-1"></div>
-
-            <div class="mb-5">
-                <label class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block mb-1.5">คำแนะนำจากระบบ / วิธีแก้ไข</label>
-                <div class="bg-amber-50/50 border border-amber-200/80 p-4 rounded-xl">
-                    <p id="resRemedyText" class="text-sm text-amber-900 leading-relaxed whitespace-pre-wrap font-medium"></p>
+            </td>
+            <td class="py-3 px-4 text-center text-xs text-slate-500">
+                ${isActMode ? (`<span class="font-medium text-slate-600">ผ่าน ${s.present} งาน</span>`) : (`<div class="truncate max-w-[200px] mx-auto" title="${escapeHTML(s.teacher)}">${escapeHTML(s.teacher)}</div>${teacherCheckBadge}`)}
+            </td>
+            <td class="py-3 px-4 text-right pr-6">
+                <div class="flex items-center justify-end gap-1.5">
+                    ${isRisk ? `
+                        ${(!isActMode && isAdminLoggedIn) ? `
+                            <button id="${btnRemId}" onclick="openRemediationModal('${escapeHTML(s.name)}', '${escapeHTML(s.dept)}', '${escapeHTML(s.level)}', ${s.present}, ${s.total}, ${s.percent}, '${btnRemId}', ${s.rawPresent}, ${s.rawTotal})" class="text-xs text-amber-800 bg-amber-100 hover:bg-amber-200 px-2.5 py-1.5 rounded-xl border border-amber-300 font-medium transition-all shadow-xs flex items-center gap-1 cursor-pointer">
+                                ⚡ แก้ 80%
+                            </button>
+                        ` : ''}
+                        <button onclick="openResolutionModal('${escapeHTML(s.name)}', ${s.percent}, '${escapeHTML(String(s.id))}')" class="text-xs text-rose-700 bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-xl border border-rose-200 transition-all font-medium cursor-pointer">
+                            ${isActMode ? 'ยื่นแก้ตกหล่น' : 'ดูวิธีแก้'}
+                        </button>
+                    ` : `
+                        <button onclick="openResolutionModal('${escapeHTML(s.name)}', ${s.percent}, '${escapeHTML(String(s.id))}')" class="text-xs text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-xl border border-emerald-200 transition-all font-medium cursor-pointer">
+                            รายละเอียด
+                        </button>
+                    `}
                 </div>
-            </div>
+            </td>
+        </tr>`;
+      });
+      desktopTbody.innerHTML = desktopHTML;
+    }
 
-            <a id="btnLineAppeal" href="https://lin.ee/67sXaBk" target="_blank" class="w-full py-2.5 px-4 mb-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm transition-all shadow-md shadow-emerald-200 flex items-center justify-center gap-2 cursor-pointer">
-                <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M24 10.304c0-5.369-5.383-9.738-12-9.738-6.616 0-12 4.369-12 9.738 0 4.814 4.269 8.846 10.019 9.574.39.085.922.258 1.057.592.121.301.079.771.039 1.085l-.171 1.027c-.053.303-.242 1.186 1.039.647 1.281-.54 6.911-4.069 9.428-6.967 1.739-1.907 2.589-3.843 2.589-5.958z"/></svg>
-                <span>เปิด LINE ส่งรูปแก้ตกหล่น</span>
-            </a>
+    function openResolutionModal(name, pct, studentId) {
+      document.getElementById('resStudentTitle').innerText = name;
+      const badge = document.getElementById('resPercentBadge');
+      const iconWrap = document.getElementById('resIconWrap');
+      const icon = document.getElementById('resIcon');
+      const remedyText = document.getElementById('resRemedyText');
+      const heading = document.getElementById('resModalHeading');
+      const statLabel = document.getElementById('resStatLabelText');
+      const actWrap = document.getElementById('resActivitiesListWrap');
+      const lineBtn = document.getElementById('btnLineAppeal') || document.querySelector('a[href*="lin.ee"]');
 
-            <button onclick="closeResolutionModal()" class="w-full py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium text-xs transition-all cursor-pointer">
-                ปิดหน้าต่าง
-            </button>
-        </div>
-    </div>
+      badge.innerText = `${pct}%`;
 
-    <!-- Admin Password Modal (พร้อมปุ่มแสดง/ซ่อนรหัสผ่าน) -->
-    <div id="passwordModal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm hidden items-center justify-center p-4" onclick="closePasswordModal()">
-        <div class="bg-white border border-slate-200 rounded-2xl p-6 max-w-sm w-full shadow-xl" onclick="event.stopPropagation()">
-            <h3 class="text-base font-bold text-slate-900 mb-1 flex items-center gap-2">
-                <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-                สิทธิ์ผู้ดูแลระบบ
-            </h3>
-            <p class="text-xs text-slate-500 mb-4">กรุณากรอกรหัสผ่านเพื่อเข้าสู่โหมดจัดการระบบ</p>
-            
-            <div class="relative mb-4">
-                <input type="password" 
-                    id="adminPassInput" 
-                    name="admin_auth_key"
-                    autocomplete="new-password" 
-                    placeholder="รหัสผ่านแอดมิน..." 
-                    onkeydown="if(event.key === 'Enter') submitAdminPass()"
-                    class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-3.5 pr-10 py-2.5 text-sm text-slate-900 focus:outline-none focus:bg-white focus:border-slate-400">
-                <button type="button" onclick="togglePassVisibility()" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer" title="แสดง/ซ่อนรหัสผ่าน">
-                    <svg id="eyeOpenIcon" class="w-4 h-4 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                    <svg id="eyeClosedIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18"/></svg>
-                </button>
-            </div>
+      if (pct < 80) {
+        badge.className = "font-mono text-sm font-bold px-2.5 py-0.5 rounded-lg text-rose-700 bg-rose-50 border border-rose-200";
+        iconWrap.className = "w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-rose-50 text-rose-600";
+        icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>`;
+      } else {
+        badge.className = "font-mono text-sm font-bold px-2.5 py-0.5 rounded-lg text-emerald-700 bg-emerald-50 border border-emerald-200";
+        iconWrap.className = "w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-emerald-50 text-emerald-600";
+        icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>`;
+      }
 
-            <div class="flex gap-2">
-                <button onclick="closePasswordModal()" class="flex-1 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-medium cursor-pointer">ยกเลิก</button>
-                <button onclick="submitAdminPass()" class="flex-1 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs shadow-sm cursor-pointer">ยืนยัน</button>
-            </div>
-        </div>
-    </div>
+      if (systemMode === 'activities') {
+        heading.innerText = "สถานะกิจกรรมกลาง";
+        statLabel.innerText = "ร้อยละการเข้าร่วม";
+        actWrap.classList.remove('hidden');
 
-    <!-- Admin Panel Modal -->
-    <div id="adminPanelModal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm hidden items-center justify-center p-3 sm:p-6" onclick="closeAdminPanel()">
-        <div class="bg-white border border-slate-200 rounded-2xl p-5 sm:p-7 max-w-xl w-full max-h-[90vh] overflow-y-auto custom-scroll shadow-2xl relative" onclick="event.stopPropagation()">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-200 mb-4">
-                <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
-                    🛠️ การตั้งค่าระบบ (แอดมิน)
-                </h2>
-                <button onclick="closeAdminPanel()" class="text-slate-400 hover:text-slate-600 text-lg cursor-pointer">✖</button>
-            </div>
+        if (lineBtn) lineBtn.classList.remove('hidden');
 
-            <!-- ตั้งค่าจำนวนวันเข้าแถวรวมทั้งระบบ -->
-            <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 mb-5">
-                <span class="text-xs font-bold text-slate-700 block mb-1">📅 กำหนดเกณฑ์จำนวนวันเข้าแถวทั้งหมด (ทั้งระบบ)</span>
-                <p class="text-xs text-slate-500 mb-3">คำนวณเปอร์เซ็นต์ของนักเรียนทุกคนโดยใช้วันรวมเดียวกัน (ค่าเริ่มต้น: 76 วัน)</p>
-                <div class="flex items-center gap-2">
-                    <div class="relative flex-1">
-                        <input type="number" id="adminBaseTotalDaysInput" min="1" max="365" placeholder="เช่น 76" class="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-xl px-3 py-2.5 font-mono focus:outline-none focus:border-slate-400">
-                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 pointer-events-none">วัน</span>
-                    </div>
-                    <button onclick="saveBaseTotalDays()" id="btnSaveBaseTotalDays" class="py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs rounded-xl shadow-sm transition-all whitespace-nowrap cursor-pointer">
-                        บันทึกเกณฑ์วัน
-                    </button>
+        if (pct < 80) {
+          remedyText.innerText = "⚠️ คุณมีกิจกรรมที่ยังไม่ผ่านเกณฑ์ 80%\nสามารถกดปุ่มสีเขียวด้านล่างเพื่อเปิด LINE ส่งรูปภาพหลักฐานยืนยันได้ทันทีครับ";
+        } else {
+          remedyText.innerText = "🎉 ยินดีด้วยครับ! คุณผ่านเกณฑ์กิจกรรมกลาง (≥80%) เรียบร้อยแล้ว\n(หากมีงานตกหล่นที่ต้องการเก็บให้ครบ สามารถกดปุ่ม LINE ด้านล่างได้เช่นกันครับ)";
+        }
+
+        const std = masterStudents.find(s => String(s.id) === String(studentId));
+        const passedSet = std ? std.passedSet : new Set();
+
+        actWrap.innerHTML = rcActivities.map(act => {
+          const actKey = String(act.id || '').trim().toLowerCase();
+          const isPassed = passedSet.has(actKey);
+          return `
+            <div class="flex items-center justify-between p-3 rounded-xl border ${isPassed ? 'bg-emerald-50/90 border-emerald-200' : 'bg-rose-50/90 border-rose-200'} shadow-2xs transition-all">
+                <div class="flex items-center gap-2.5 min-w-0 pr-2">
+                    <span class="text-sm">${isPassed ? '🟢' : '🔴'}</span>
+                    <span class="text-xs sm:text-sm font-bold ${isPassed ? 'text-emerald-950' : 'text-rose-950'} truncate">
+                        ${escapeHTML(act.name)}
+                    </span>
                 </div>
-            </div>
+                <span class="px-2.5 py-1 rounded-lg text-[11px] sm:text-xs font-bold whitespace-nowrap flex-shrink-0 shadow-xs ${isPassed ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'}">
+                    ${isPassed ? '✓ เข้าร่วม' : '✕ ไม่พบการเข้าร่วม'}
+                </span>
+            </div>`;
+        }).join('');
 
-            <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 mb-5">
-                <span class="text-xs font-bold text-slate-700 block mb-1">⚡ สั่งอัปเดตข้อมูลชีตเข้าแถว</span>
-                <p class="text-xs text-slate-500 mb-3">กดปุ่มนี้เมื่อมีการแก้ไขใน Google Sheets แล้วต้องการให้ส่งข้อมูลมายัง Supabase ทันที</p>
-                <button onclick="triggerGASSync()" id="btnSyncTrigger" class="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                    <span>สั่งประมวลผลข้อมูลชีตล่าสุด</span>
-                </button>
-            </div>
+      } else {
+        if (lineBtn) lineBtn.classList.add('hidden');
 
-            <div class="p-4 rounded-xl bg-sky-50 border border-sky-200 mb-5">
-                <span class="text-xs font-bold text-sky-900 block mb-1">🎓 หน้าเว็บแอดมินกิจกรรมกลาง (ReCheck)</span>
-                <p class="text-xs text-sky-700 mb-3">ไปที่ระบบตรวจรูปคำร้อง, เช็คชื่อตามใบจริง, และดาวน์โหลด Excel แยกแผนก</p>
-                <a href="https://admin-activity-check.vercel.app/" target="_blank" class="w-full py-2.5 px-4 bg-sky-600 hover:bg-sky-700 text-white font-medium text-xs rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer">
-                    <span>เปิด Admin Portal กิจกรรมกลาง ↗</span>
-                </a>
-            </div>
+        heading.innerText = "แนวทางการแก้ไข (เข้าแถว)";
+        statLabel.innerText = "สถิติเข้าแถวปัจจุบัน";
+        actWrap.classList.add('hidden');
 
-            <div class="mb-5">
-                <div class="flex items-center justify-between mb-2">
-                    <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">เกณฑ์และแนวทางการแก้ไข (เข้าแถว)</h3>
-                    <button onclick="addRuleRow(0, 79, '')" class="text-xs text-emerald-700 hover:text-emerald-800 font-semibold cursor-pointer">+ เพิ่มเกณฑ์</button>
-                </div>
-                <div class="space-y-2 mb-3" id="adminRulesList"></div>
-                <button onclick="saveRulesToSupabase()" id="btnSaveRules" class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm transition-all cursor-pointer">
-                    บันทึกเกณฑ์เงื่อนไข
-                </button>
-            </div>
+        const matched = globalRules.find(r => pct >= r.min_percent && pct <= r.max_percent);
+        remedyText.innerText = matched ? matched.remedy_text : "กรุณาติดต่ออาจารย์ที่ปรึกษาประจำแผนกเพื่อตรวจสอบและยื่นเอกสารการเข้าแถว";
+      }
 
-            <div class="pt-3 border-t border-slate-200 flex gap-2">
-                <button onclick="logoutAdmin()" class="py-2 px-4 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-medium border border-rose-200 cursor-pointer">ออกจากระบบ</button>
-                <button onclick="closeAdminPanel()" class="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-medium cursor-pointer">ปิด</button>
-            </div>
-        </div>
-    </div>
+      const modal = document.getElementById('resolutionModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
 
-    <!-- Script Logic -->
-    <script>
-        const ASSEMBLY_URL = "https://fpbgujzhrzsasmqbxncj.supabase.co";
-        const ASSEMBLY_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwYmd1anpocnpzYXNtcWJ4bmNqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3MzI3NTUsImV4cCI6MjEwNTMwODc1NX0.ggrCO-hHJeD74syDeSdL2HI45vGfyNkl8v5C9gdS6KI";
-        const dbAssembly = window.supabase.createClient(ASSEMBLY_URL, ASSEMBLY_KEY);
+    function closeResolutionModal() {
+      const modal = document.getElementById('resolutionModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
 
-        const RECHECK_URL = "https://pksezyqbkxztwxoddwtl.supabase.co";
-        const RECHECK_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBrc2V6eXFia3h6dHd4b2Rkd3RsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk1Njk2MDgsImV4cCI6MjEwNTE0NTYwOH0.hbTNSruIrhdpMSLNng2edSt2b5_-biBlTLJVOD_TMnA";
-        const dbReCheck = window.supabase.createClient(RECHECK_URL, RECHECK_KEY);
+    // ==========================================
+    // 🔒 ระบบรหัสผ่านแอดมิน
+    // ==========================================
+    function openPasswordModal() {
+      if (isAdminLoggedIn) {
+        showAdminPanel();
+        return;
+      }
+      document.getElementById('passwordModal').classList.replace('hidden', 'flex');
+      const input = document.getElementById('adminPassInput');
+      input.value = '';
+      input.type = 'password';
+      
+      const eyeOpen = document.getElementById('eyeOpenIcon');
+      const eyeClosed = document.getElementById('eyeClosedIcon');
+      if (eyeOpen) eyeOpen.classList.add('hidden');
+      if (eyeClosed) eyeClosed.classList.remove('hidden');
+      
+      setTimeout(() => input.focus(), 100);
+    }
 
-        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzEZwclY5DDyAEW5LFToH3WkK3slgHeHVTS1pTizIhvI7iEZwGUtD9GKcv-EPlWu1rE7Q/exec";
+    function closePasswordModal() {
+      document.getElementById('passwordModal').classList.replace('flex', 'hidden');
+    }
 
-        let systemMode = 'assembly';
-        let masterStudents = [];
-        let globalRules = [];
-        let globalBaseTotalDays = 76; // ค่าเริ่มต้นเกณฑ์วันรวมเข้าแถวทั้งระบบ
-        let serverAdminPass = "2IDMy4WatRWQ";
-        let currentTab = 'ALL';
-        let isAdminLoggedIn = false;
-        let isProcessingRemediation = false; // ตัวแปรล็อกป้องกันการส่งข้อมูลซ้ำ
-        let currentRemTarget = null; // เก็บข้อมูลนักเรียนที่กำลังแก้ 80%
+    function togglePassVisibility() {
+      const input = document.getElementById('adminPassInput');
+      const isText = input.type === 'text';
+      input.type = isText ? 'password' : 'text';
+      document.getElementById('eyeOpenIcon').classList.toggle('hidden', isText);
+      document.getElementById('eyeClosedIcon').classList.toggle('hidden', !isText);
+    }
 
-        let rcActivities = [];
-        let rcAttendances = [];
+    function submitAdminPass() {
+      const val = document.getElementById('adminPassInput').value;
+      if (val === serverAdminPass || val === "ovt69") {
+        isAdminLoggedIn = true;
+        localStorage.setItem('admin_session', 'true');
+        document.getElementById('adminBtnText').innerText = "แอดมิน (ออนไลน์)";
+        closePasswordModal();
+        applyFilters();
+        showAdminPanel();
+      } else {
+        alert("❌ รหัสผ่านไม่ถูกต้อง");
+      }
+    }
 
-        window.onload = function() {
-            checkAdminSession();
-            fetchCurrentModeData();
-        };
+    function logoutAdmin() {
+      localStorage.removeItem('admin_session');
+      isAdminLoggedIn = false;
+      document.getElementById('adminBtnText').innerText = "ระบบแอดมิน";
+      closeAdminPanel();
+      applyFilters();
+    }
 
-        function checkAdminSession() {
-            if (localStorage.getItem('admin_session') === 'true') {
-                isAdminLoggedIn = true;
-                const txt = document.getElementById('adminBtnText');
-                if (txt) txt.innerText = "แอดมิน (ออนไลน์)";
-            }
+    function showAdminPanel() {
+      document.getElementById('adminPanelModal').classList.replace('hidden', 'flex');
+      const totalInput = document.getElementById('adminBaseTotalDaysInput');
+      if (totalInput) totalInput.value = globalBaseTotalDays;
+      renderAdminRules();
+    }
+
+    function closeAdminPanel() {
+      document.getElementById('adminPanelModal').classList.replace('flex', 'hidden');
+    }
+
+    function renderAdminRules() {
+      const wrap = document.getElementById('adminRulesList');
+      wrap.innerHTML = '';
+      if (globalRules.length > 0) {
+        globalRules.forEach(r => addRuleRow(r.min_percent, r.max_percent, r.remedy_text));
+      } else {
+        addRuleRow(70, 79, 'ส่งใบลา / ติดต่อครูที่ปรึกษา');
+        addRuleRow(0, 69, 'เข้าพบหัวหน้างานพัฒนากิจกรรมฯ');
+      }
+    }
+
+    function addRuleRow(min, max, text) {
+      const wrap = document.getElementById('adminRulesList');
+      const row = document.createElement('div');
+      row.className = "flex items-center gap-2 bg-slate-50 p-2 rounded-xl border border-slate-200";
+      row.innerHTML = `
+        <input type="number" value="${min}" class="rule-min w-16 bg-white border border-slate-200 text-center text-xs py-1.5 rounded-lg text-slate-800 font-mono">
+        <span class="text-slate-400 text-xs">-</span>
+        <input type="number" value="${max}" class="rule-max w-16 bg-white border border-slate-200 text-center text-xs py-1.5 rounded-lg text-slate-800 font-mono">
+        <input type="text" value="${escapeHTML(text)}" placeholder="ข้อความแก้ไข..." class="rule-text flex-1 bg-white border border-slate-200 text-xs px-2.5 py-1.5 rounded-lg text-slate-800">
+        <button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-rose-600 p-1.5 cursor-pointer">✖</button>
+      `;
+      wrap.appendChild(row);
+    }
+
+    async function saveRulesToSupabase() {
+      const btn = document.getElementById('btnSaveRules');
+      btn.disabled = true;
+      btn.innerText = "กำลังบันทึก...";
+
+      const rules = Array.from(document.querySelectorAll('#adminRulesList > div')).map(el => ({
+        rule_type: 'attendance',
+        min_percent: parseInt(el.querySelector('.rule-min').value) || 0,
+        max_percent: parseInt(el.querySelector('.rule-max').value) || 0,
+        remedy_text: el.querySelector('.rule-text').value.trim()
+      }));
+
+      await dbAssembly.from('system_rules').delete().gt('id', 0);
+      const { error } = await dbAssembly.from('system_rules').insert(rules);
+      btn.disabled = false;
+      btn.innerText = "บันทึกเกณฑ์เงื่อนไข";
+
+      if (!error) {
+        alert("✅ บันทึกเกณฑ์เงื่อนไขเรียบร้อยแล้ว");
+        fetchAssemblyData();
+      } else {
+        alert("❌ เกิดข้อผิดพลาด: " + error.message);
+      }
+    }
+
+    async function triggerGASSync() {
+      const btn = document.getElementById('btnSyncTrigger');
+      btn.disabled = true;
+      btn.innerHTML = `<span class="animate-spin mr-1.5">🔄</span> กำลังดึงชีตส่งเข้า Supabase...`;
+
+      try {
+        const res = await fetch(GAS_API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({ action: "sync_to_supabase" })
+        });
+        const data = await res.json();
+        if (data.status === "success") {
+          alert("✅ อัปเดตข้อมูลจากชีตขึ้น Supabase สำเร็จ!");
+          fetchAssemblyData();
+        } else {
+          alert("❌ ล้มเหลว: " + data.message);
         }
-
-        async function fetchAllRows(client, tableName, select = '*') {
-            let allRows = [];
-            let from = 0;
-            const step = 1000;
-            while (true) {
-                const to = from + step - 1;
-                const { data, error } = await client
-                    .from(tableName)
-                    .select(select)
-                    .range(from, to);
-                if (error) throw error;
-                if (!data || data.length === 0) break;
-                allRows.push(...data);
-                if (data.length < step) break;
-                from += step;
-            }
-            return allRows;
-        }
-
-        function switchSystemMode(mode) {
-            if (systemMode === mode) return;
-            systemMode = mode;
-
-            const btnAss = document.getElementById('btnModeAssembly');
-            const btnAct = document.getElementById('btnModeActivities');
-            const pageTitle = document.getElementById('pageMainTitle');
-            const navIcon = document.getElementById('navIcon');
-            const thStat = document.getElementById('thStatColTitle');
-            const thTeacher = document.getElementById('thTeacherColTitle');
-
-            if (mode === 'assembly') {
-                btnAss.className = "py-2 px-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-white bg-slate-900 shadow-sm flex items-center justify-center gap-1 cursor-pointer";
-                btnAct.className = "py-2 px-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1 cursor-pointer";
-                pageTitle.innerText = "สรุปผลการเข้าแถว";
-                navIcon.innerText = "🚩";
-                thStat.innerText = "สถิติการเข้าแถว";
-                thTeacher.innerText = "ครูที่ปรึกษา";
-            } else {
-                btnAct.className = "py-2 px-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-white bg-primary shadow-sm flex items-center justify-center gap-1 cursor-pointer";
-                btnAss.className = "py-2 px-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1 cursor-pointer";
-                pageTitle.innerText = "สรุปกิจกรรมกลาง (ReCheck)";
-                navIcon.innerText = "🎓";
-                thStat.innerText = "สถิติกิจกรรมกลาง";
-                thTeacher.innerText = "สถานะคำร้อง";
-            }
-
-            document.getElementById('searchInput').value = '';
-            fetchCurrentModeData();
-        }
-
-        function fetchCurrentModeData() {
-            if (systemMode === 'assembly') {
-                fetchAssemblyData();
-            } else {
-                fetchActivitiesData();
-            }
-        }
-
-        // ==========================================
-        // 🚩 ข้อมูล "เข้าแถว" (แก้เรียง % และเกณฑ์วันรวม)
-        // ==========================================
-		async function fetchAssemblyData() {
-            const icon = document.getElementById('refreshIcon');
-            icon.classList.add('animate-spin');
-            document.getElementById('loadingSkeleton').classList.remove('hidden');
-            document.getElementById('contentContainer').classList.add('hidden');
-
-            try {
-                const students = await fetchAllRows(dbAssembly, 'attendance_summary', '*');
-
-                const { data: rules } = await dbAssembly.from('system_rules').select('*').order('min_percent', { ascending: false });
-                globalRules = rules || [];
-
-                const { data: settings } = await dbAssembly.from('system_settings').select('*');
-                if (settings) {
-                    const passObj = settings.find(s => s.key === 'admin_password');
-                    const updatedObj = settings.find(s => s.key === 'last_updated');
-                    const totalDaysObj = settings.find(s => s.key === 'base_total_days');
-
-                    if (passObj) serverAdminPass = passObj.value;
-                    if (updatedObj && updatedObj.value) {
-                        document.getElementById('lastUpdatedText').innerText = `เข้าแถวอัปเดต: ${updatedObj.value}`;
-                    }
-                    if (totalDaysObj && totalDaysObj.value) {
-                        const parsed = parseInt(totalDaysObj.value, 10);
-                        if (!isNaN(parsed) && parsed > 0) {
-                            globalBaseTotalDays = parsed;
-                        }
-                    }
-                }
-
-                // คำนวณโดยล็อกเพดานวันมาให้ตันที่ 65 วันพอดีเป๊ะ (ไม่ให้โผล่ 77/65)
-                masterStudents = (students || []).map(s => {
-                    const rawPresent = parseInt(s.present_days, 10) || 0;
-                    const total = globalBaseTotalDays > 0 ? globalBaseTotalDays : (parseInt(s.total_days, 10) || 65);
-                    
-                    // ✅ ล็อกวันมาให้ตันสูงสุดเท่ากับวันรวม (ตันที่ 65 วัน ไม่เกินแน่นอน)
-                    const present = Math.min(total, rawPresent);
-                    
-                    let pct = 0;
-                    if (globalBaseTotalDays > 0) {
-                        pct = total > 0 ? Math.min(100, Math.round((present / total) * 100)) : 0;
-                    } else if (s.percent !== undefined && s.percent !== null && String(s.percent).trim() !== '') {
-                        const cleaned = String(s.percent).replace(/[^0-9.-]/g, '');
-                        const parsed = parseFloat(cleaned);
-                        pct = isNaN(parsed) ? (total > 0 ? Math.min(100, Math.round((present / total) * 100)) : 0) : Math.min(100, Math.round(parsed));
-                    } else {
-                        pct = total > 0 ? Math.min(100, Math.round((present / total) * 100)) : 0;
-                    }
-
-                    return {
-                        id: s.id,
-                        name: s.student_name || '',
-                        dept: s.department || 'ทั่วไป',
-                        level: s.pure_level || 'ไม่ระบุ',
-                        teacher: s.teacher_email || '-',
-                        present: present, // จะโชว์ 65/65 วัน พอดีเป๊ะ
-                        total: total,
-                        percent: Number(pct) || 0
-                    };
-                });
-
-                // เรียงลำดับจากน้อยไปมากอย่างแม่นยำ (เสี่ยงตกมากสุดขึ้นก่อน)
-                masterStudents.sort((a, b) => {
-                    if (a.percent !== b.percent) return a.percent - b.percent;
-                    if (a.present !== b.present) return a.present - b.present;
-                    return (a.name || '').localeCompare(b.name || '', 'th');
-                });
-
-                populateFilters();
-                updateKPICounters();
-                applyFilters();
-
-            } catch (err) {
-                console.error(err);
-                alert("ไม่สามารถดึงข้อมูลเข้าแถวได้: " + err.message);
-            } finally {
-                icon.classList.remove('animate-spin');
-                document.getElementById('loadingSkeleton').classList.add('hidden');
-                document.getElementById('contentContainer').classList.remove('hidden');
-            }
-        }
-
-        async function saveBaseTotalDays() {
-            const val = parseInt(document.getElementById('adminBaseTotalDaysInput').value, 10);
-            if (!val || val <= 0) {
-                alert("กรุณาระบุจำนวนวันให้ถูกต้อง (มากกว่า 0 วัน)");
-                return;
-            }
-
-            const btn = document.getElementById('btnSaveBaseTotalDays');
-            btn.disabled = true;
-            btn.innerText = "กำลังบันทึก...";
-
-            try {
-                const { data: existing } = await dbAssembly.from('system_settings').select('*').eq('key', 'base_total_days');
-                let err;
-                if (existing && existing.length > 0) {
-                    const { error } = await dbAssembly.from('system_settings').update({ value: String(val) }).eq('key', 'base_total_days');
-                    err = error;
-                } else {
-                    const { error } = await dbAssembly.from('system_settings').insert({ key: 'base_total_days', value: String(val) });
-                    err = error;
-                }
-
-                if (err) throw err;
-
-                globalBaseTotalDays = val;
-                alert(`✅ กำหนดเกณฑ์วันรวมเข้าแถวทั้งระบบเป็น ${val} วัน เรียบร้อยแล้ว`);
-                fetchAssemblyData();
-            } catch (e) {
-                alert("❌ ไม่สามารถบันทึกได้: " + e.message);
-            } finally {
-                btn.disabled = false;
-                btn.innerText = "บันทึกเกณฑ์วัน";
-            }
-        }
-
-        // ==========================================
-        // ⚡ ระบบยืนยันสองชั้น (2-Step Verification แก้ 80%)
-        // ==========================================
-        function openRemediationModal(name, dept, level, present, total, currentPct, btnId) {
-            if (isProcessingRemediation) {
-                alert("⚠️ กรุณารอให้ระบบบันทึกคนก่อนหน้าเสร็จสิ้นก่อนครับ");
-                return;
-            }
-
-            if (currentPct >= 80) {
-                alert(`นักเรียนคนนี้ผ่านเกณฑ์ 80% อยู่แล้ว (${currentPct}%)`);
-                return;
-            }
-
-            const needed = Math.max(1, Math.ceil(total * 0.8) - present);
-            const targetTotalPct = Math.round(((present + needed) / total) * 100);
-
-            currentRemTarget = {
-                name,
-                dept,
-                level,
-                present,
-                total,
-                currentPct,
-                needed,
-                targetTotalPct,
-                btnId
-            };
-
-            document.getElementById('remStudentName').innerText = name;
-            document.getElementById('remStudentDept').innerText = `${level} • แผนก${dept}`;
-            document.getElementById('remCurrentStat').innerText = `มา ${present}/${total} วัน (${currentPct}%)`;
-            document.getElementById('remTargetStat').innerText = `+${needed} วัน (ผลลัพธ์: ${present + needed}/${total} วัน = ${targetTotalPct}%)`;
-
-            const passInput = document.getElementById('remAdminPassInput');
-            passInput.value = '';
-            passInput.type = 'password';
-            document.getElementById('remPassError').classList.add('hidden');
-            document.getElementById('remEyeOpenIcon').classList.add('hidden');
-            document.getElementById('remEyeClosedIcon').classList.remove('hidden');
-
-            const modal = document.getElementById('remediationModal');
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-
-            setTimeout(() => passInput.focus(), 100);
-        }
-
-        function closeRemediationModal() {
-            if (isProcessingRemediation) return;
-            const modal = document.getElementById('remediationModal');
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-            currentRemTarget = null;
-        }
-
-        function toggleRemPassVisibility() {
-            const input = document.getElementById('remAdminPassInput');
-            const isText = input.type === 'text';
-            input.type = isText ? 'password' : 'text';
-            document.getElementById('remEyeOpenIcon').classList.toggle('hidden', isText);
-            document.getElementById('remEyeClosedIcon').classList.toggle('hidden', !isText);
-        }
-
-        async function submitRemediationProcess() {
-            if (!currentRemTarget || isProcessingRemediation) return;
-
-            const passInput = document.getElementById('remAdminPassInput');
-            const enteredPass = passInput.value;
-            const errText = document.getElementById('remPassError');
-
-            // กรอกรหัสแอดมินยืนยันทุกรอบ (2-Step Verification)
-            if (enteredPass !== serverAdminPass && enteredPass !== "ovt69") {
-                errText.classList.remove('hidden');
-                passInput.value = '';
-                passInput.focus();
-                return;
-            }
-            errText.classList.add('hidden');
-
-            const { name, dept, level, btnId } = currentRemTarget;
-
-            const btnConfirm = document.getElementById('btnRemConfirm');
-            const btnCancel = document.getElementById('btnRemCancel');
-            isProcessingRemediation = true;
-            btnConfirm.disabled = true;
-            btnCancel.disabled = true;
-            btnConfirm.innerHTML = `<span class="animate-spin mr-1">⏳</span> กำลังส่งข้อมูลไปยัง Google Drive...`;
-
-            const origCardBtn = document.getElementById(btnId);
-            let origCardHtml = "";
-            if (origCardBtn) {
-                origCardHtml = origCardBtn.innerHTML;
-                origCardBtn.disabled = true;
-                origCardBtn.innerHTML = `<span class="animate-spin">⏳</span>`;
-            }
-
-            try {
-                const res = await fetch(GAS_API_URL, {
-                    method: "POST",
-                    headers: { "Content-Type": "text/plain;charset=utf-8" },
-                    body: JSON.stringify({
-                        action: "resolve_remediation",
-                        student_name: name,
-                        dept: dept,
-                        level: level
-                    })
-                });
-
-                const data = await res.json();
-                if (data.status === "success") {
-                    alert(`✅ บันทึกแก้กิจกรรม 80% ของ ${name} เรียบร้อยแล้ว!`);
-                    closeRemediationModal();
-                    await fetchAssemblyData();
-                } else {
-                    alert(`❌ ไม่สามารถแก้ไขได้: ${data.message || 'เกิดข้อผิดพลาด'}`);
-                    if (origCardBtn) {
-                        origCardBtn.disabled = false;
-                        origCardBtn.innerHTML = origCardHtml;
-                    }
-                }
-            } catch (err) {
-                alert("❌ ไม่สามารถเชื่อมต่อกับ Google Apps Script ได้ กรุณาลองใหม่อีกครั้ง");
-                if (origCardBtn) {
-                    origCardBtn.disabled = false;
-                    origCardBtn.innerHTML = origCardHtml;
-                }
-            } finally {
-                isProcessingRemediation = false;
-                btnConfirm.disabled = false;
-                btnCancel.disabled = false;
-                btnConfirm.innerHTML = `<span>⚡ ยืนยันแก้ 80% (Google Drive)</span>`;
-            }
-        }
-
-        // ==========================================
-        // 🎓 ส่วนกิจกรรมกลาง (คงเดิม 100% ห้ามเปลี่ยนแปลง)
-        // ==========================================
-        function getStudentPassedSet(s, attMap) {
-            const passed = new Set();
-            const idStr = String(s.id || '').trim();
-            const codeStr = String(s.student_id || '').trim();
-
-            if (idStr && attMap[idStr]) {
-                attMap[idStr].forEach(act => passed.add(act));
-            }
-            if (codeStr && attMap[codeStr]) {
-                attMap[codeStr].forEach(act => passed.add(act));
-            }
-            return passed;
-        }
-
-        async function fetchActivitiesData() {
-            const icon = document.getElementById('refreshIcon');
-            icon.classList.add('animate-spin');
-            document.getElementById('loadingSkeleton').classList.remove('hidden');
-            document.getElementById('contentContainer').classList.add('hidden');
-
-            try {
-                const [students, activities, attendances] = await Promise.all([
-                    fetchAllRows(dbReCheck, 'students', '*'),
-                    fetchAllRows(dbReCheck, 'activities', '*'),
-                    fetchAllRows(dbReCheck, 'attendances', '*')
-                ]);
-
-                rcActivities = activities || [];
-                rcAttendances = attendances || [];
-
-                const totalActs = rcActivities.length || 1;
-
-                const attMap = {};
-                rcAttendances.forEach(a => {
-                    const sid = String(a.student_id || '').trim();
-                    const actId = String(a.activity_id || '').trim().toLowerCase();
-                    if (sid && actId) {
-                        if (!attMap[sid]) attMap[sid] = new Set();
-                        attMap[sid].add(actId);
-                    }
-                });
-
-                masterStudents = (students || []).map(s => {
-                    const passedSet = getStudentPassedSet(s, attMap);
-                    const passedCount = Math.min(passedSet.size, totalActs);
-                    const pct = Math.min(Math.round((passedCount / totalActs) * 100), 100);
-
-                    return {
-                        id: s.id,
-                        student_id: s.student_id,
-                        name: s.full_name,
-                        dept: s.department || 'ทั่วไป',
-                        level: s.class_level || 'ไม่ระบุ',
-                        teacher: `ผ่าน ${passedCount}/${totalActs} งาน`,
-                        present: passedCount,
-                        total: totalActs,
-                        percent: pct,
-                        passedSet: passedSet
-                    };
-                });
-
-                masterStudents.sort((a, b) => a.percent - b.percent);
-
-                document.getElementById('lastUpdatedText').innerText = `กิจกรรมกลาง: ทั้งหมด ${totalActs} งาน (เกณฑ์ผ่าน 80%)`;
-
-                populateFilters();
-                updateKPICounters();
-                applyFilters();
-
-            } catch (err) {
-                console.error(err);
-                alert("ไม่สามารถดึงข้อมูลกิจกรรมกลางได้: " + err.message);
-            } finally {
-                icon.classList.remove('animate-spin');
-                document.getElementById('loadingSkeleton').classList.add('hidden');
-                document.getElementById('contentContainer').classList.remove('hidden');
-            }
-        }
-
-        // ==========================================
-        // 🔍 ระบบตัวกรองและการแสดงผล
-        // ==========================================
-        function populateFilters() {
-            const deptSelect = document.getElementById('deptSelect');
-            const currentDept = deptSelect.value;
-            deptSelect.innerHTML = '<option value="ALL">ทุกแผนกวิชา</option>';
-            
-            const depts = [...new Set(masterStudents.map(s => s.dept))].filter(Boolean).sort();
-            depts.forEach(d => {
-                deptSelect.add(new Option("แผนก " + d, d));
-            });
-            deptSelect.value = depts.includes(currentDept) ? currentDept : 'ALL';
-
-            onDeptSelectChange();
-        }
-
-        function onDeptSelectChange() {
-            const selectedDept = document.getElementById('deptSelect').value;
-            const levelSelect = document.getElementById('levelSelect');
-            const currentLevel = levelSelect.value;
-            levelSelect.innerHTML = '<option value="ALL">ทุกชั้นปี</option>';
-
-            const targetList = selectedDept === 'ALL' ? masterStudents : masterStudents.filter(s => s.dept === selectedDept);
-            const levels = [...new Set(targetList.map(s => s.level))].filter(Boolean).sort();
-            levels.forEach(l => {
-                levelSelect.add(new Option(l, l));
-            });
-            levelSelect.value = levels.includes(currentLevel) ? currentLevel : 'ALL';
-
-            applyFilters();
-        }
-
-        function setStatusTab(tab) {
-            currentTab = tab;
-            ['ALL', 'RISK', 'PASS'].forEach(t => {
-                const el = document.getElementById('tab' + t);
-                if (t === tab) {
-                    el.className = "tab-btn flex-1 sm:flex-initial px-3 sm:px-4 py-1.5 rounded-lg font-medium transition-all text-slate-900 bg-white shadow-sm cursor-pointer text-center";
-                } else {
-                    el.className = "tab-btn flex-1 sm:flex-initial px-3 sm:px-4 py-1.5 rounded-lg font-medium transition-all text-slate-600 hover:text-slate-900 cursor-pointer text-center";
-                }
-            });
-            applyFilters();
-        }
-
-        function clearSearch() {
-            document.getElementById('searchInput').value = '';
-            document.getElementById('btnClearSearch').classList.add('hidden');
-            applyFilters();
-        }
-
-        function updateKPICounters() {
-            const total = masterStudents.length;
-            const risk = masterStudents.filter(s => s.percent < 80).length;
-            const pass = masterStudents.filter(s => s.percent >= 80).length;
-            const avg = total > 0 ? Math.round(masterStudents.reduce((a, b) => a + b.percent, 0) / total) : 0;
-
-            document.getElementById('statTotal').innerText = total;
-            document.getElementById('statRisk').innerText = risk;
-            document.getElementById('statPass').innerText = pass;
-            document.getElementById('statAvgRate').innerText = `${avg}%`;
-
-            document.getElementById('statRiskBar').style.width = total > 0 ? `${(risk / total) * 100}%` : '0%';
-            document.getElementById('statPassBar').style.width = total > 0 ? `${(pass / total) * 100}%` : '0%';
-            document.getElementById('statAvgBar').style.width = `${avg}%`;
-
-            document.getElementById('tabCountAll').innerText = total;
-            document.getElementById('tabCountRisk').innerText = risk;
-            document.getElementById('tabCountPass').innerText = pass;
-        }
-
-        function applyFilters() {
-            const search = document.getElementById('searchInput').value.trim().toLowerCase();
-            const dept = document.getElementById('deptSelect').value;
-            const level = document.getElementById('levelSelect').value;
-
-            const btnClear = document.getElementById('btnClearSearch');
-            if (btnClear) btnClear.classList.toggle('hidden', search === '');
-
-            let result = masterStudents.filter(s => {
-                const matchSearch = !search || s.name.toLowerCase().includes(search);
-                const matchDept = dept === 'ALL' || s.dept === dept;
-                const matchLevel = level === 'ALL' || s.level === level;
-                const matchTab = currentTab === 'ALL' 
-                    ? true 
-                    : (currentTab === 'RISK' ? s.percent < 80 : s.percent >= 80);
-
-                return matchSearch && matchDept && matchLevel && matchTab;
-            });
-
-            const countEl = document.getElementById('filteredResultCount');
-            if (countEl) countEl.innerText = result.length;
-
-            renderDisplay(result);
-        }
-
-        function renderDisplay(list) {
-            const emptyState = document.getElementById('emptyState');
-            const mobileContainer = document.getElementById('mobileCardList');
-            const desktopTbody = document.getElementById('desktopTableBody');
-
-            if (list.length === 0) {
-                emptyState.classList.remove('hidden');
-                mobileContainer.innerHTML = '';
-                desktopTbody.innerHTML = '';
-                return;
-            }
-            emptyState.classList.add('hidden');
-
-            const isActMode = systemMode === 'activities';
-
-            // 1. Mobile Cards View
-            let mobileHTML = '';
-            list.forEach((s, idx) => {
-                const isRisk = s.percent < 80;
-                const badgeColor = isRisk ? 'text-rose-700 bg-rose-50 border-rose-200' : 'text-emerald-700 bg-emerald-50 border-emerald-200';
-                const borderAccent = isRisk ? 'border-l-rose-500' : 'border-l-emerald-500';
-                const statText = isActMode ? `${s.present}/${s.total} งาน` : `${s.present}/${s.total} วัน`;
-                const btnRemId = `btn-rem-m-${idx}`;
-
-                mobileHTML += `
-                <div class="p-3 bg-white rounded-xl border border-slate-200 border-l-4 ${borderAccent} shadow-xs space-y-2">
-                    <div class="flex items-center justify-between gap-2">
-                        <div class="flex items-center gap-2 min-w-0">
-                            <span class="w-5 h-5 rounded-md bg-slate-100 text-slate-500 text-[10px] font-bold font-mono flex items-center justify-center flex-shrink-0">
-                                ${idx + 1}
-                            </span>
-                            <h4 class="text-xs sm:text-sm font-bold text-slate-800 truncate">${escapeHTML(s.name)}</h4>
-                        </div>
-                        <span class="px-2 py-0.5 rounded-lg text-xs font-mono font-bold border ${badgeColor} flex-shrink-0">
-                            ${s.percent}%
-                        </span>
-                    </div>
-
-                    <div class="flex items-center justify-between text-xs text-slate-500 pt-0.5">
-                        <div class="flex items-center gap-1.5 truncate text-[11px]">
-                            <span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-medium">${escapeHTML(s.level)}</span>
-                            <span class="truncate">${escapeHTML(s.dept)}</span>
-                            <span class="text-slate-300">•</span>
-                            <span class="font-mono text-slate-700 font-medium">${statText}</span>
-                        </div>
-
-                        <div class="flex items-center gap-1.5 flex-shrink-0">
-                            ${isRisk ? `
-                                ${(!isActMode && isAdminLoggedIn) ? `
-                                    <button id="${btnRemId}" onclick="openRemediationModal('${escapeHTML(s.name)}', '${escapeHTML(s.dept)}', '${escapeHTML(s.level)}', ${s.present}, ${s.total}, ${s.percent}, '${btnRemId}')" class="text-[11px] text-amber-800 bg-amber-100 hover:bg-amber-200 px-2 py-1 rounded-lg font-semibold border border-amber-300 transition-colors shadow-xs flex items-center gap-0.5 cursor-pointer">
-                                        ⚡ แก้ 80%
-                                    </button>
-                                ` : ''}
-                                <button onclick="openResolutionModal('${escapeHTML(s.name)}', ${s.percent}, '${escapeHTML(String(s.id))}')" class="text-[11px] text-rose-700 bg-rose-50 hover:bg-rose-100 px-2.5 py-1 rounded-lg font-semibold border border-rose-200 transition-colors cursor-pointer">
-                                    ${isActMode ? 'แก้ตกหล่น' : 'ดูวิธีแก้'} ›
-                                </button>
-                            ` : `
-                                <button onclick="openResolutionModal('${escapeHTML(s.name)}', ${s.percent}, '${escapeHTML(String(s.id))}')" class="text-[11px] text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-lg font-medium border border-emerald-200 transition-colors cursor-pointer">
-                                    ดูข้อมูล
-                                </button>
-                            `}
-                        </div>
-                    </div>
-                </div>`;
-            });
-            mobileContainer.innerHTML = mobileHTML;
-
-            // 2. Desktop Table View
-            let desktopHTML = '';
-            list.forEach((s, idx) => {
-                const isRisk = s.percent < 80;
-                const badgeColor = isRisk ? 'text-rose-700 bg-rose-50 border-rose-200' : 'text-emerald-700 bg-emerald-50 border-emerald-200';
-                const barColor = isRisk ? 'bg-rose-500' : 'bg-emerald-500';
-                const statText = isActMode ? `${s.present}/${s.total} งาน` : `${s.present}/${s.total} วัน`;
-                const btnRemId = `btn-rem-d-${idx}`;
-
-                desktopHTML += `
-                <tr class="hover:bg-slate-50/80 transition-colors">
-                    <td class="py-3 px-4 text-center font-mono text-xs text-slate-400">${idx + 1}</td>
-                    <td class="py-3 px-4">
-                        <span class="font-semibold text-slate-800">${escapeHTML(s.name)}</span>
-                    </td>
-                    <td class="py-3 px-4 text-xs text-slate-500">
-                        <span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-medium">${escapeHTML(s.level)}</span>
-                        <span class="ml-1 text-slate-600">แผนก${escapeHTML(s.dept)}</span>
-                    </td>
-                    <td class="py-3 px-4">
-                        <div class="flex items-center gap-3">
-                            <span class="font-mono font-bold text-xs px-2 py-0.5 rounded-md border ${badgeColor} w-14 text-center">
-                                ${s.percent}%
-                            </span>
-                            <div class="flex-1">
-                                <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                                    <div class="${barColor} h-full rounded-full" style="width: ${s.percent}%"></div>
-                                </div>
-                                <span class="text-[10px] text-slate-400 font-mono mt-0.5 block">${statText}</span>
-                            </div>
-                        </div>
-                    </td>
-                    <td class="py-3 px-4 text-center text-xs text-slate-500 truncate max-w-[160px]">
-                        ${isActMode ? `<span class="font-medium text-slate-600">ผ่าน ${s.present} งาน</span>` : escapeHTML(s.teacher)}
-                    </td>
-                    <td class="py-3 px-4 text-right pr-6">
-                        <div class="flex items-center justify-end gap-1.5">
-                            ${isRisk ? `
-                                ${(!isActMode && isAdminLoggedIn) ? `
-                                    <button id="${btnRemId}" onclick="openRemediationModal('${escapeHTML(s.name)}', '${escapeHTML(s.dept)}', '${escapeHTML(s.level)}', ${s.present}, ${s.total}, ${s.percent}, '${btnRemId}')" class="text-xs text-amber-800 bg-amber-100 hover:bg-amber-200 px-2.5 py-1.5 rounded-xl border border-amber-300 font-medium transition-all shadow-xs flex items-center gap-1 cursor-pointer">
-                                        ⚡ แก้ 80%
-                                    </button>
-                                ` : ''}
-                                <button onclick="openResolutionModal('${escapeHTML(s.name)}', ${s.percent}, '${escapeHTML(String(s.id))}')" class="text-xs text-rose-700 bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-xl border border-rose-200 transition-all font-medium cursor-pointer">
-                                    ${isActMode ? 'ยื่นแก้ตกหล่น' : 'ดูวิธีแก้'}
-                                </button>
-                            ` : `
-                                <button onclick="openResolutionModal('${escapeHTML(s.name)}', ${s.percent}, '${escapeHTML(String(s.id))}')" class="text-xs text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-xl border border-emerald-200 transition-all font-medium cursor-pointer">
-                                    รายละเอียด
-                                </button>
-                            `}
-                        </div>
-                    </td>
-                </tr>`;
-            });
-            desktopTbody.innerHTML = desktopHTML;
-        }
-
-        function openResolutionModal(name, pct, studentId) {
-            document.getElementById('resStudentTitle').innerText = name;
-            const badge = document.getElementById('resPercentBadge');
-            const iconWrap = document.getElementById('resIconWrap');
-            const icon = document.getElementById('resIcon');
-            const remedyText = document.getElementById('resRemedyText');
-            const heading = document.getElementById('resModalHeading');
-            const statLabel = document.getElementById('resStatLabelText');
-            const actWrap = document.getElementById('resActivitiesListWrap');
-            const lineBtn = document.getElementById('btnLineAppeal') || document.querySelector('a[href*="lin.ee"]');
-
-            badge.innerText = `${pct}%`;
-
-            if (pct < 80) {
-                badge.className = "font-mono text-sm font-bold px-2.5 py-0.5 rounded-lg text-rose-700 bg-rose-50 border border-rose-200";
-                iconWrap.className = "w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-rose-50 text-rose-600";
-                icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>`;
-            } else {
-                badge.className = "font-mono text-sm font-bold px-2.5 py-0.5 rounded-lg text-emerald-700 bg-emerald-50 border border-emerald-200";
-                iconWrap.className = "w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-emerald-50 text-emerald-600";
-                icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>`;
-            }
-
-            if (systemMode === 'activities') {
-                heading.innerText = "สถานะกิจกรรมกลาง";
-                statLabel.innerText = "ร้อยละการเข้าร่วม";
-                actWrap.classList.remove('hidden');
-
-                if (lineBtn) lineBtn.classList.remove('hidden');
-
-                if (pct < 80) {
-                    remedyText.innerText = "⚠️ คุณมีกิจกรรมที่ยังไม่ผ่านเกณฑ์ 80%\nสามารถกดปุ่มสีเขียวด้านล่างเพื่อเปิด LINE ส่งรูปภาพหลักฐานยืนยันได้ทันทีครับ";
-                } else {
-                    remedyText.innerText = "🎉 ยินดีด้วยครับ! คุณผ่านเกณฑ์กิจกรรมกลาง (≥80%) เรียบร้อยแล้ว\n(หากมีงานตกหล่นที่ต้องการเก็บให้ครบ สามารถกดปุ่ม LINE ด้านล่างได้เช่นกันครับ)";
-                }
-
-                const std = masterStudents.find(s => String(s.id) === String(studentId));
-                const passedSet = std ? std.passedSet : new Set();
-
-                actWrap.innerHTML = rcActivities.map(act => {
-                    const actKey = String(act.id || '').trim().toLowerCase();
-                    const isPassed = passedSet.has(actKey);
-                    return `
-                        <div class="flex items-center justify-between p-3 rounded-xl border ${isPassed ? 'bg-emerald-50/90 border-emerald-200' : 'bg-rose-50/90 border-rose-200'} shadow-2xs transition-all">
-                            <div class="flex items-center gap-2.5 min-w-0 pr-2">
-                                <span class="text-sm">${isPassed ? '🟢' : '🔴'}</span>
-                                <span class="text-xs sm:text-sm font-bold ${isPassed ? 'text-emerald-950' : 'text-rose-950'} truncate">
-                                    ${escapeHTML(act.name)}
-                                </span>
-                            </div>
-                            <span class="px-2.5 py-1 rounded-lg text-[11px] sm:text-xs font-bold whitespace-nowrap flex-shrink-0 shadow-xs ${isPassed ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'}">
-                                ${isPassed ? '✓ เข้าร่วม' : '✕ ไม่พบการเข้าร่วม'}
-                            </span>
-                        </div>
-                    `;
-                }).join('');
-
-            } else {
-                if (lineBtn) lineBtn.classList.add('hidden');
-
-                heading.innerText = "แนวทางการแก้ไข (เข้าแถว)";
-                statLabel.innerText = "สถิติเข้าแถวปัจจุบัน";
-                actWrap.classList.add('hidden');
-
-                const matched = globalRules.find(r => pct >= r.min_percent && pct <= r.max_percent);
-                remedyText.innerText = matched ? matched.remedy_text : "กรุณาติดต่ออาจารย์ที่ปรึกษาประจำแผนกเพื่อตรวจสอบและยื่นเอกสารการเข้าแถว";
-            }
-
-            const modal = document.getElementById('resolutionModal');
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-        }
-
-        function closeResolutionModal() {
-            const modal = document.getElementById('resolutionModal');
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-        }
-
-        // ==========================================
-        // 🔒 ระบบรหัสผ่านแอดมิน
-        // ==========================================
-        function openPasswordModal() {
-            if (isAdminLoggedIn) {
-                showAdminPanel();
-                return;
-            }
-            document.getElementById('passwordModal').classList.replace('hidden', 'flex');
-            const input = document.getElementById('adminPassInput');
-            input.value = '';
-            input.type = 'password';
-            
-            const eyeOpen = document.getElementById('eyeOpenIcon');
-            const eyeClosed = document.getElementById('eyeClosedIcon');
-            if (eyeOpen) eyeOpen.classList.add('hidden');
-            if (eyeClosed) eyeClosed.classList.remove('hidden');
-            
-            setTimeout(() => input.focus(), 100);
-        }
-
-        function closePasswordModal() {
-            document.getElementById('passwordModal').classList.replace('flex', 'hidden');
-        }
-
-        function togglePassVisibility() {
-            const input = document.getElementById('adminPassInput');
-            const isText = input.type === 'text';
-            input.type = isText ? 'password' : 'text';
-            document.getElementById('eyeOpenIcon').classList.toggle('hidden', isText);
-            document.getElementById('eyeClosedIcon').classList.toggle('hidden', !isText);
-        }
-
-        function submitAdminPass() {
-            const val = document.getElementById('adminPassInput').value;
-            if (val === serverAdminPass || val === "ovt69") {
-                isAdminLoggedIn = true;
-                localStorage.setItem('admin_session', 'true');
-                document.getElementById('adminBtnText').innerText = "แอดมิน (ออนไลน์)";
-                closePasswordModal();
-                applyFilters();
-                showAdminPanel();
-            } else {
-                alert("❌ รหัสผ่านไม่ถูกต้อง");
-            }
-        }
-
-        function logoutAdmin() {
-            localStorage.removeItem('admin_session');
-            isAdminLoggedIn = false;
-            document.getElementById('adminBtnText').innerText = "ระบบแอดมิน";
-            closeAdminPanel();
-            applyFilters();
-        }
-
-        function showAdminPanel() {
-            document.getElementById('adminPanelModal').classList.replace('hidden', 'flex');
-            const totalInput = document.getElementById('adminBaseTotalDaysInput');
-            if (totalInput) totalInput.value = globalBaseTotalDays;
-            renderAdminRules();
-        }
-
-        function closeAdminPanel() {
-            document.getElementById('adminPanelModal').classList.replace('flex', 'hidden');
-        }
-
-        function renderAdminRules() {
-            const wrap = document.getElementById('adminRulesList');
-            wrap.innerHTML = '';
-            if (globalRules.length > 0) {
-                globalRules.forEach(r => addRuleRow(r.min_percent, r.max_percent, r.remedy_text));
-            } else {
-                addRuleRow(70, 79, 'ส่งใบลา / ติดต่อครูที่ปรึกษา');
-                addRuleRow(0, 69, 'เข้าพบหัวหน้างานพัฒนากิจกรรมฯ');
-            }
-        }
-
-        function addRuleRow(min, max, text) {
-            const wrap = document.getElementById('adminRulesList');
-            const row = document.createElement('div');
-            row.className = "flex items-center gap-2 bg-slate-50 p-2 rounded-xl border border-slate-200";
-            row.innerHTML = `
-                <input type="number" value="${min}" class="rule-min w-16 bg-white border border-slate-200 text-center text-xs py-1.5 rounded-lg text-slate-800 font-mono">
-                <span class="text-slate-400 text-xs">-</span>
-                <input type="number" value="${max}" class="rule-max w-16 bg-white border border-slate-200 text-center text-xs py-1.5 rounded-lg text-slate-800 font-mono">
-                <input type="text" value="${escapeHTML(text)}" placeholder="ข้อความแก้ไข..." class="rule-text flex-1 bg-white border border-slate-200 text-xs px-2.5 py-1.5 rounded-lg text-slate-800">
-                <button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-rose-600 p-1.5 cursor-pointer">✖</button>
-            `;
-            wrap.appendChild(row);
-        }
-
-        async function saveRulesToSupabase() {
-            const btn = document.getElementById('btnSaveRules');
-            btn.disabled = true;
-            btn.innerText = "กำลังบันทึก...";
-
-            const rules = Array.from(document.querySelectorAll('#adminRulesList > div')).map(el => ({
-                rule_type: 'attendance',
-                min_percent: parseInt(el.querySelector('.rule-min').value) || 0,
-                max_percent: parseInt(el.querySelector('.rule-max').value) || 0,
-                remedy_text: el.querySelector('.rule-text').value.trim()
-            }));
-
-            await dbAssembly.from('system_rules').delete().gt('id', 0);
-            const { error } = await dbAssembly.from('system_rules').insert(rules);
-            btn.disabled = false;
-            btn.innerText = "บันทึกเกณฑ์เงื่อนไข";
-
-            if (!error) {
-                alert("✅ บันทึกเกณฑ์เงื่อนไขเรียบร้อยแล้ว");
-                fetchAssemblyData();
-            } else {
-                alert("❌ เกิดข้อผิดพลาด: " + error.message);
-            }
-        }
-
-        async function triggerGASSync() {
-            const btn = document.getElementById('btnSyncTrigger');
-            btn.disabled = true;
-            btn.innerHTML = `<span class="animate-spin mr-1.5">🔄</span> กำลังดึงชีตส่งเข้า Supabase...`;
-
-            try {
-                const res = await fetch(GAS_API_URL, {
-                    method: "POST",
-                    headers: { "Content-Type": "text/plain;charset=utf-8" },
-                    body: JSON.stringify({ action: "sync_to_supabase" })
-                });
-                const data = await res.json();
-                if (data.status === "success") {
-                    alert("✅ อัปเดตข้อมูลจากชีตขึ้น Supabase สำเร็จ!");
-                    fetchAssemblyData();
-                } else {
-                    alert("❌ ล้มเหลว: " + data.message);
-                }
-            } catch (err) {
-                alert("❌ ไม่สามารถเชื่อมต่อกับ Google Apps Script ได้");
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = `
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                    <span>สั่งประมวลผลข้อมูลชีตล่าสุด</span>
-                `;
-            }
-        }
-
-        function escapeHTML(str) {
-            if (!str) return '';
-            return str.replace(/[&<>'"]/g, tag => ({
-                '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
-            }[tag]));
-        }
-    </script>
+      } catch (err) {
+        alert("❌ ไม่สามารถเชื่อมต่อกับ Google Apps Script ได้");
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          <span>สั่งประมวลผลข้อมูลชีตล่าสุด</span>
+        `;
+      }
+    }
+
+    function escapeHTML(str) {
+      if (!str) return '';
+      return str.replace(/[&<>'"]/g, tag => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+      }[tag]));
+    }
+  </script>
 </body>
 </html>
