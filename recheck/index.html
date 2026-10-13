@@ -1,0 +1,1796 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบจัดการกิจกรรมกลาง (Admin Portal) - วิทยาลัยการอาชีพด่านซ้าย</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎓</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Prompt', 'sans-serif'] },
+          colors: { primary: '#0284c7', secondary: '#0f172a' }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen">
+
+  <!-- Modal ป้อนรหัสผ่าน (ตรวจผ่าน Secure RPC เดียวกับแดชบอร์ด) -->
+  <div id="loginModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center z-50 p-4" style="display: flex;">
+    <div class="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 text-center">
+      <div class="w-14 h-14 bg-sky-100 text-primary rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold">🔒</div>
+      <h2 class="text-xl font-bold text-slate-800">เข้าสู่ระบบแอดมิน</h2>
+      <p class="text-xs text-slate-500 mt-1 mb-4">เชื่อมต่อระบบความปลอดภัยของวิทยาลัย (Secure RPC)</p>
+      
+      <form id="adminLoginForm" onsubmit="handleLoginSubmit(event)">
+        <input type="text" name="username" value="admin" autocomplete="username" style="display:none;">
+        <input type="password" id="adminPinInput" name="password" autocomplete="current-password" placeholder="รหัสผ่านผู้ดูแลระบบ" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-center text-lg font-semibold tracking-widest focus:outline-none focus:ring-2 focus:ring-primary mb-2">
+        
+        <div class="flex items-center justify-center space-x-2 my-3">
+          <input type="checkbox" id="chkRememberMe" checked class="w-4 h-4 rounded text-primary focus:ring-primary cursor-pointer">
+          <label for="chkRememberMe" class="text-xs text-slate-500 cursor-pointer">จดจำการเข้าสู่ระบบในเครื่องนี้</label>
+        </div>
+
+        <p id="loginError" class="text-xs text-rose-500 hidden mb-3">รหัสผ่านไม่ถูกต้อง หรือเซิร์ฟเวอร์ปฏิเสธคำขอ</p>
+        <button type="submit" id="btnLoginSubmit" class="w-full bg-primary hover:bg-sky-600 text-white font-medium py-3 rounded-xl transition shadow-md shadow-sky-200 cursor-pointer flex items-center justify-center">
+          เข้าสู่ระบบ
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Navbar -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center py-2.5 md:h-16 gap-2">
+      <div class="flex items-center space-x-3 w-full md:w-auto justify-between md:justify-start">
+        <div class="flex items-center space-x-3">
+          <div class="bg-primary text-white p-2 rounded-xl font-bold text-lg">🎓</div>
+          <div>
+            <h1 class="text-base sm:text-lg font-bold text-slate-900 leading-tight">ReCheck กิจกรรมกลาง</h1>
+            <p class="text-xs text-slate-500">ระบบจัดการและอนุมัติกิจกรรม (Admin Portal)</p>
+          </div>
+        </div>
+        <span class="md:hidden text-xs bg-sky-100 text-sky-800 font-bold px-2 py-0.5 rounded-lg" id="mobileTermBadge">...</span>
+      </div>
+
+      <!-- Semester & Year Selector -->
+      <div class="flex items-center space-x-2 w-full md:w-auto justify-end overflow-x-auto">
+        <div class="flex items-center bg-slate-100 p-1 rounded-xl space-x-1.5 border border-slate-200">
+          <span class="text-xs font-bold text-slate-600 pl-2">📅 เทอม:</span>
+          <select id="globalSemesterSelect" onchange="changeAcademicTerm()" class="text-xs bg-white font-bold text-primary px-2.5 py-1.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer">
+            <option value="1">ภาคเรียนที่ 1</option>
+            <option value="2">ภาคเรียนที่ 2</option>
+            <option value="3">ภาคฤดูร้อน</option>
+          </select>
+          <span class="text-xs font-bold text-slate-600">ปี:</span>
+          <select id="globalYearSelect" onchange="changeAcademicTerm()" class="text-xs bg-white font-bold text-slate-700 px-2 py-1.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer font-mono">
+            <option value="2569">2569</option>
+          </select>
+        </div>
+
+        <button onclick="exportToExcel()" class="inline-flex items-center space-x-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-medium px-3 py-2 rounded-xl transition shadow-sm cursor-pointer" title="ส่งออกเป็น Excel แยกชีตย่อยตามแผนกและชั้นปี">
+          <span>📥</span><span class="hidden sm:inline">ส่งออก</span> Excel (แยกชีต)
+        </button>
+        <button onclick="loadAllData()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 p-2 rounded-xl transition text-sm cursor-pointer" title="รีเฟรชข้อมูล">🔄</button>
+        <button onclick="logoutAdmin()" class="bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs px-2.5 py-2 rounded-xl font-medium transition cursor-pointer" title="ออกจากระบบ">🚪 ออกจากระบบ</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <!-- KPI Dashboard Cards -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+        <p class="text-xs text-slate-400 font-medium">นักเรียนในเทอมนี้</p>
+        <h3 id="statTotalStudents" class="text-2xl sm:text-3xl font-bold text-slate-800 mt-1">...</h3>
+        <span class="text-xs text-slate-400" id="statStudentSourceLabel">คนในฐานข้อมูล</span>
+      </div>
+      <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+        <p class="text-xs text-emerald-600 font-medium">ผ่านกิจกรรม (≥80%)</p>
+        <h3 id="statPassedCount" class="text-2xl sm:text-3xl font-bold text-emerald-600 mt-1">...</h3>
+        <span id="statPassedPercent" class="text-xs text-emerald-500 font-medium">0% ของทั้งหมด</span>
+      </div>
+      <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+        <p class="text-xs text-rose-500 font-medium">ไม่ผ่านกิจกรรม (&lt;80%)</p>
+        <h3 id="statFailedCount" class="text-2xl sm:text-3xl font-bold text-rose-500 mt-1">...</h3>
+        <span class="text-xs text-rose-400">ต้องเร่งซ่อมกิจกรรม</span>
+      </div>
+      <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+        <p class="text-xs text-sky-600 font-medium">กิจกรรมกลางในเทอมนี้</p>
+        <h3 id="statTotalActivities" class="text-2xl sm:text-3xl font-bold text-primary mt-1">...</h3>
+        <span class="text-xs text-slate-400">กิจกรรมที่บันทึกไว้</span>
+      </div>
+    </div>
+
+    <!-- Active Term Notice Banner -->
+    <div class="bg-sky-50 border border-sky-200 rounded-2xl p-3.5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+      <div class="flex items-center space-x-2">
+        <span class="text-lg">📌</span>
+        <div class="text-xs text-sky-900">
+          กำลังจัดการข้อมูล: <strong id="termNoticeText" class="text-primary text-sm font-bold">...</strong>
+          <span class="text-slate-500 ml-1.5">(นักเรียน <span id="termStudentCount" class="font-bold text-sky-700">0</span> คน • กิจกรรม <span id="termActCount" class="font-bold text-sky-700">0</span> งาน)</span>
+        </div>
+      </div>
+      <span class="text-[11px] px-3 py-1 rounded-xl font-bold border" id="dbSourceBadge">
+        ...
+      </span>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="flex border-b border-slate-200 space-x-2 sm:space-x-8 text-xs sm:text-sm font-medium overflow-x-auto">
+      <button onclick="switchTab('activitiesTab')" id="btnActivitiesTab" class="tab-btn pb-3 text-primary border-b-2 border-primary cursor-pointer whitespace-nowrap">
+        🎪 จัดการกิจกรรมกลาง
+      </button>
+      <button onclick="switchTab('checkinTab')" id="btnCheckinTab" class="tab-btn pb-3 text-slate-500 hover:text-slate-800 cursor-pointer whitespace-nowrap">
+        ✍️ เช็คชื่อตามใบจริง
+      </button>
+      <button onclick="switchTab('summaryTab')" id="btnSummaryTab" class="tab-btn pb-3 text-slate-500 hover:text-slate-800 cursor-pointer whitespace-nowrap">
+        📊 สรุปผลรายบุคคล
+      </button>
+      <button onclick="switchTab('appealsTab')" id="btnAppealsTab" class="tab-btn pb-3 text-slate-500 hover:text-slate-800 cursor-pointer whitespace-nowrap">
+        📩 ตรวจคำร้องตกหล่น <span id="badgePendingCount" class="ml-1 px-2 py-0.5 text-xs bg-amber-100 text-amber-800 rounded-full font-bold">0</span>
+      </button>
+      <button onclick="switchTab('importTab')" id="btnImportTab" class="tab-btn pb-3 text-slate-500 hover:text-slate-800 cursor-pointer whitespace-nowrap">
+        📤 นำเข้าข้อมูล Excel
+      </button>
+    </div>
+
+    <!-- TAB 1: จัดการกิจกรรมกลาง -->
+    <section id="activitiesTab" class="space-y-4">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+        <div>
+          <h2 class="text-base font-bold text-slate-800">🎪 รายการกิจกรรมกลางของวิทยาลัย</h2>
+          <p class="text-xs text-slate-500">จัดการกิจกรรม, ลิงก์ Drive, สถานะชนลูกเสือ</p>
+        </div>
+        <button onclick="openActivityModal()" class="bg-primary hover:bg-sky-600 text-white text-xs sm:text-sm font-semibold px-4 py-2.5 rounded-xl shadow-sm transition flex items-center space-x-1.5 cursor-pointer">
+          <span>➕</span><span>เพิ่มกิจกรรมใหม่ในเทอมนี้</span>
+        </button>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-50 text-slate-500 text-xs uppercase border-b border-slate-100">
+              <tr>
+                <th class="p-4">รหัสกิจกรรม</th>
+                <th class="p-4">ชื่อกิจกรรม</th>
+                <th class="p-4">ภาคเรียน / ปี</th>
+                <th class="p-4">สถานะลูกเสือ (ปวช.1)</th>
+                <th class="p-4">Google Drive</th>
+                <th class="p-4 text-center">สถิติผู้เข้าร่วม</th>
+                <th class="p-4 text-center">การจัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="activitiesTableBody" class="divide-y divide-slate-100">
+              <tr><td colspan="7" class="p-8 text-center text-slate-400">กำลังโหลดรายการกิจกรรม...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: เช็คชื่อตามใบจริง -->
+    <section id="checkinTab" class="hidden space-y-4">
+      <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4">
+        <h2 class="text-base font-bold text-slate-800">คีย์ข้อมูลการเข้าร่วมจากใบเช็คชื่อจริง</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="text-xs text-slate-500 font-medium">1. เลือกแผนกวิชา</label>
+            <select id="filterDept" onchange="filterCheckinList()" class="mt-1 w-full p-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-primary focus:outline-none">
+              <option value="">-- เลือกแผนกวิชา --</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-xs text-slate-500 font-medium">2. เลือกระดับชั้น</label>
+            <select id="filterLevel" onchange="filterCheckinList()" class="mt-1 w-full p-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-primary focus:outline-none">
+              <option value="">-- เลือกระดับชั้น --</option>
+              <option value="ALL" class="font-bold text-primary">🌟 -- ทุกระดับชั้น (ทั้งแผนก) --</option>
+              <option value="ปวช.1">ปวช.1</option>
+              <option value="ปวช.2">ปวช.2</option>
+              <option value="ปวช.3">ปวช.3</option>
+              <option value="ปวส.1">ปวส.1</option>
+              <option value="ปวส.2">ปวส.2</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-xs text-slate-500 font-medium">3. เลือกกิจกรรมกลางในเทอมนี้</label>
+            <select id="filterActivity" onchange="filterCheckinList()" class="mt-1 w-full p-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-primary focus:outline-none">
+              <option value="">-- เลือกกิจกรรม --</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div id="checkinTableContainer" class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden hidden">
+        <div class="p-4 bg-slate-50 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+          <span id="checkinSummaryText" class="text-xs text-slate-600 font-medium">รายชื่อนักเรียน</span>
+          <div class="space-x-2 text-xs">
+            <button onclick="toggleCheckAllInRoom(true)" class="text-primary hover:underline cursor-pointer font-medium">เลือกทั้งหมด</button>
+            <span class="text-slate-300">|</span>
+            <button onclick="toggleCheckAllInRoom(false)" class="text-slate-500 hover:underline cursor-pointer font-medium">ยกเลิกทั้งหมด</button>
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-50 text-slate-400 text-xs border-b border-slate-100">
+              <tr>
+                <th class="p-3 w-12 text-center">สถานะ</th>
+                <th class="p-3">ชื่อ - นามสกุล</th>
+                <th class="p-3">แผนก</th>
+                <th class="p-3">ชั้นปี</th>
+              </tr>
+            </thead>
+            <tbody id="checkinTableBody" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+        <div class="p-4 bg-slate-50 border-t border-slate-100 text-right">
+          <button onclick="saveManualCheckin()" class="bg-primary hover:bg-sky-600 text-white font-medium text-xs sm:text-sm px-6 py-2.5 rounded-xl shadow-md transition cursor-pointer">💾 บันทึกผลการเช็คชื่อ</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: สรุปผลรายบุคคล -->
+    <section id="summaryTab" class="hidden space-y-4">
+      <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-3">
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+          <div>
+            <label class="text-xs font-semibold text-slate-600">1. ค้นหาชื่อ-สกุล</label>
+            <input type="text" id="searchStudentInput" onkeyup="filterSummaryTable()" placeholder="พิมพ์ชื่อเพื่อค้นหา..." class="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+          </div>
+          <div>
+            <label class="text-xs font-semibold text-slate-600">2. เลือกแผนกวิชา</label>
+            <select id="summaryFilterDept" onchange="filterSummaryTable()" class="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-slate-50 font-medium">
+              <option value="">-- ทุกแผนกวิชา --</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-xs font-semibold text-slate-600">3. เลือกระดับชั้น</label>
+            <select id="summaryFilterLevel" onchange="filterSummaryTable()" class="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-slate-50 font-medium">
+              <option value="">-- ทุกระดับชั้น --</option>
+              <option value="ปวช.1">ปวช.1</option>
+              <option value="ปวช.2">ปวช.2</option>
+              <option value="ปวช.3">ปวช.3</option>
+              <option value="ปวส.1">ปวส.1</option>
+              <option value="ปวส.2">ปวส.2</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-xs font-semibold text-slate-600">4. สถานะการประเมิน</label>
+            <select id="summaryFilterStatus" onchange="filterSummaryTable()" class="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-slate-50 font-bold">
+              <option value="">-- แสดงทั้งหมด (ผ่านและไม่ผ่าน) --</option>
+              <option value="failed" class="text-rose-600">⚠️ เฉพาะคนที่ไม่ผ่าน (&lt;80%)</option>
+              <option value="passed" class="text-emerald-600">🎉 เฉพาะคนที่ผ่านแล้ว (≥80%)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center pt-3 border-t border-slate-100 gap-2">
+          <div class="text-xs text-slate-700 bg-slate-100 px-3.5 py-1.5 rounded-xl flex items-center space-x-3">
+            <span>กำลังแสดง: <strong id="filterCountTotal" class="text-slate-900 font-bold">0</strong> คน</span>
+            <span class="text-slate-300">|</span>
+            <span class="text-emerald-700 font-bold" id="filterCountPassed">ผ่าน: 0 คน</span>
+            <span class="text-slate-300">|</span>
+            <span class="text-rose-700 font-bold" id="filterCountFailed">ไม่ผ่าน: 0 คน</span>
+          </div>
+
+          <button onclick="openAddStudentModal()" class="bg-primary hover:bg-sky-600 text-white text-xs sm:text-sm font-semibold px-4 py-2 rounded-xl shadow-sm transition flex items-center space-x-1.5 cursor-pointer whitespace-nowrap">
+            <span>➕</span><span>เพิ่มนักเรียนใหม่</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm" id="summaryMainTable">
+            <thead class="bg-slate-50 text-slate-500 text-xs uppercase border-b border-slate-100">
+              <tr>
+                <th class="p-4">ลำดับ</th>
+                <th class="p-4">ชื่อ - นามสกุล</th>
+                <th class="p-4">แผนกวิชา</th>
+                <th class="p-4">ชั้นปี</th>
+                <th class="p-4 text-center">เข้าร่วม (งาน)</th>
+                <th class="p-4 text-center">ร้อยละ (%)</th>
+                <th class="p-4 text-center">ผลการประเมิน</th>
+                <th class="p-4 text-center">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="summaryTableBody" class="divide-y divide-slate-100">
+              <tr><td colspan="8" class="p-8 text-center text-slate-400">กำลังประมวลผล...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: ตรวจคำร้องตกหล่น -->
+    <section id="appealsTab" class="hidden space-y-6">
+      <div class="bg-amber-50/60 rounded-2xl border border-amber-200 p-5 space-y-3">
+        <div class="flex justify-between items-center">
+          <div>
+            <h3 class="text-sm font-bold text-amber-900 flex items-center space-x-1.5">
+              <span>🙋‍♂️</span><span>คำร้องแจ้งไม่มีชื่อในห้องเรียน (เด็กตกหล่น)</span>
+            </h3>
+            <p class="text-xs text-amber-700 mt-0.5">เด็กกดแจ้งจากใน LINE ว่าหาชื่อตัวเองไม่เจอ</p>
+          </div>
+          <span id="badgeMissingCount" class="text-xs font-bold px-2.5 py-1 bg-amber-200 text-amber-900 rounded-full">0 รายการ</span>
+        </div>
+
+        <div class="overflow-x-auto bg-white rounded-xl border border-amber-100">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-amber-50 text-amber-800 uppercase">
+              <tr>
+                <th class="p-3">ชื่อ - นามสกุลที่แจ้ง</th>
+                <th class="p-3">แผนกวิชา</th>
+                <th class="p-3">ระดับชั้น</th>
+                <th class="p-3">เวลาที่แจ้ง</th>
+                <th class="p-3 text-center">การดำเนินการ</th>
+              </tr>
+            </thead>
+            <tbody id="missingStudentsTableBody" class="divide-y divide-amber-100">
+              <tr><td colspan="5" class="p-4 text-center text-slate-400">ไม่มีรายการแจ้งชื่อตกหล่น</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+          <div>
+            <h2 class="text-base font-bold text-slate-800">รายการคำร้องขอแก้ไขกิจกรรมตกหล่น</h2>
+            <p class="text-xs text-slate-500">ตรวจสอบหลักฐานแล้วกดอนุมัติ</p>
+          </div>
+          <button onclick="batchApproveSelected()" class="w-full sm:w-auto inline-flex items-center justify-center space-x-2 bg-primary hover:bg-sky-600 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition shadow-sm cursor-pointer">
+            <span>✅</span><span>อนุมัติรายการที่เลือกทั้งหมด</span>
+          </button>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead class="bg-slate-50 text-slate-500 text-xs uppercase border-b border-slate-100">
+                <tr>
+                  <th class="p-4 w-10"><input type="checkbox" id="selectAllAppeals" onchange="toggleSelectAllAppeals(this)" class="rounded text-primary focus:ring-primary"></th>
+                  <th class="p-4">นักเรียน</th>
+                  <th class="p-4">แผนก / ชั้นปี</th>
+                  <th class="p-4">กิจกรรมที่ยื่น</th>
+                  <th class="p-4">หลักฐาน</th>
+                  <th class="p-4 text-center">การดำเนินการ</th>
+                </tr>
+              </thead>
+              <tbody id="appealsTableBody" class="divide-y divide-slate-100">
+                <tr><td colspan="6" class="p-8 text-center text-slate-400">กำลังโหลดคำร้อง...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 5: นำเข้าข้อมูล Excel -->
+    <section id="importTab" class="hidden space-y-6">
+      <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-4">
+        <div>
+          <h2 class="text-base sm:text-lg font-bold text-slate-800">📤 นำเข้ารายชื่อนักเรียนจากไฟล์ Excel (หลายแท็บ)</h2>
+          <p class="text-xs sm:text-sm text-slate-500 mt-1">
+            ระบบจะอ่านทุกชีตแยกตามแผนก และกรองส่วนท้ายกระดาษออกให้อัตโนมัติ
+          </p>
+        </div>
+
+        <div class="border-2 border-dashed border-slate-300 hover:border-primary rounded-2xl p-6 sm:p-8 text-center transition bg-slate-50 cursor-pointer" onclick="document.getElementById('excelFileInput').click()">
+          <div class="w-12 h-12 bg-sky-100 text-primary rounded-full flex items-center justify-center mx-auto mb-3 text-2xl">📊</div>
+          <p class="text-sm font-semibold text-slate-700">คลิกที่นี่เพื่อเลือกไฟล์ Excel (.xlsx, .xls)</p>
+          <p class="text-xs text-slate-400 mt-1">รองรับไฟล์ที่มีหลายแท็บแยกแผนกวิชา</p>
+          <input type="file" id="excelFileInput" accept=".xlsx, .xls" class="hidden" onchange="handleExcelFileUpload(event)">
+        </div>
+      </div>
+
+      <div id="importPreviewContainer" class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden hidden space-y-4 p-5">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-100 pb-4">
+          <div>
+            <h3 class="text-sm font-bold text-slate-800" id="previewTotalText">พบข้อมูลนักเรียนทั้งหมด 0 คน</h3>
+            <p class="text-xs text-slate-500" id="previewDeptsText">ตรวจพบแท็บแผนก: -</p>
+          </div>
+          <button onclick="executeBatchImport()" id="btnConfirmImport" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold px-6 py-2.5 rounded-xl shadow-md transition cursor-pointer">
+            🚀 ยืนยันบันทึกข้อมูลเข้า Supabase
+          </button>
+        </div>
+
+        <div class="overflow-x-auto max-h-96">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-50 text-slate-500 uppercase sticky top-0">
+              <tr>
+                <th class="p-3">ลำดับ</th>
+                <th class="p-3">รหัสประจำตัว</th>
+                <th class="p-3">ชื่อ - นามสกุล</th>
+                <th class="p-3">แผนกวิชา</th>
+                <th class="p-3">ระดับชั้น</th>
+              </tr>
+            </thead>
+            <tbody id="importPreviewTableBody" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Modal หน้าต่างดูสถิติผู้เข้าร่วมแยกแผนก/ชั้นปี -->
+  <div id="activityStatsModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full p-6 space-y-4 shadow-2xl max-h-[90vh] flex flex-col">
+      <div class="flex justify-between items-start border-b border-slate-100 pb-3">
+        <div>
+          <span class="text-xs font-bold text-primary tracking-wide">สถิติผู้เข้าร่วมกิจกรรม</span>
+          <h3 id="statsModalActTitle" class="font-bold text-slate-800 text-lg">ชื่อกิจกรรม</h3>
+          <p id="statsModalTotalText" class="text-xs text-slate-500">เข้าร่วมทั้งหมด 0 คน</p>
+        </div>
+        <button onclick="closeActivityStatsModal()" class="text-slate-400 hover:text-slate-600 text-2xl font-bold cursor-pointer">&times;</button>
+      </div>
+
+      <div class="overflow-y-auto flex-1 space-y-3" id="statsModalContent"></div>
+
+      <div class="text-right pt-3 border-t border-slate-100">
+        <button onclick="closeActivityStatsModal()" class="px-5 py-2 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer">ปิดหน้าต่าง</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal เพิ่มนักเรียนรายคน -->
+  <div id="addStudentModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+        <h3 class="font-bold text-slate-800 text-base">➕ เพิ่มนักเรียนรายบุคคล</h3>
+        <button onclick="closeAddStudentModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold cursor-pointer">&times;</button>
+      </div>
+
+      <div class="space-y-3 text-sm">
+        <div>
+          <label class="text-xs font-semibold text-slate-600">รหัสประจำตัวนักเรียน (ถ้ามี)</label>
+          <input type="text" id="addStudentCode" placeholder="เช่น 67201010001" class="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-primary focus:outline-none font-mono">
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-slate-600">ชื่อ - นามสกุล (พร้อมคำนำหน้า)</label>
+          <input type="text" id="addFullName" placeholder="เช่น นายสมชาย สายลุย" class="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-primary focus:outline-none">
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-slate-600">แผนกวิชา</label>
+          <select id="addDepartment" class="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-primary focus:outline-none bg-slate-50">
+            <option value="ช่างอิเล็กทรอนิกส์">ช่างอิเล็กทรอนิกส์</option>
+            <option value="ช่างยนต์">ช่างยนต์</option>
+            <option value="ช่างไฟฟ้ากำลัง">ช่างไฟฟ้ากำลัง</option>
+            <option value="การบัญชี">การบัญชี</option>
+            <option value="คอมพิวเตอร์ธุรกิจ">คอมพิวเตอร์ธุรกิจ</option>
+            <option value="อาหารและโภชนาการ">อาหารและโภชนาการ</option>
+            <option value="ช่างกลโรงงาน">ช่างกลโรงงาน</option>
+            <option value="การโรงแรม">การโรงแรม</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-slate-600">ระดับชั้น</label>
+          <select id="addClassLevel" class="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-primary focus:outline-none bg-slate-50">
+            <option value="ปวช.1">ปวช.1</option>
+            <option value="ปวช.2">ปวช.2</option>
+            <option value="ปวช.3">ปวช.3</option>
+            <option value="ปวส.1">ปวส.1</option>
+            <option value="ปวส.2">ปวส.2</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="flex justify-end space-x-2 pt-3 border-t border-slate-100">
+        <button onclick="closeAddStudentModal()" class="px-4 py-2 text-xs font-medium text-slate-500 hover:bg-slate-100 rounded-xl transition cursor-pointer">ยกเลิก</button>
+        <button onclick="saveManualStudent()" class="px-5 py-2 text-xs font-bold text-white bg-primary hover:bg-sky-600 rounded-xl shadow-md transition cursor-pointer">💾 บันทึกนักเรียน</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal เพิ่ม/แก้ไขกิจกรรม -->
+  <div id="activityModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+        <h3 id="activityModalTitle" class="font-bold text-slate-800 text-base">➕ เพิ่มกิจกรรมใหม่</h3>
+        <button onclick="closeActivityModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold cursor-pointer">&times;</button>
+      </div>
+
+      <div class="space-y-3 text-sm">
+        <div class="grid grid-cols-2 gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+          <div>
+            <label class="text-xs font-bold text-slate-700">ภาคเรียน</label>
+            <select id="actSemesterInput" class="mt-1 w-full p-2 border border-slate-200 rounded-lg bg-white text-xs font-bold text-primary">
+              <option value="1">ภาคเรียนที่ 1</option>
+              <option value="2">ภาคเรียนที่ 2</option>
+              <option value="3">ภาคฤดูร้อน</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-xs font-bold text-slate-700">ปีการศึกษา</label>
+            <select id="actYearInput" class="mt-1 w-full p-2 border border-slate-200 rounded-lg bg-white text-xs font-bold text-slate-700 font-mono">
+              <option value="2569">2569</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="text-xs font-semibold text-slate-600">รหัสกิจกรรม (ID ภาษาอังกฤษ เช่น wai_kru, esport)</label>
+          <input type="text" id="actIdInput" placeholder="wai_kru" class="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-primary focus:outline-none font-mono text-xs">
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-slate-600">ชื่อกิจกรรม (แสดงใน LINE)</label>
+          <input type="text" id="actNameInput" placeholder="เช่น การแข่งขันกีฬา E-Sport" class="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-primary focus:outline-none">
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-slate-600">ลิงก์ Google Drive คลังภาพ (ถ้าไม่มีให้เว้นว่างไว้)</label>
+          <input type="url" id="actDriveInput" placeholder="https://drive.google.com/..." class="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-primary focus:outline-none text-xs">
+        </div>
+
+        <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-start space-x-2.5">
+          <input type="checkbox" id="actScoutClashInput" class="w-4 h-4 mt-0.5 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer">
+          <label for="actScoutClashInput" class="text-xs text-emerald-800 cursor-pointer">
+            <strong>🏕️ กิจกรรมนี้เวลาชนกับกิจกรรมลูกเสือ (เฉพาะ ปวช.1)</strong>
+            <p class="text-[11px] text-emerald-600 mt-0.5">เมื่อติ๊กเลือก ใน LINE ของเด็ก ปวช.1 จะมีปุ่มพิเศษให้กดยืนยันว่าติดลูกเสือได้ทันที</p>
+          </label>
+        </div>
+      </div>
+
+      <div class="flex justify-end space-x-2 pt-3 border-t border-slate-100">
+        <button onclick="closeActivityModal()" class="px-4 py-2 text-xs font-medium text-slate-500 hover:bg-slate-100 rounded-xl transition cursor-pointer">ยกเลิก</button>
+        <button onclick="saveActivity()" class="px-5 py-2 text-xs font-bold text-white bg-primary hover:bg-sky-600 rounded-xl shadow-md transition cursor-pointer">💾 บันทึกกิจกรรม</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal ดูรูปภาพ -->
+  <div id="imageModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-50 p-4" onclick="closeImageModal()">
+    <div class="relative max-w-2xl w-full" onclick="event.stopPropagation()">
+      <button onclick="closeImageModal()" class="absolute -top-10 right-0 text-white text-2xl font-bold hover:text-slate-300 cursor-pointer">&times; ปิด</button>
+      <img id="modalImg" src="" alt="หลักฐาน" class="w-full max-h-[85vh] object-contain rounded-xl shadow-2xl bg-black">
+    </div>
+  </div>
+
+  <!-- Toast ข้อความแจ้งเตือน -->
+  <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white text-xs px-4 py-3 rounded-xl shadow-xl transform transition duration-300 translate-y-20 opacity-0 z-50 flex items-center space-x-2">
+    <span id="toastIcon">✅</span>
+    <span id="toastMsg">บันทึกสำเร็จ</span>
+  </div>
+
+  <script>
+    // ⚙️ ฐานข้อมูลหลัก (dbAssembly)
+    const MAIN_DB_URL = "https://fpbgujzhrzsasmqbxncj.supabase.co";
+    const MAIN_DB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwYmd1anpocnpzYXNtcWJ4bmNqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3MzI3NTUsImV4cCI6MjEwNTMwODc1NX0.ggrCO-hHJeD74syDeSdL2HI45vGfyNkl8v5C9gdS6KI";
+
+    // 📦 ฐานข้อมูล ReCheck เดิมของเทอม 1 (133 คน, 12 กิจกรรม, คำร้อง LINE)
+    const RECHECK_OLD_URL = "https://pksezyqbkxztwxoddwtl.supabase.co";
+    const RECHECK_OLD_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBrc2V6eXFia3h6dHd4b2Rkd3RsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk1Njk2MDgsImV4cCI6MjEwNTE0NTYwOH0.hbTNSruIrhdpMSLNng2edSt2b5_-biBlTLJVOD_TMnA";
+
+    let dbMain = null;
+    let dbOld = null;
+
+    let allStudents = [];
+    let allActivities = [];
+    let allAttendances = [];
+    let allAppeals = [];
+    let allMissingStudents = [];
+    let parsedStudentsToImport = [];
+
+    // State ปีการศึกษาและภาคเรียน (ค่าเริ่มต้น: เทอม 1 ข้อมูลเดิม)
+    let currentAcademicYear = localStorage.getItem('recheck_active_year') || '2569';
+    let currentSemester = localStorage.getItem('recheck_active_sem') || '1';
+    let availableAcademicYears = ['2569'];
+
+    function getMainClient() {
+      if (!dbMain) dbMain = window.supabase.createClient(MAIN_DB_URL, MAIN_DB_KEY);
+      return dbMain;
+    }
+
+    function getOldClient() {
+      if (!dbOld) dbOld = window.supabase.createClient(RECHECK_OLD_URL, RECHECK_OLD_KEY);
+      return dbOld;
+    }
+
+    function setTxt(id, val) {
+      const el = document.getElementById(id);
+      if (el) el.innerText = val;
+    }
+
+    async function safeQuery(promise) {
+      try {
+        const { data, error } = await promise;
+        if (error) return [];
+        return data || [];
+      } catch (err) {
+        return [];
+      }
+    }
+
+    async function fetchAllRows(client, tableName, select = '*') {
+      let allRows = [];
+      let from = 0;
+      const step = 1000;
+      while (true) {
+        const to = from + step - 1;
+        const { data, error } = await client.from(tableName).select(select).range(from, to);
+        if (error || !data || data.length === 0) break;
+        allRows.push(...data);
+        if (data.length < step) break;
+        from += step;
+      }
+      return allRows;
+    }
+
+    // 🛡️ คำนวณกิจกรรมที่เด็กผ่าน (เช็คครบทั้ง ID ตัวเลข, รหัสนักศึกษา, และชื่อเด็ก)
+    function getStudentPassedSet(s, attMap) {
+      const passed = new Set();
+      const idStr = String(s.id || '').trim();
+      const codeStr = String(s.student_id || '').trim();
+      const nameStr = String(s.full_name || s.student_name || '').trim();
+
+      if (idStr && attMap[idStr]) attMap[idStr].forEach(act => passed.add(act));
+      if (codeStr && attMap[codeStr]) attMap[codeStr].forEach(act => passed.add(act));
+      if (nameStr && attMap[nameStr]) attMap[nameStr].forEach(act => passed.add(act));
+      return passed;
+    }
+
+    // 🔒 ล็อกอินผ่าน Secure RPC ตัวเดียวกับแดชบอร์ด
+    async function handleLoginSubmit(e) {
+      e.preventDefault();
+      const input = document.getElementById('adminPinInput').value.trim();
+      const remember = document.getElementById('chkRememberMe').checked;
+      const btn = document.getElementById('btnLoginSubmit');
+      const errElem = document.getElementById('loginError');
+
+      if (!input) return;
+      btn.innerText = 'กำลังตรวจสอบ...';
+      btn.disabled = true;
+      errElem.classList.add('hidden');
+
+      try {
+        const client = getMainClient();
+        const { data, error } = await client.rpc('verify_admin_pin', { p_input_password: input });
+        
+        if (!error && data && data.success) {
+          if (remember) {
+            localStorage.setItem('recheck_admin_session', data.session_token || 'authenticated');
+          } else {
+            sessionStorage.setItem('recheck_admin_session', data.session_token || 'authenticated');
+          }
+          document.getElementById('loginModal').style.display = 'none';
+          await loadAllData();
+        } else {
+          errElem.classList.remove('hidden');
+        }
+      } catch (err) {
+        console.error('Login error:', err);
+        errElem.classList.remove('hidden');
+      } finally {
+        btn.innerText = 'เข้าสู่ระบบ';
+        btn.disabled = false;
+      }
+    }
+
+    function logoutAdmin() {
+      if (confirm('ต้องการออกจากระบบแอดมินใช่หรือไม่?')) {
+        localStorage.removeItem('recheck_admin_session');
+        sessionStorage.removeItem('recheck_admin_session');
+        location.reload();
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      const isAuth = localStorage.getItem('recheck_admin_session') || sessionStorage.getItem('recheck_admin_session');
+      if (isAuth) {
+        document.getElementById('loginModal').style.display = 'none';
+        loadAllData();
+      }
+    });
+
+    function changeAcademicTerm() {
+      currentAcademicYear = document.getElementById('globalYearSelect').value;
+      currentSemester = document.getElementById('globalSemesterSelect').value;
+      localStorage.setItem('recheck_active_year', currentAcademicYear);
+      localStorage.setItem('recheck_active_sem', currentSemester);
+      loadAllData();
+    }
+
+    function updateTermUI(isTerm1Legacy) {
+      const txt = `ภาคเรียนที่ ${currentSemester}/${currentAcademicYear}`;
+      setTxt('termNoticeText', txt);
+      setTxt('mobileTermBadge', `เทอม ${currentSemester}/${currentAcademicYear}`);
+
+      const badge = document.getElementById('dbSourceBadge');
+      const srcLabel = document.getElementById('statStudentSourceLabel');
+
+      if (isTerm1Legacy) {
+        if (badge) {
+          badge.innerText = '📁 ข้อมูลเทอม 1 เดิม (ReCheck Standalone)';
+          badge.className = 'text-[11px] text-amber-900 bg-amber-100 px-3 py-1 rounded-xl border border-amber-300 font-bold';
+        }
+        if (srcLabel) srcLabel.innerText = 'คน (ข้อมูลเทอม 1 เดิม)';
+      } else {
+        if (badge) {
+          badge.innerText = '✓ ฐานข้อมูลหลัก (ซิงก์กับแดชบอร์ด)';
+          badge.className = 'text-[11px] text-emerald-800 bg-emerald-100 px-3 py-1 rounded-xl border border-emerald-300 font-bold';
+        }
+        if (srcLabel) srcLabel.innerText = 'คน (ซิงก์จากแดชบอร์ด)';
+      }
+    }
+
+    // 🚀 โหลดข้อมูล: แยกเทอม 1 ข้อมูลเดิม 100% / เทอม 2 ซิงก์กับแดชบอร์ด 100%
+    async function loadAllData() {
+      showToast('🔄', `กำลังโหลดข้อมูลภาคเรียนที่ ${currentSemester}/${currentAcademicYear}...`);
+      try {
+        const clientMain = getMainClient();
+        const clientOld = getOldClient();
+
+        // 1. ดึงปีการศึกษาจาก system_settings ของแดชบอร์ด
+        const settingsData = await safeQuery(clientMain.from('system_settings').select('*'));
+        let sysYearsList = [];
+        (settingsData || []).forEach(s => {
+          if (s.key === 'available_academic_years') {
+            try {
+              const p = JSON.parse(s.value);
+              if (Array.isArray(p)) sysYearsList = p;
+            } catch (e) {}
+          }
+        });
+
+        const allYearsSet = new Set([...sysYearsList, '2569', '2568']);
+        availableAcademicYears = Array.from(allYearsSet).sort((a, b) => Number(b) - Number(a));
+
+        const yearSelect = document.getElementById('globalYearSelect');
+        const actYearSelect = document.getElementById('actYearInput');
+        const yearOptionsHtml = availableAcademicYears.map(yr => `<option value="${yr}">${yr}</option>`).join('');
+        if (yearSelect) yearSelect.innerHTML = yearOptionsHtml;
+        if (actYearSelect) actYearSelect.innerHTML = yearOptionsHtml;
+
+        if (yearSelect) yearSelect.value = currentAcademicYear;
+        const semSelect = document.getElementById('globalSemesterSelect');
+        if (semSelect) semSelect.value = currentSemester;
+
+        const yStr = String(currentAcademicYear);
+        const sStr = String(currentSemester);
+
+        // 🎯 ตรวจสอบเงื่อนไขการโหลดข้อมูล:
+        const isTerm1Legacy = (yStr === '2569' && sStr === '1');
+        updateTermUI(isTerm1Legacy);
+
+        if (isTerm1Legacy) {
+          // ==========================================
+          // 📁 โหมดเทอม 1 เดิม: ดึงจาก ReCheck เก่า 100%
+          // (เด็ก 133 คน, 12 กิจกรรม, ประวัติเช็คชื่อเดิมเป๊ะๆ)
+          // ==========================================
+          const [oldStudents, oldActs, oldAtts, appData, misData] = await Promise.all([
+            fetchAllRows(clientOld, 'students', '*'),
+            fetchAllRows(clientOld, 'activities', '*'),
+            fetchAllRows(clientOld, 'attendances', '*'),
+            safeQuery(clientOld.from('appeals').select('*, students(full_name, department, class_level), activities(name)').eq('status', 'pending').order('created_at', { ascending: false })),
+            safeQuery(clientOld.from('missing_students').select('*').eq('status', 'pending').order('created_at', { ascending: false }))
+          ]);
+
+          allStudents = (oldStudents || []).map(s => ({
+            ...s,
+            full_name: s.full_name || '',
+            class_level: s.class_level || 'ไม่ระบุ'
+          }));
+
+          allActivities = oldActs || [];
+          allAttendances = oldAtts || [];
+          allAppeals = appData || [];
+          allMissingStudents = misData || [];
+
+        } else {
+          // ==========================================
+          // 🌟 โหมดเทอม 2 ขึ้นไป: ซิงก์กับแดชบอร์ดหลัก 100%
+          // (เด็กจาก attendance_summary, กิจกรรมจาก dbAssembly)
+          // ==========================================
+          const [summaryData, activitiesData, attendancesData] = await Promise.all([
+            fetchAllRows(clientMain, 'attendance_summary', '*'),
+            fetchAllRows(clientMain, 'activities', '*'),
+            fetchAllRows(clientMain, 'attendances', '*')
+          ]);
+
+          // ดึงรายชื่อเด็กตามเทอม (สืบทอดจากเทอม 1 เหมือนหน้าเข้าแถวเป๊ะ)
+          const semExplicit = (summaryData || []).filter(s => 
+            String(s.academic_year) === yStr && String(s.semester) === sStr
+          );
+
+          let termStudents = [];
+          if (sStr === '2') {
+            const semNames = new Set(semExplicit.map(s => (s.student_name || '').trim()));
+            const sem1Base = (summaryData || []).filter(s => 
+              (String(s.academic_year) === yStr || !s.academic_year) && 
+              String(s.semester || '1') === '1'
+            );
+            const inherited = sem1Base
+              .filter(s => !semNames.has((s.student_name || '').trim()))
+              .map(s => ({
+                ...s,
+                academic_year: yStr,
+                semester: sStr,
+                _inherited: true
+              }));
+            termStudents = [...semExplicit, ...inherited];
+          } else {
+            termStudents = semExplicit;
+          }
+
+          allStudents = termStudents.map(s => ({
+            ...s,
+            full_name: s.student_name || '',
+            class_level: s.pure_level || 'ไม่ระบุ'
+          }));
+
+          // กรองกิจกรรมกลางของเทอม 2
+          allActivities = (activitiesData || []).filter(a => 
+            String(a.academic_year || '2569') === yStr && 
+            String(a.semester || '1') === sStr
+          );
+
+          const activeActIds = new Set(allActivities.map(a => String(a.id).trim().toLowerCase()));
+          allAttendances = (attendancesData || []).filter(a => {
+            const actId = String(a.activity_id || '').trim().toLowerCase();
+            if (a.academic_year && a.semester) {
+              return String(a.academic_year) === yStr && String(a.semester) === sStr;
+            }
+            return activeActIds.has(actId);
+          });
+
+          // ดึงคำร้องจากบอท LINE
+          allAppeals = await safeQuery(clientOld.from('appeals').select('*, students(full_name, department, class_level), activities(name)').eq('status', 'pending').order('created_at', { ascending: false }));
+          allMissingStudents = await safeQuery(clientOld.from('missing_students').select('*').eq('status', 'pending').order('created_at', { ascending: false }));
+        }
+
+        setTxt('termStudentCount', allStudents.length);
+        setTxt('termActCount', allActivities.length);
+        setTxt('statTotalActivities', allActivities.length);
+
+        renderDashboardKPI();
+        renderAppealsTable();
+        renderMissingStudentsTable();
+        setupDropdowns();
+        renderSummaryTable();
+        renderActivitiesTable();
+
+        showToast('✅', `โหลดข้อมูลสำเร็จ (พบเด็ก ${allStudents.length} คน, ${allActivities.length} กิจกรรม)`);
+      } catch (err) {
+        console.error('loadAllData error:', err);
+        showToast('❌', 'เกิดข้อผิดพลาด: ' + err.message);
+      }
+    }
+
+    // =======================================================
+    // 📊 สรุปผลรายบุคคล (คำนวณคะแนนตาม ID, รหัสเด็ก, ชื่อเด็ก)
+    // =======================================================
+    function renderSummaryTable() {
+      const tbody = document.getElementById('summaryTableBody');
+      if (!tbody) return;
+      const totalActs = allActivities.length || 0;
+
+      // รวบรวม Attendances
+      const attMap = {};
+      allAttendances.forEach(a => {
+        const sid = String(a.student_id || '').trim();
+        const actId = String(a.activity_id || '').trim().toLowerCase();
+        if (sid && actId) {
+          if (!attMap[sid]) attMap[sid] = new Set();
+          attMap[sid].add(actId);
+        }
+      });
+
+      tbody.innerHTML = allStudents.map((s, idx) => {
+        const passedSet = getStudentPassedSet(s, attMap);
+        const count = totalActs > 0 ? Math.min(passedSet.size, totalActs) : 0;
+        const isGraduated = s.class_level === 'สำเร็จการศึกษา';
+        const pct = isGraduated ? 100 : (totalActs > 0 ? Math.min(Math.round((count / totalActs) * 100), 100) : 0);
+        const isPassed = isGraduated || pct >= 80;
+
+        return `
+          <tr class="hover:bg-slate-50 transition student-row" 
+              data-name="${(s.full_name || '').toLowerCase()}" 
+              data-dept="${s.department || ''}" 
+              data-level="${s.class_level || ''}" 
+              data-status="${isPassed ? 'passed' : 'failed'}">
+            <td class="p-4 text-xs text-slate-400 font-mono">${idx + 1}</td>
+            <td class="p-4 font-bold text-slate-800 student-name">${s.full_name}</td>
+            <td class="p-4 text-xs text-slate-500 student-dept">${s.department}</td>
+            <td class="p-4 text-xs text-slate-500 student-level">${s.class_level}</td>
+            <td class="p-4 text-center font-semibold text-slate-700">${count} / ${totalActs}</td>
+            <td class="p-4 text-center font-bold ${isPassed ? 'text-emerald-600' : 'text-rose-600'}">${pct}%</td>
+            <td class="p-4 text-center">
+              <span class="inline-block px-2.5 py-1 text-xs rounded-full font-bold ${isPassed ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}">
+                ${totalActs === 0 ? 'รอเปิดกิจกรรม' : (isPassed ? '🎉 ผ่านเกณฑ์' : '⚠️ ไม่ผ่าน')}
+              </span>
+            </td>
+            <td class="p-4 text-center">
+              <button onclick="deleteStudent(${s.id}, '${s.full_name}')" class="text-rose-500 hover:text-rose-700 p-1.5 hover:bg-rose-50 rounded-lg transition cursor-pointer" title="ลบนักเรียนคนนี้">
+                🗑️
+              </button>
+            </td>
+          </tr>`;
+      }).join('');
+
+      filterSummaryTable();
+    }
+
+    function filterSummaryTable() {
+      const qInput = document.getElementById('searchStudentInput');
+      const deptInput = document.getElementById('summaryFilterDept');
+      const levelInput = document.getElementById('summaryFilterLevel');
+      const statusInput = document.getElementById('summaryFilterStatus');
+
+      if (!qInput || !deptInput || !levelInput || !statusInput) return;
+
+      const q = qInput.value.toLowerCase().trim();
+      const dept = deptInput.value;
+      const level = levelInput.value;
+      const status = statusInput.value;
+
+      let totalShown = 0;
+      let passedShown = 0;
+      let failedShown = 0;
+
+      document.querySelectorAll('.student-row').forEach(row => {
+        const rowName = row.getAttribute('data-name') || '';
+        const rowDept = row.getAttribute('data-dept') || '';
+        const rowLevel = row.getAttribute('data-level') || '';
+        const rowStatus = row.getAttribute('data-status') || '';
+
+        const matchQuery = !q || rowName.includes(q);
+        const matchDept = !dept || rowDept === dept;
+        const matchLevel = !level || rowLevel === level;
+        const matchStatus = !status || rowStatus === status;
+
+        const isVisible = matchQuery && matchDept && matchLevel && matchStatus;
+        row.style.display = isVisible ? '' : 'none';
+
+        if (isVisible) {
+          totalShown++;
+          if (rowStatus === 'passed') passedShown++;
+          else failedShown++;
+        }
+      });
+
+      setTxt('filterCountTotal', totalShown);
+      setTxt('filterCountPassed', `ผ่าน: ${passedShown} คน`);
+      setTxt('filterCountFailed', `ไม่ผ่าน: ${failedShown} คน`);
+    }
+
+    // =======================================================
+    // 🎪 จัดการกิจกรรมกลาง
+    // =======================================================
+    function renderActivitiesTable() {
+      const tbody = document.getElementById('activitiesTableBody');
+      if (!tbody) return;
+
+      if (allActivities.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-400">ยังไม่มีกิจกรรมกลางในภาคเรียนที่ ${currentSemester}/${currentAcademicYear} กดปุ่ม "เพิ่มกิจกรรมใหม่ในเทอมนี้" เพื่อเริ่มต้นได้เลยครับ</td></tr>`;
+        return;
+      }
+
+      const actCountMap = {};
+      allActivities.forEach(act => {
+        const targetActId = String(act.id).trim().toLowerCase();
+        const unique = new Set(
+          allAttendances
+            .filter(a => String(a.activity_id).trim().toLowerCase() === targetActId)
+            .map(a => String(a.student_id).trim())
+        );
+        actCountMap[act.id] = unique.size;
+      });
+
+      tbody.innerHTML = allActivities.map(act => {
+        const hasDrive = act.drive_url && act.drive_url.trim().length > 5;
+        const driveBadge = hasDrive
+          ? `<a href="${act.drive_url}" target="_blank" class="inline-flex items-center space-x-1 text-xs text-primary hover:underline bg-sky-50 px-2.5 py-1 rounded-lg border border-sky-100">
+               <span>📁</span><span>ดูคลังภาพ</span>
+             </a>`
+          : `<span class="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded-lg">ไม่มีคลังภาพ</span>`;
+
+        const scoutBadge = act.scout_clash
+          ? `<span class="inline-flex items-center space-x-1 text-xs text-emerald-800 bg-emerald-100 px-2.5 py-1 rounded-lg font-bold">
+               <span>🏕️</span><span>ชนลูกเสือ (ปวช.1)</span>
+             </span>`
+          : `<span class="text-xs text-slate-400">ปกติ</span>`;
+
+        return `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="p-4 font-mono text-xs text-slate-600 font-bold">${act.id}</td>
+            <td class="p-4 font-semibold text-slate-800">${act.name}</td>
+            <td class="p-4"><span class="px-2 py-0.5 rounded bg-slate-100 font-mono text-xs font-bold text-slate-700">${act.semester || currentSemester}/${act.academic_year || currentAcademicYear}</span></td>
+            <td class="p-4">${scoutBadge}</td>
+            <td class="p-4">${driveBadge}</td>
+            <td class="p-4 text-center">
+              <button onclick="openActivityStatsModal('${act.id}', '${encodeURIComponent(act.name)}')" class="inline-flex items-center space-x-1 text-xs font-bold text-primary hover:underline bg-sky-50 hover:bg-sky-100 px-3 py-1.5 rounded-xl border border-sky-200 transition cursor-pointer">
+                <span>👥 ${actCountMap[act.id] || 0} คน</span>
+                <span class="text-[10px] text-sky-600">(ดูสถิติแยกแผนก) ›</span>
+              </button>
+            </td>
+            <td class="p-4 text-center space-x-2">
+              <button onclick="openEditActivityModal('${act.id}', '${encodeURIComponent(act.name)}', '${encodeURIComponent(act.drive_url || '')}', ${act.scout_clash ? 'true' : 'false'})" class="text-xs text-primary hover:underline font-medium px-2 py-1 hover:bg-sky-50 rounded cursor-pointer">✏️ แก้ไข</button>
+              <button onclick="deleteActivity('${act.id}', '${act.name}')" class="text-xs text-rose-500 hover:underline font-medium px-2 py-1 hover:bg-rose-50 rounded cursor-pointer">🗑️ ลบ</button>
+            </td>
+          </tr>`;
+      }).join('');
+    }
+
+    function openActivityStatsModal(actId, encName) {
+      const actName = decodeURIComponent(encName);
+      setTxt('statsModalActTitle', actName);
+
+      const targetActId = String(actId).trim().toLowerCase();
+      const attendedSet = new Set(
+        allAttendances
+          .filter(a => String(a.activity_id).trim().toLowerCase() === targetActId)
+          .map(a => String(a.student_id).trim())
+      );
+
+      const attendedStudents = allStudents.filter(s => {
+        const idStr = String(s.id).trim();
+        const codeStr = String(s.student_id || '').trim();
+        const nameStr = String(s.full_name || '').trim();
+        return attendedSet.has(idStr) || (codeStr && attendedSet.has(codeStr)) || attendedSet.has(nameStr);
+      });
+
+      setTxt('statsModalTotalText', `ผู้เข้าร่วมทั้งหมด: ${attendedStudents.length} คน (ภาคเรียนที่ ${currentSemester}/${currentAcademicYear})`);
+
+      const deptMap = {};
+      attendedStudents.forEach(s => {
+        if (!deptMap[s.department]) deptMap[s.department] = {};
+        deptMap[s.department][s.class_level] = (deptMap[s.department][s.class_level] || 0) + 1;
+      });
+
+      const container = document.getElementById('statsModalContent');
+      if (!container) return;
+
+      if (attendedStudents.length === 0) {
+        container.innerHTML = `<div class="p-8 text-center text-slate-400 text-sm">ยังไม่มีนักเรียนเข้าร่วมในกิจกรรมนี้</div>`;
+      } else {
+        container.innerHTML = Object.keys(deptMap).sort().map(dept => {
+          const levels = deptMap[dept];
+          const deptTotal = Object.values(levels).reduce((a, b) => a + b, 0);
+
+          const levelBadges = Object.keys(levels).sort().map(lvl => `
+            <span class="inline-flex items-center space-x-1 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-lg text-xs">
+              <span class="text-slate-600 font-medium">${lvl}:</span>
+              <strong class="text-primary">${levels[lvl]} คน</strong>
+            </span>
+          `).join('');
+
+          return `
+            <div class="bg-slate-50/70 border border-slate-200 rounded-xl p-3.5 space-y-2">
+              <div class="flex justify-between items-center">
+                <span class="font-bold text-slate-800 text-sm">🏬 ${dept}</span>
+                <span class="text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full">รวม ${deptTotal} คน</span>
+              </div>
+              <div class="flex flex-wrap gap-1.5 pt-1">
+                ${levelBadges}
+              </div>
+            </div>`;
+        }).join('');
+      }
+
+      document.getElementById('activityStatsModal')?.classList.remove('hidden');
+      document.getElementById('activityStatsModal')?.classList.add('flex');
+    }
+
+    function closeActivityStatsModal() {
+      document.getElementById('activityStatsModal')?.classList.add('hidden');
+      document.getElementById('activityStatsModal')?.classList.remove('flex');
+    }
+
+    function openActivityModal() {
+      setTxt('activityModalTitle', `➕ เพิ่มกิจกรรมใหม่ (ภาคเรียนที่ ${currentSemester}/${currentAcademicYear})`);
+      document.getElementById('actIdInput').value = '';
+      document.getElementById('actNameInput').value = '';
+      document.getElementById('actDriveInput').value = '';
+      document.getElementById('actScoutClashInput').checked = false;
+      document.getElementById('actSemesterInput').value = currentSemester;
+      document.getElementById('actYearInput').value = currentAcademicYear;
+      document.getElementById('activityModal')?.classList.remove('hidden');
+      document.getElementById('activityModal')?.classList.add('flex');
+    }
+
+    function openEditActivityModal(id, encName, encDrive, scoutClash) {
+      setTxt('activityModalTitle', '✏️ แก้ไขกิจกรรม');
+      document.getElementById('actIdInput').value = id;
+      document.getElementById('actNameInput').value = decodeURIComponent(encName);
+      document.getElementById('actDriveInput').value = decodeURIComponent(encDrive);
+      document.getElementById('actScoutClashInput').checked = (scoutClash === true);
+      document.getElementById('actSemesterInput').value = currentSemester;
+      document.getElementById('actYearInput').value = currentAcademicYear;
+      document.getElementById('activityModal')?.classList.remove('hidden');
+      document.getElementById('activityModal')?.classList.add('flex');
+    }
+
+    function closeActivityModal() {
+      document.getElementById('activityModal')?.classList.add('hidden');
+      document.getElementById('activityModal')?.classList.remove('flex');
+    }
+
+    // 💾 บันทึกกิจกรรม: ถ้าเทอม 1 บันทึกเข้า ReCheck เก่า / ถ้าเทอม 2 บันทึกเข้า DB หลัก
+    async function saveActivity() {
+      const id = document.getElementById('actIdInput').value.trim().toLowerCase().replace(/\s+/g, '_');
+      const name = document.getElementById('actNameInput').value.trim();
+      const driveUrl = document.getElementById('actDriveInput').value.trim();
+      const scoutClash = document.getElementById('actScoutClashInput').checked;
+      const sem = document.getElementById('actSemesterInput').value;
+      const yr = document.getElementById('actYearInput').value;
+
+      if (!id || !name) return alert('กรุณากรอกรหัสกิจกรรม (ID) และชื่อกิจกรรม');
+
+      showToast('⏳', 'กำลังบันทึกกิจกรรม...');
+      const isTerm1Legacy = (String(yr) === '2569' && String(sem) === '1');
+      const client = isTerm1Legacy ? getOldClient() : getMainClient();
+
+      const payload = {
+        id: id,
+        name: name,
+        drive_url: driveUrl.length > 5 ? driveUrl : null,
+        scout_clash: scoutClash
+      };
+
+      if (!isTerm1Legacy) {
+        payload.academic_year = yr;
+        payload.semester = sem;
+      }
+
+      const { error } = await client.from('activities').upsert(payload);
+      if (error) return alert('เกิดข้อผิดพลาด: ' + error.message);
+
+      closeActivityModal();
+      await loadAllData();
+      showToast('✅', 'บันทึกข้อมูลกิจกรรมเรียบร้อยแล้ว');
+    }
+
+    async function deleteActivity(id, name) {
+      if (!confirm(`⚠️ คำเตือนสำคัญ!\nต้องการลบกิจกรรม "${name}" ใช่หรือไม่?\n(ประวัติการเช็คชื่อของกิจกรรมนี้จะถูกลบออกทั้งหมดด้วย)`)) return;
+
+      showToast('⏳', 'กำลังลบกิจกรรม...');
+      const isTerm1Legacy = (String(currentAcademicYear) === '2569' && String(currentSemester) === '1');
+      const client = isTerm1Legacy ? getOldClient() : getMainClient();
+
+      const { error } = await client.from('activities').delete().eq('id', id);
+      if (error) return alert('เกิดข้อผิดพลาด: ' + error.message);
+
+      await loadAllData();
+      showToast('🗑️', `ลบกิจกรรม ${name} เรียบร้อยแล้ว`);
+    }
+
+    // =======================================================
+    // ✍️ เช็คชื่อตามใบจริง
+    // =======================================================
+    function setupDropdowns() {
+      const deptSelect = document.getElementById('filterDept');
+      const actSelect = document.getElementById('filterActivity');
+      const summaryDeptSelect = document.getElementById('summaryFilterDept');
+      if (!deptSelect || !actSelect || !summaryDeptSelect) return;
+
+      const currentDept = deptSelect.value;
+      const currentAct = actSelect.value;
+      const currentSummaryDept = summaryDeptSelect.value;
+
+      const depts = [...new Set(allStudents.map(s => s.department))].filter(Boolean).sort();
+      
+      deptSelect.innerHTML = '<option value="">-- เลือกแผนกวิชา --</option>' + depts.map(d => `<option value="${d}">${d}</option>`).join('');
+      actSelect.innerHTML = '<option value="">-- เลือกกิจกรรม (' + allActivities.length + ' กิจกรรม) --</option>' + allActivities.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+      summaryDeptSelect.innerHTML = '<option value="">-- ทุกแผนกวิชา --</option>' + depts.map(d => `<option value="${d}">${d}</option>`).join('');
+
+      if (currentDept) deptSelect.value = currentDept;
+      if (currentAct) actSelect.value = currentAct;
+      if (currentSummaryDept) summaryDeptSelect.value = currentSummaryDept;
+    }
+
+    async function filterCheckinList() {
+      const dept = document.getElementById('filterDept').value.trim();
+      const level = document.getElementById('filterLevel').value.trim();
+      const actId = document.getElementById('filterActivity').value.trim();
+      const container = document.getElementById('checkinTableContainer');
+      const tbody = document.getElementById('checkinTableBody');
+
+      if (!dept || !level || !actId) {
+        if (container) container.classList.add('hidden');
+        return;
+      }
+
+      const filtered = allStudents.filter(s => {
+        const sDept = (s.department || '').trim();
+        const sLevel = (s.class_level || '').replace(/\s+/g, '');
+        const matchDept = sDept === dept;
+        const matchLevel = (level === 'ALL') ? true : (sLevel === level.replace(/\s+/g, ''));
+        return matchDept && matchLevel;
+      });
+
+      filtered.sort((a, b) => (a.class_level || '').localeCompare(b.class_level || '') || (a.full_name || '').localeCompare(b.full_name || ''));
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-400">ไม่พบรายชื่อในแผนกและชั้นปีที่เลือก</td></tr>`;
+        container.classList.remove('hidden');
+        return;
+      }
+
+      const targetActId = actId.toLowerCase();
+      const attendedSet = new Set(
+        allAttendances
+          .filter(a => String(a.activity_id).trim().toLowerCase() === targetActId)
+          .map(a => String(a.student_id).trim())
+      );
+
+      let checkedCount = 0;
+      tbody.innerHTML = filtered.map(s => {
+        const idStr = String(s.id).trim();
+        const codeStr = String(s.student_id || '').trim();
+        const nameStr = String(s.full_name || '').trim();
+
+        const isChecked = attendedSet.has(idStr) || (codeStr && attendedSet.has(codeStr)) || attendedSet.has(nameStr);
+        if (isChecked) checkedCount++;
+
+        return `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="p-3 text-center">
+              <input type="checkbox" value="${s.id}" data-code="${s.student_id || ''}" data-name="${s.full_name}" ${isChecked ? 'checked' : ''} class="manual-check-item w-4 h-4 rounded text-primary focus:ring-primary cursor-pointer">
+            </td>
+            <td class="p-3 font-semibold text-slate-800">${s.full_name}</td>
+            <td class="p-3 text-xs text-slate-500">${s.department}</td>
+            <td class="p-3 text-xs"><span class="px-2 py-0.5 rounded bg-slate-100 font-medium text-slate-600">${s.class_level}</span></td>
+          </tr>`;
+      }).join('');
+
+      setTxt('checkinSummaryText', `รายชื่อนักเรียน: ${filtered.length} คน (เข้าร่วมแล้ว ${checkedCount} คน)`);
+      container.classList.remove('hidden');
+    }
+
+    function toggleCheckAllInRoom(val) {
+      document.querySelectorAll('.manual-check-item').forEach(c => c.checked = val);
+    }
+
+    // 💾 บันทึกเช็คชื่อ: เทอม 1 เข้า ReCheck เดิม / เทอม 2 เข้า DB หลัก
+    async function saveManualCheckin() {
+      const actId = document.getElementById('filterActivity').value.trim();
+      if (!actId) return;
+
+      const items = document.querySelectorAll('.manual-check-item');
+      if (items.length === 0) return;
+
+      showToast('⏳', 'กำลังบันทึกผลการเช็คชื่อ...');
+      const isTerm1Legacy = (String(currentAcademicYear) === '2569' && String(currentSemester) === '1');
+      const client = isTerm1Legacy ? getOldClient() : getMainClient();
+
+      try {
+        const roomStudentIds = Array.from(items).map(item => parseInt(item.value));
+
+        if (isTerm1Legacy) {
+          await client.from('attendances')
+            .delete()
+            .eq('activity_id', actId)
+            .in('student_id', roomStudentIds);
+        } else {
+          await client.from('attendances')
+            .delete()
+            .eq('activity_id', actId)
+            .eq('academic_year', currentAcademicYear)
+            .eq('semester', currentSemester)
+            .in('student_id', roomStudentIds);
+        }
+
+        const studentsToAdd = [];
+        items.forEach(item => {
+          if (item.checked) {
+            const row = {
+              student_id: parseInt(item.value),
+              activity_id: actId
+            };
+            if (!isTerm1Legacy) {
+              row.academic_year = currentAcademicYear;
+              row.semester = currentSemester;
+            }
+            studentsToAdd.push(row);
+          }
+        });
+
+        if (studentsToAdd.length > 0) {
+          const { error: insErr } = await client.from('attendances').insert(studentsToAdd);
+          if (insErr) throw insErr;
+        }
+
+        await loadAllData();
+        await filterCheckinList();
+        showToast('✅', 'บันทึกผลการเช็คชื่อเรียบร้อยแล้ว');
+      } catch (err) {
+        console.error('Save Checkin Error:', err);
+        alert('เกิดข้อผิดพลาดในการบันทึก: ' + err.message);
+      }
+    }
+
+    // =======================================================
+    // ➕ เพิ่ม / ลบ นักเรียนรายคน
+    // =======================================================
+    function openAddStudentModal() {
+      document.getElementById('addStudentCode').value = '';
+      document.getElementById('addFullName').value = '';
+      document.getElementById('addStudentModal')?.classList.remove('hidden');
+      document.getElementById('addStudentModal')?.classList.add('flex');
+    }
+
+    function closeAddStudentModal() {
+      document.getElementById('addStudentModal')?.classList.add('hidden');
+      document.getElementById('addStudentModal')?.classList.remove('flex');
+    }
+
+    async function saveManualStudent() {
+      const code = document.getElementById('addStudentCode').value.trim();
+      const name = document.getElementById('addFullName').value.trim();
+      const dept = document.getElementById('addDepartment').value;
+      const level = document.getElementById('addClassLevel').value;
+
+      if (!name) return alert('กรุณากรอกชื่อ-นามสกุลนักเรียน');
+
+      showToast('⏳', 'กำลังเพิ่มนักเรียน...');
+      const isTerm1Legacy = (String(currentAcademicYear) === '2569' && String(currentSemester) === '1');
+
+      if (isTerm1Legacy) {
+        const client = getOldClient();
+        const { error } = await client.from('students').insert({
+          student_id: code || null,
+          full_name: name,
+          department: dept,
+          class_level: level
+        });
+        if (error) return alert('เกิดข้อผิดพลาด: ' + error.message);
+      } else {
+        const client = getMainClient();
+        const { error } = await client.from('attendance_summary').insert({
+          student_id: code || null,
+          student_name: name,
+          department: dept,
+          pure_level: level,
+          academic_year: currentAcademicYear,
+          semester: currentSemester,
+          present_days: 0,
+          total_days: 65,
+          percent: 0,
+          teacher_email: '-'
+        });
+        if (error) return alert('เกิดข้อผิดพลาด: ' + error.message);
+      }
+
+      closeAddStudentModal();
+      await loadAllData();
+      showToast('✅', `เพิ่ม ${name} เรียบร้อยแล้ว`);
+    }
+
+    async function deleteStudent(studentId, studentName) {
+      if (!confirm(`⚠️ ยืนยันการลบ "${studentName}" ใช่หรือไม่?`)) return;
+
+      showToast('⏳', 'กำลังลบข้อมูล...');
+      const isTerm1Legacy = (String(currentAcademicYear) === '2569' && String(currentSemester) === '1');
+
+      if (isTerm1Legacy) {
+        const client = getOldClient();
+        const { error } = await client.from('students').delete().eq('id', studentId);
+        if (error) return alert('เกิดข้อผิดพลาดในการลบ: ' + error.message);
+      } else {
+        const client = getMainClient();
+        const { error } = await client.from('attendance_summary').delete().eq('id', studentId);
+        if (error) return alert('เกิดข้อผิดพลาดในการลบ: ' + error.message);
+      }
+
+      await loadAllData();
+      showToast('🗑️', `ลบ ${studentName} เรียบร้อยแล้ว`);
+    }
+
+    // =======================================================
+    // 📊 สรุปสถิติ KPI
+    // =======================================================
+    function renderDashboardKPI() {
+      const total = allStudents.length;
+      const totalActs = allActivities.length || 0;
+      let passedStudents = 0;
+
+      const attMap = {};
+      allAttendances.forEach(a => {
+        const sid = String(a.student_id || '').trim();
+        const actId = String(a.activity_id || '').trim().toLowerCase();
+        if (sid && actId) {
+          if (!attMap[sid]) attMap[sid] = new Set();
+          attMap[sid].add(actId);
+        }
+      });
+
+      allStudents.forEach(s => {
+        const passedSet = getStudentPassedSet(s, attMap);
+        const isGrad = s.class_level === 'สำเร็จการศึกษา';
+        const validCount = totalActs > 0 ? Math.min(passedSet.size, totalActs) : 0;
+        const pct = isGrad ? 100 : (totalActs > 0 ? (validCount / totalActs) * 100 : 0);
+        if (pct >= 80) passedStudents++;
+      });
+
+      const failedStudents = total - passedStudents;
+      const passedPct = total > 0 ? Math.round((passedStudents / total) * 100) : 0;
+
+      setTxt('statTotalStudents', total);
+      setTxt('statPassedCount', passedStudents);
+      setTxt('statPassedPercent', total > 0 ? `${passedPct}% ของทั้งวิทยาลัย` : '0%');
+      setTxt('statFailedCount', failedStudents);
+      setTxt('statTotalActivities', totalActs);
+
+      const totalPending = allAppeals.length + allMissingStudents.length;
+      setTxt('badgePendingCount', totalPending);
+    }
+
+    // =======================================================
+    // 📥 ส่งออก Excel
+    // =======================================================
+    function exportToExcel() {
+      if (allStudents.length === 0) return alert('ไม่มีข้อมูลสำหรับส่งออก');
+
+      showToast('⏳', 'กำลังสร้างไฟล์ Excel...');
+      const wb = XLSX.utils.book_new();
+      const totalActs = allActivities.length || 0;
+
+      const attMap = {};
+      allAttendances.forEach(a => {
+        const sid = String(a.student_id || '').trim();
+        const actId = String(a.activity_id || '').trim().toLowerCase();
+        if (sid && actId) {
+          if (!attMap[sid]) attMap[sid] = new Set();
+          attMap[sid].add(actId);
+        }
+      });
+
+      const formatRow = (s, idx) => {
+        const passedSet = getStudentPassedSet(s, attMap);
+        const count = totalActs > 0 ? Math.min(passedSet.size, totalActs) : 0;
+        const isGrad = s.class_level === 'สำเร็จการศึกษา';
+        const pct = isGrad ? 100 : (totalActs > 0 ? Math.min(Math.round((count / totalActs) * 100), 100) : 0);
+        const status = isGrad || pct >= 80 ? 'ผ่านกิจกรรม' : 'ไม่ผ่านกิจกรรม';
+
+        const row = {
+          'ลำดับ': idx + 1,
+          'รหัสประจำตัว': s.student_id || '-',
+          'ชื่อ-นามสกุล': s.full_name,
+          'แผนกวิชา': s.department,
+          'ระดับชั้น': s.class_level,
+          'จำนวนที่ผ่าน (งาน)': count,
+          'ทั้งหมด (งาน)': totalActs,
+          'ร้อยละ (%)': `${pct}%`,
+          'ผลการประเมิน': status
+        };
+
+        allActivities.forEach(act => {
+          row[act.name] = passedSet.has(String(act.id).toLowerCase()) ? '✓' : '-';
+        });
+
+        return row;
+      };
+
+      const allRows = allStudents.map((s, i) => formatRow(s, i));
+      const wsAll = XLSX.utils.json_to_sheet(allRows);
+      XLSX.utils.book_append_sheet(wb, wsAll, `ภาพรวม_${currentSemester}-${currentAcademicYear}`);
+
+      const groups = {};
+      allStudents.forEach(s => {
+        const key = `${s.department} ${s.class_level}`.trim();
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(s);
+      });
+
+      Object.keys(groups).sort().forEach(groupKey => {
+        const groupStudents = groups[groupKey];
+        const groupRows = groupStudents.map((s, i) => formatRow(s, i));
+        const wsGroup = XLSX.utils.json_to_sheet(groupRows);
+        let cleanSheetName = groupKey.replace(/[\\/?*[\]:]/g, '').substring(0, 31);
+        XLSX.utils.book_append_sheet(wb, wsGroup, cleanSheetName);
+      });
+
+      const fileName = `รายงานกิจกรรมกลาง_${currentSemester}_${currentAcademicYear}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      XLSX.writeFile(wb, fileName);
+      showToast('✅', 'ส่งออกไฟล์ Excel สำเร็จแล้ว!');
+    }
+
+    // =======================================================
+    // 📤 นำเข้า Excel
+    // =======================================================
+    function handleExcelFileUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      showToast('⏳', 'กำลังอ่านข้อมูลไฟล์...');
+      const reader = new FileReader();
+
+      reader.onload = function(event) {
+        try {
+          const data = new Uint8Array(event.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          parsedStudentsToImport = [];
+
+          workbook.SheetNames.forEach(sheetName => {
+            const worksheet = workbook.Sheets[sheetName];
+            const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+            let cleanDept = sheetName.trim().replace(/^แผนกวิชา/, '').trim();
+            if (cleanDept.startsWith('ไฟฟ้า')) cleanDept = 'ช่าง' + cleanDept;
+
+            rows.forEach(row => {
+              if (!row || row.length < 3) return;
+              const colCode = String(row[1] || '').trim();
+              const colName = String(row[2] || '').trim();
+              const cleanCode = colCode.replace(/\D/g, '');
+
+              if (cleanCode.length < 5 || colName.includes('ชื่อ-สกุล')) return;
+
+              let detectedLevel = 'ปวช.1';
+              if (cleanCode.includes('692') || cleanCode.startsWith('92')) detectedLevel = 'ปวช.1';
+              else if (cleanCode.includes('682') || cleanCode.startsWith('82')) detectedLevel = 'ปวช.2';
+              else if (cleanCode.includes('672') || cleanCode.startsWith('72')) detectedLevel = 'ปวช.3';
+              else if (cleanCode.includes('693') || cleanCode.startsWith('93')) detectedLevel = 'ปวส.1';
+              else if (cleanCode.includes('683') || cleanCode.startsWith('83')) detectedLevel = 'ปวส.2';
+
+              parsedStudentsToImport.push({
+                student_id: colCode,
+                full_name: colName,
+                department: cleanDept,
+                class_level: detectedLevel
+              });
+            });
+          });
+
+          setTxt('previewTotalText', `พบข้อมูลนักเรียนทั้งหมด ${parsedStudentsToImport.length} คน`);
+          const tbody = document.getElementById('importPreviewTableBody');
+          if (tbody) {
+            tbody.innerHTML = parsedStudentsToImport.slice(0, 100).map((s, i) => `
+              <tr class="hover:bg-slate-50">
+                <td class="p-3 text-slate-400 font-mono">${i + 1}</td>
+                <td class="p-3 font-mono text-slate-600">${s.student_id || '-'}</td>
+                <td class="p-3 font-bold text-slate-800">${s.full_name}</td>
+                <td class="p-3 text-primary font-medium">${s.department}</td>
+                <td class="p-3"><span class="px-2 py-0.5 rounded bg-sky-100 text-sky-800 font-bold">${s.class_level}</span></td>
+              </tr>
+            `).join('');
+          }
+          document.getElementById('importPreviewContainer')?.classList.remove('hidden');
+          showToast('✅', `อ่านไฟล์สำเร็จ`);
+        } catch (err) {
+          alert('อ่านไฟล์ล้มเหลว: ' + err.message);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    async function executeBatchImport() {
+      if (parsedStudentsToImport.length === 0) return;
+      if (!confirm(`นำเข้านักเรียน ${parsedStudentsToImport.length} คนเข้าสู่เทอม ${currentSemester}/${currentAcademicYear}?`)) return;
+
+      const isTerm1Legacy = (String(currentAcademicYear) === '2569' && String(currentSemester) === '1');
+      showToast('⏳', 'กำลังนำเข้า...');
+
+      try {
+        const batchSize = 50;
+        if (isTerm1Legacy) {
+          const client = getOldClient();
+          for (let i = 0; i < parsedStudentsToImport.length; i += batchSize) {
+            const chunk = parsedStudentsToImport.slice(i, i + batchSize).map(s => ({
+              student_id: s.student_id || null,
+              full_name: s.full_name,
+              department: s.department,
+              class_level: s.class_level
+            }));
+            await client.from('students').insert(chunk);
+          }
+        } else {
+          const client = getMainClient();
+          for (let i = 0; i < parsedStudentsToImport.length; i += batchSize) {
+            const chunk = parsedStudentsToImport.slice(i, i + batchSize).map(s => ({
+              student_id: s.student_id || null,
+              student_name: s.full_name,
+              department: s.department,
+              pure_level: s.class_level,
+              academic_year: currentAcademicYear,
+              semester: currentSemester,
+              present_days: 0,
+              total_days: 65,
+              percent: 0,
+              teacher_email: '-'
+            }));
+            await client.from('attendance_summary').insert(chunk);
+          }
+        }
+        await loadAllData();
+        alert('นำเข้าเรียบร้อยแล้ว!');
+        document.getElementById('importPreviewContainer')?.classList.add('hidden');
+      } catch (err) {
+        alert('นำเข้าล้มเหลว: ' + err.message);
+      }
+    }
+
+    // =======================================================
+    // 📩 คำร้อง
+    // =======================================================
+    function renderAppealsTable() {
+      const tbody = document.getElementById('appealsTableBody');
+      if (!tbody) return;
+
+      if (allAppeals.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-400">🎉 ไม่มีคำร้องกิจกรรมตกหล่นค้างตรวจ</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = allAppeals.map(a => {
+        const std = a.students || {};
+        const act = a.activities || {};
+
+        let evidenceHtml = '';
+        if (a.evidence_type === 'photo') {
+          evidenceHtml = `
+            <button onclick="openImageModal('${a.evidence_url}')" class="group flex items-center space-x-2 text-xs text-primary hover:underline cursor-pointer">
+              <img src="${a.evidence_url}" class="w-9 h-9 object-cover rounded-lg border border-slate-200 group-hover:opacity-80">
+              <span>🔎 ดูรูปหลักฐาน</span>
+            </button>`;
+        } else if (a.evidence_type === 'scout') {
+          evidenceHtml = `
+            <span class="inline-flex items-center space-x-1 text-xs text-emerald-800 bg-emerald-100 px-2.5 py-1 rounded-lg font-bold border border-emerald-200">
+              <span>🏕️</span><span>ชนลูกเสือ</span>
+            </span>`;
+        } else {
+          evidenceHtml = `<span class="text-xs text-slate-500">${a.role_description || '-'}</span>`;
+        }
+
+        return `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="p-4"><input type="checkbox" value="${a.id}" data-student="${a.student_id}" data-activity="${a.activity_id}" class="appeal-chk rounded text-primary focus:ring-primary"></td>
+            <td class="p-4 font-semibold text-slate-800">${std.full_name || 'ไม่ระบุชื่อ'}</td>
+            <td class="p-4 text-xs text-slate-500">${std.department || '-'} (${std.class_level || '-'})</td>
+            <td class="p-4 text-xs font-medium text-slate-700">${act.name || a.activity_id}</td>
+            <td class="p-4">${evidenceHtml}</td>
+            <td class="p-4 text-center space-x-1">
+              <button onclick="handleApproveSingle(${a.id}, ${a.student_id}, '${a.activity_id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition shadow-sm cursor-pointer">อนุมัติ</button>
+              <button onclick="handleRejectSingle(${a.id})" class="bg-rose-100 hover:bg-rose-200 text-rose-700 text-xs font-medium px-2.5 py-1.5 rounded-lg transition cursor-pointer">ปฏิเสธ</button>
+            </td>
+          </tr>`;
+      }).join('');
+    }
+
+    function renderMissingStudentsTable() {
+      const tbody = document.getElementById('missingStudentsTableBody');
+      setTxt('badgeMissingCount', `${allMissingStudents.length} รายการ`);
+      if (!tbody) return;
+
+      if (allMissingStudents.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-400">🎉 ไม่มีรายการแจ้งชื่อตกหล่นค้างตรวจ</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = allMissingStudents.map(m => `
+        <tr class="hover:bg-amber-50/50 transition">
+          <td class="p-3 font-bold text-slate-800">${m.full_name}</td>
+          <td class="p-3 text-slate-600">${m.department}</td>
+          <td class="p-3"><span class="px-2 py-0.5 rounded bg-amber-100 font-bold text-amber-800">${m.class_level}</span></td>
+          <td class="p-3 text-[11px] text-slate-400 font-mono">${new Date(m.created_at).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' })}</td>
+          <td class="p-3 text-center space-x-1.5">
+            <button onclick="approveMissingStudent(${m.id}, '${encodeURIComponent(m.full_name)}', '${encodeURIComponent(m.department)}', '${m.class_level}')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold px-3 py-1 rounded-lg transition shadow-sm cursor-pointer">
+              ✅ อนุมัติเพิ่มชื่อเข้าห้อง
+            </button>
+            <button onclick="rejectMissingStudent(${m.id})" class="bg-rose-100 hover:bg-rose-200 text-rose-700 text-[11px] font-medium px-2 py-1 rounded-lg transition cursor-pointer">
+              ปฏิเสธ
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    async function approveMissingStudent(id, encName, encDept, level) {
+      const name = decodeURIComponent(encName);
+      const dept = decodeURIComponent(encDept);
+      if (!confirm(`อนุมัติเพิ่ม "${name}" ใช่หรือไม่?`)) return;
+
+      const clientOld = getOldClient();
+      await clientOld.from('students').insert({ full_name: name, department: dept, class_level: level });
+      await clientOld.from('missing_students').update({ status: 'approved' }).eq('id', id);
+      await loadAllData();
+      alert('เพิ่มเรียบร้อยแล้ว!');
+    }
+
+    async function rejectMissingStudent(id) {
+      if (!confirm('ปฏิเสธคำร้องนี้ใช่หรือไม่?')) return;
+      const clientOld = getOldClient();
+      await clientOld.from('missing_students').update({ status: 'rejected' }).eq('id', id);
+      await loadAllData();
+    }
+
+    async function handleApproveSingle(appealId, studentId, activityId) {
+      if (!confirm('ยืนยันอนุมัติคำร้องนี้?')) return;
+      showToast('⏳', 'กำลังอนุมัติ...');
+      const clientOld = getOldClient();
+      await clientOld.from('appeals').update({ status: 'approved' }).eq('id', appealId);
+      await clientOld.from('attendances').insert({ student_id: studentId, activity_id: activityId });
+      await loadAllData();
+      showToast('✅', 'อนุมัติเรียบร้อย');
+    }
+
+    async function handleRejectSingle(appealId) {
+      if (!confirm('ปฏิเสธคำร้องนี้?')) return;
+      const clientOld = getOldClient();
+      await clientOld.from('appeals').update({ status: 'rejected' }).eq('id', appealId);
+      await loadAllData();
+    }
+
+    async function batchApproveSelected() {
+      const chks = document.querySelectorAll('.appeal-chk:checked');
+      if (chks.length === 0) return alert('กรุณาเลือกรายการก่อนครับ');
+      if (!confirm(`อนุมัติทั้งหมด ${chks.length} รายการ?`)) return;
+
+      const clientOld = getOldClient();
+      const appealIds = [];
+      const attendancesPayload = [];
+
+      chks.forEach(chk => {
+        appealIds.push(parseInt(chk.value));
+        attendancesPayload.push({
+          student_id: parseInt(chk.getAttribute('data-student')),
+          activity_id: chk.getAttribute('data-activity')
+        });
+      });
+
+      await clientOld.from('appeals').update({ status: 'approved' }).in('id', appealIds);
+      await clientOld.from('attendances').insert(attendancesPayload);
+      await loadAllData();
+      showToast('✅', `อนุมัติสำเร็จ ${chks.length} รายการ`);
+    }
+
+    function toggleSelectAllAppeals(master) {
+      document.querySelectorAll('.appeal-chk').forEach(c => c.checked = master.checked);
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('main > section').forEach(s => s.classList.add('hidden'));
+      document.getElementById(tabId)?.classList.remove('hidden');
+
+      document.querySelectorAll('.tab-btn').forEach(b => {
+        b.classList.remove('text-primary', 'border-b-2', 'border-primary');
+        b.classList.add('text-slate-500');
+      });
+
+      const activeBtnMap = {
+        'activitiesTab': 'btnActivitiesTab',
+        'checkinTab': 'btnCheckinTab',
+        'summaryTab': 'btnSummaryTab',
+        'appealsTab': 'btnAppealsTab',
+        'importTab': 'btnImportTab'
+      };
+
+      const btn = document.getElementById(activeBtnMap[tabId]);
+      if (btn) {
+        btn.classList.add('text-primary', 'border-b-2', 'border-primary');
+        btn.classList.remove('text-slate-500');
+      }
+    }
+
+    function openImageModal(url) {
+      document.getElementById('modalImg').src = url;
+      document.getElementById('imageModal')?.classList.remove('hidden');
+      document.getElementById('imageModal')?.classList.add('flex');
+    }
+
+    function closeImageModal() {
+      document.getElementById('imageModal')?.classList.add('hidden');
+      document.getElementById('imageModal')?.classList.remove('flex');
+    }
+
+    function showToast(icon, msg) {
+      const toast = document.getElementById('toast');
+      if (!toast) return;
+      setTxt('toastIcon', icon);
+      setTxt('toastMsg', msg);
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      setTimeout(() => toast.classList.add('translate-y-20', 'opacity-0'), 3000);
+    }
+  </script>
+</body>
+</html>

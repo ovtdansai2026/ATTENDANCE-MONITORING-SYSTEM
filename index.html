@@ -713,53 +713,107 @@ function App() {
     await fetchAssemblyData();
   }, [fetchAssemblyData]);
 
-  // Fetch Activities Data (with term filtering support)
+ // Fetch Activities Data (เทอม 1 ใช้ ReCheck เดิม / เทอม 2 ขึ้นไปซิงก์นักเรียนจาก attendance_summary ก้อนเดียวกัน 100%)
   const fetchActivitiesData = useCallback(async () => {
     setIsLoading(true);
     try {
       const activeYear = currentAcademicYear || '2569';
       const activeSem = currentSemester || '1';
 
-      let client = dbAssembly;
-      let [studentsRaw, activitiesRaw, attendancesRaw] = await Promise.all([
-        fetchAllRows(client, 'students', '*').catch(() => null),
-        fetchAllRows(client, 'activities', '*').catch(() => null),
-        fetchAllRows(client, 'attendances', '*').catch(() => null)
-      ]);
-
-      // กรองกิจกรรมกลางที่ระบุปีการศึกษาและภาคเรียนไว้ในฐานข้อมูลหลัก
-      let termActs = (activitiesRaw || []).filter(a => {
-        if (a.academic_year && a.semester) {
-          return String(a.academic_year) === String(activeYear) && String(a.semester) === String(activeSem);
-        }
-        return false;
-      });
-
-      // ถ้าเป็นเทอม 1/2569 และยังไม่มีกิจกรรมในฐานข้อมูลหลัก ให้ดึงจาก ReCheck Fallback (12 กิจกรรมเดิม)
-      if (termActs.length === 0 && String(activeYear) === '2569' && String(activeSem) === '1') {
-        client = dbReCheckFallback;
-        [studentsRaw, activitiesRaw, attendancesRaw] = await Promise.all([
-          fetchAllRows(client, 'students', '*'),
-          fetchAllRows(client, 'activities', '*'),
-          fetchAllRows(client, 'attendances', '*')
+      // 1. เทอม 1/2569 (เทอมเดียวเท่านั้น): ให้ดึง ReCheck เดิม ไม่แตะต้องประวัติเก่า
+      if (String(activeYear) === '2569' && String(activeSem) === '1') {
+        const client = dbReCheckFallback;
+        const [recheckStudents, recheckActs, recheckAtts] = await Promise.all([
+          fetchAllRows(client, 'students', '*').catch(() => []),
+          fetchAllRows(client, 'activities', '*').catch(() => []),
+          fetchAllRows(client, 'attendances', '*').catch(() => [])
         ]);
-        termActs = activitiesRaw || [];
-      } else if (termActs.length > 0) {
-        activitiesRaw = termActs;
-      } else {
-        activitiesRaw = [];
-      }
 
-      const acts = activitiesRaw || [];
-      const totalActs = acts.length;
-      setActivities(acts);
+        const totalActs = (recheckActs || []).length;
+        setActivities(recheckActs || []);
 
-      if (totalActs === 0) {
-        setMasterStudents([]);
-        setLastUpdated('กิจกรรมกลาง: ยังไม่มีกิจกรรมในภาคเรียนที่ ' + activeSem + '/' + activeYear);
+        const attMap = {};
+        (recheckAtts || []).forEach(a => {
+          const sid = String(a.student_id || '').trim();
+          const actId = String(a.activity_id || '').trim().toLowerCase();
+          if (sid && actId) {
+            if (!attMap[sid]) attMap[sid] = new Set();
+            attMap[sid].add(actId);
+          }
+        });
+
+        const mapped = (recheckStudents || []).map(s => {
+          const passedSet = new Set();
+          const idStr = String(s.id || '').trim();
+          const codeStr = String(s.student_id || '').trim();
+          if (idStr && attMap[idStr]) attMap[idStr].forEach(act => passedSet.add(act));
+          if (codeStr && attMap[codeStr]) attMap[codeStr].forEach(act => passedSet.add(act));
+          const passedCount = Math.min(passedSet.size, totalActs);
+          const pct = totalActs > 0 ? Math.min(Math.round((passedCount / totalActs) * 100), 100) : 0;
+          return {
+            id: s.id,
+            student_id: s.student_id,
+            name: s.full_name || '',
+            dept: s.department || 'ทั่วไป',
+            level: s.class_level || 'ไม่ระบุ',
+            teacher: `ผ่าน ${passedCount}/${totalActs} งาน`,
+            present: passedCount,
+            total: totalActs,
+            rawPresent: passedCount,
+            rawTotal: totalActs,
+            percent: pct,
+            passedSet
+          };
+        });
+
+        mapped.sort((a, b) => (a.percent !== b.percent ? a.percent - b.percent : (a.name || '').localeCompare(b.name || '', 'th')));
+        setMasterStudents(mapped);
+        setLastUpdated(`กิจกรรมกลาง: ${totalActs} กิจกรรม (เทอม 1 เดิม)`);
         setIsLoading(false);
         return;
       }
+
+      // 2. ตั้งแต่เทอม 2/2569 เป็นต้นไป และทุกปีในอนาคต: ดึงนักเรียนจาก attendance_summary ก้อนเดียวกับเข้าแถว
+      const client = dbAssembly;
+      const [summaryStudents, activitiesRaw, attendancesRaw] = await Promise.all([
+        fetchAllRows(client, 'attendance_summary', '*').catch(() => []),
+        fetchAllRows(client, 'activities', '*').catch(() => []),
+        fetchAllRows(client, 'attendances', '*').catch(() => [])
+      ]);
+
+      // ดึงรายชื่อนักเรียนของเทอมนั้น (รองรับการสืบทอดรายชื่อจากเทอม 1 เหมือนหน้าเข้าแถวเป๊ะ)
+      let termStudents = [];
+      const semExplicit = (summaryStudents || []).filter(s => 
+        String(s.academic_year) === String(activeYear) && String(s.semester) === String(activeSem)
+      );
+
+      if (String(activeSem) === '2') {
+        const semNames = new Set(semExplicit.map(s => (s.student_name || '').trim()));
+        const sem1Base = (summaryStudents || []).filter(s => 
+          (String(s.academic_year) === String(activeYear) || !s.academic_year) && 
+          String(s.semester || '1') === '1'
+        );
+        const inherited = sem1Base
+          .filter(s => !semNames.has((s.student_name || '').trim()))
+          .map(s => ({
+            ...s,
+            academic_year: activeYear,
+            semester: activeSem,
+            _inherited: true
+          }));
+        termStudents = [...semExplicit, ...inherited];
+      } else {
+        termStudents = semExplicit;
+      }
+
+      // กรองกิจกรรมกลางเฉพาะของปีและเทอมนี้
+      const termActs = (activitiesRaw || []).filter(a => 
+        String(a.academic_year || activeYear) === String(activeYear) && 
+        String(a.semester || activeSem) === String(activeSem)
+      );
+      const totalActs = termActs.length;
+      setActivities(termActs);
+
       const attMap = {};
       (attendancesRaw || []).forEach(a => {
         const sid = String(a.student_id || '').trim();
@@ -769,42 +823,56 @@ function App() {
           attMap[sid].add(actId);
         }
       });
-      const mapped = (studentsRaw || []).map(s => {
+
+      // นำนักเรียนทุกคนเข้าตารางกิจกรรม (แม้มี 0 กิจกรรม รายชื่อทุกคนก็แสดงครบ 100%)
+      const mapped = termStudents.map(s => {
         const passedSet = new Set();
         const idStr = String(s.id || '').trim();
         const codeStr = String(s.student_id || '').trim();
+        const nameStr = String(s.student_name || '').trim();
+
         if (idStr && attMap[idStr]) attMap[idStr].forEach(act => passedSet.add(act));
         if (codeStr && attMap[codeStr]) attMap[codeStr].forEach(act => passedSet.add(act));
-        const passedCount = Math.min(passedSet.size, totalActs);
-        const pct = Math.min(Math.round((passedCount / totalActs) * 100), 100);
+        if (nameStr && attMap[nameStr]) attMap[nameStr].forEach(act => passedSet.add(act));
+
+        const isGraduated = s.pure_level === 'สำเร็จการศึกษา';
+        const passedCount = totalActs > 0 ? Math.min(passedSet.size, totalActs) : 0;
+        const pct = isGraduated ? 100 : (totalActs > 0 ? Math.min(Math.round((passedCount / totalActs) * 100), 100) : 0);
+
         return {
           id: s.id,
           student_id: s.student_id,
-          name: s.full_name || '',
+          name: s.student_name || '',
           dept: s.department || 'ทั่วไป',
-          level: s.class_level || 'ไม่ระบุ',
-          teacher: `ผ่าน ${passedCount}/${totalActs} งาน`,
+          level: s.pure_level || 'ไม่ระบุ',
+          teacher: totalActs > 0 ? `ผ่าน ${passedCount}/${totalActs} งาน` : 'รอเปิดกิจกรรมกลาง',
           present: passedCount,
           total: totalActs,
           rawPresent: passedCount,
           rawTotal: totalActs,
           percent: pct,
+          isGraduated,
           passedSet
         };
       });
+
       mapped.sort((a, b) => {
+        if (a.isGraduated !== b.isGraduated) return a.isGraduated ? 1 : -1;
         if (a.percent !== b.percent) return a.percent - b.percent;
         return (a.name || '').localeCompare(b.name || '', 'th');
       });
+
       setMasterStudents(mapped);
-      setLastUpdated(`กิจกรรมกลาง: ${acts.length} กิจกรรม`);
+      setLastUpdated(totalActs > 0 
+        ? `กิจกรรมกลาง: ${totalActs} กิจกรรม (ภาคเรียนที่ ${activeSem}/${activeYear})` 
+        : `กิจกรรมกลาง: ยังไม่มีกิจกรรมในภาคเรียนที่ ${activeSem}/${activeYear} (นักเรียน ${mapped.length} คน)`);
     } catch (err) {
       console.error(err);
       alert('ไม่สามารถดึงข้อมูลกิจกรรมได้: ' + err.message);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [currentAcademicYear, currentSemester]);1
 
   const reloadData = useCallback(() => {
     if (systemMode === 'assembly') fetchAssemblyData();
@@ -4709,6 +4777,14 @@ function AdminPanelModal({
               onClick: () => setAdminTab('storage'),
               className: `py-2.5 px-3.5 rounded-t-xl text-xs font-bold cursor-pointer transition-colors flex items-center gap-1.5 whitespace-nowrap ${adminTab === 'storage' ? 'bg-white text-sky-800 border-t-2 border-sky-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`,
               children: [/*#__PURE__*/_jsx(Icon.Shield, { className: "w-3.5 h-3.5 text-indigo-600" }), "พื้นที่ & ล้างข้อมูลเทอม"]
+            }),
+            /*#__PURE__*/_jsxs("a", {
+              href: "recheck/",
+              target: "_blank",
+              rel: "noopener noreferrer",
+              className: "py-2.5 px-3.5 rounded-t-xl text-xs font-bold cursor-pointer transition-colors flex items-center gap-1.5 whitespace-nowrap text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border-t-2 border-transparent hover:border-emerald-500 ml-auto",
+              title: "เปิดระบบจัดการกิจกรรมกลาง (ReCheck Admin Portal)",
+              children: [/*#__PURE__*/_jsx(Icon.Academic, { className: "w-3.5 h-3.5 text-emerald-600" }), "กิจกรรมกลาง (ReCheck) ↗"]
             })
           ]
         }),
