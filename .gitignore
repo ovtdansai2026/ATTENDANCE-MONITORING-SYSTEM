@@ -1,0 +1,27 @@
+# ==============================================================================
+# 🛡️ Whitelist .gitignore: Track ONLY files needed for GitHub Pages
+# ==============================================================================
+
+# 1. Ignore everything by default
+*
+
+# 2. Whitelist: Keep ONLY public dashboard files
+!/.gitignore
+!/index.html
+!/logo.png
+!/README.md
+
+# 3. Explicitly block sensitive & internal directories/files
+uploads/
+attendance-dashboard/
+.github/
+api/
+node_modules/
+*.sql
+*.cmd
+server.js
+*.env*
+google-service-account.json
+credentials.json
+.DS_Store
+Thumbs.db
