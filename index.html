@@ -4739,13 +4739,13 @@ function AdminPanelModal({
       className: "bg-white border border-slate-200/80 rounded-3xl max-w-5xl w-full h-[92vh] max-h-[860px] flex flex-col sm:flex-row shadow-2xl overflow-hidden",
       onClick: e => e.stopPropagation(),
       children: [
-        /* ================= LEFT SIDEBAR ================= */
+        /* ================= LEFT SIDEBAR (VOCATIONAL MAROON GRADIENT) ================= */
         /*#__PURE__*/_jsxs("aside", {
-          className: "sm:w-64 md:w-72 bg-slate-900 text-slate-300 flex flex-col flex-shrink-0 border-r border-slate-800",
+          className: "sm:w-64 md:w-72 bg-gradient-to-b from-[#3a050b] via-[#590b14] to-[#7a121e] text-rose-100 flex flex-col flex-shrink-0 border-r border-[#690f1b] shadow-xl",
           children: [
             /* Brand Header */
             /*#__PURE__*/_jsxs("div", {
-              className: "p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between",
+              className: "p-4 sm:p-5 border-b border-rose-900/50 flex items-center justify-between",
               children: [
                 /*#__PURE__*/_jsxs("div", {
                   className: "flex items-center gap-3",
@@ -4753,7 +4753,7 @@ function AdminPanelModal({
                     /*#__PURE__*/_jsx("img", {
                       src: "logo.png",
                       alt: "ตราวิทยาลัย",
-                      className: "w-9 h-9 rounded-2xl bg-white p-1 object-contain flex-shrink-0 shadow-inner"
+                      className: "w-9 h-9 rounded-2xl bg-white p-1 object-contain flex-shrink-0 shadow-md ring-2 ring-white/20"
                     }),
                     /*#__PURE__*/_jsxs("div", {
                       children: [
@@ -4762,8 +4762,8 @@ function AdminPanelModal({
                           children: "การจัดการระบบ"
                         }),
                         /*#__PURE__*/_jsx("p", {
-                          className: "text-[11px] text-slate-400",
-                          children: "วอศ.ด่านซ้าย • แอดมิน"
+                          className: "text-[11px] text-rose-200/80 font-medium",
+                          children: "วก.ด่านซ้าย • แอดมิน"
                         })
                       ]
                     })
@@ -4773,81 +4773,81 @@ function AdminPanelModal({
                 /*#__PURE__*/_jsx("button", {
                   onClick: onClose,
                   className: "sm:hidden w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white text-base cursor-pointer",
-                  children: /*#__PURE__*/_jsx(Icon.Close, { className: "w-4 h-4 text-slate-300" })
+                  children: /*#__PURE__*/_jsx(Icon.Close, { className: "w-4 h-4 text-white" })
                 })
               ]
             }),
 
             /* Mobile Horizontal Scrollable Pill Bar (sm:hidden) */
             /*#__PURE__*/_jsxs("div", {
-              className: "sm:hidden flex items-center gap-1.5 p-2 bg-slate-950/60 border-b border-slate-800 overflow-x-auto custom-scroll",
+              className: "sm:hidden flex items-center gap-1.5 p-2 bg-[#2d0408]/80 border-b border-rose-900/60 overflow-x-auto custom-scroll",
               children: [
                 /*#__PURE__*/_jsxs("button", {
                   onClick: () => setAdminTab('term'),
-                  className: `px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-colors flex items-center gap-1.5 ${adminTab === 'term' ? 'bg-sky-600 text-white' : 'text-slate-400 hover:text-white'}`,
+                  className: `px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${adminTab === 'term' ? 'bg-white text-rose-900 shadow-sm' : 'text-rose-200 hover:text-white hover:bg-white/10'}`,
                   children: [/*#__PURE__*/_jsx(Icon.Calendar, { className: "w-3.5 h-3.5" }), "ปีการศึกษา"]
                 }),
                 /*#__PURE__*/_jsxs("button", {
                   onClick: () => setAdminTab('general'),
-                  className: `px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-colors flex items-center gap-1.5 ${adminTab === 'general' ? 'bg-sky-600 text-white' : 'text-slate-400 hover:text-white'}`,
+                  className: `px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${adminTab === 'general' ? 'bg-white text-rose-900 shadow-sm' : 'text-rose-200 hover:text-white hover:bg-white/10'}`,
                   children: [/*#__PURE__*/_jsx(Icon.Gear, { className: "w-3.5 h-3.5" }), "เกณฑ์ 80%"]
                 }),
                 /*#__PURE__*/_jsxs("button", {
                   onClick: () => setAdminTab('students'),
-                  className: `px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-colors flex items-center gap-1.5 ${adminTab === 'students' ? 'bg-sky-600 text-white' : 'text-slate-400 hover:text-white'}`,
+                  className: `px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${adminTab === 'students' ? 'bg-white text-rose-900 shadow-sm' : 'text-rose-200 hover:text-white hover:bg-white/10'}`,
                   children: [/*#__PURE__*/_jsx(Icon.Users, { className: "w-3.5 h-3.5" }), "นักเรียน"]
                 }),
                 /*#__PURE__*/_jsxs("button", {
                   onClick: () => setAdminTab('teachers'),
-                  className: `px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-colors flex items-center gap-1.5 ${adminTab === 'teachers' ? 'bg-sky-600 text-white' : 'text-slate-400 hover:text-white'}`,
+                  className: `px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${adminTab === 'teachers' ? 'bg-white text-rose-900 shadow-sm' : 'text-rose-200 hover:text-white hover:bg-white/10'}`,
                   children: [/*#__PURE__*/_jsx(Icon.Academic, { className: "w-3.5 h-3.5" }), "ครู"]
                 }),
                 /*#__PURE__*/_jsxs("button", {
                   onClick: () => setAdminTab('logs'),
-                  className: `px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-colors flex items-center gap-1.5 ${adminTab === 'logs' ? 'bg-sky-600 text-white' : 'text-slate-400 hover:text-white'}`,
+                  className: `px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${adminTab === 'logs' ? 'bg-white text-rose-900 shadow-sm' : 'text-rose-200 hover:text-white hover:bg-white/10'}`,
                   children: [/*#__PURE__*/_jsx(Icon.Camera, { className: "w-3.5 h-3.5" }), "ภาพถ่าย"]
                 }),
                 /*#__PURE__*/_jsxs("button", {
                   onClick: () => setAdminTab('storage'),
-                  className: `px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-colors flex items-center gap-1.5 ${adminTab === 'storage' ? 'bg-sky-600 text-white' : 'text-slate-400 hover:text-white'}`,
+                  className: `px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${adminTab === 'storage' ? 'bg-white text-rose-900 shadow-sm' : 'text-rose-200 hover:text-white hover:bg-white/10'}`,
                   children: [/*#__PURE__*/_jsx(Icon.Shield, { className: "w-3.5 h-3.5" }), "พื้นที่"]
                 }),
                 /*#__PURE__*/_jsxs("a", {
                   href: "recheck/",
                   target: "_blank",
                   rel: "noopener noreferrer",
-                  className: "px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap text-emerald-400 bg-emerald-950/60 border border-emerald-800 flex items-center gap-1.5",
-                  children: [/*#__PURE__*/_jsx(Icon.Academic, { className: "w-3.5 h-3.5 text-emerald-400" }), "ReCheck ↗"]
+                  className: "px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap text-white bg-white/20 border border-white/30 flex items-center gap-1.5",
+                  children: [/*#__PURE__*/_jsx(Icon.Academic, { className: "w-3.5 h-3.5 text-white" }), "ReCheck ↗"]
                 })
               ]
             }),
 
             /* Desktop Sidebar Navigation Menu */
             /*#__PURE__*/_jsxs("nav", {
-              className: "hidden sm:flex flex-col flex-1 p-3 space-y-4 overflow-y-auto custom-scroll",
+              className: "hidden sm:flex flex-col flex-1 p-3.5 space-y-4 overflow-y-auto custom-scroll",
               children: [
                 /* Group: การตั้งค่าระบบ */
                 /*#__PURE__*/_jsxs("div", {
                   className: "space-y-1",
                   children: [
                     /*#__PURE__*/_jsx("div", {
-                      className: "px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500",
+                      className: "px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-rose-300/80",
                       children: "⚙️ การตั้งค่าระบบ"
                     }),
                     /* Tab: term */
                     /*#__PURE__*/_jsxs("button", {
                       onClick: () => setAdminTab('term'),
-                      className: `w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-all ${adminTab === 'term' ? 'bg-sky-500/20 text-sky-300 font-bold border border-sky-500/30 shadow-xs' : 'text-slate-400 hover:text-white hover:bg-slate-800/60'}`,
+                      className: `w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-all ${adminTab === 'term' ? 'bg-white/20 text-white font-bold border border-white/30 shadow-xs backdrop-blur-xs' : 'text-rose-100/80 hover:text-white hover:bg-white/10'}`,
                       children: [
                         /*#__PURE__*/_jsxs("div", {
                           className: "flex items-center gap-2.5",
                           children: [
-                            /*#__PURE__*/_jsx(Icon.Calendar, { className: `w-4 h-4 ${adminTab === 'term' ? 'text-sky-400' : 'text-slate-400'}` }),
+                            /*#__PURE__*/_jsx(Icon.Calendar, { className: `w-4 h-4 ${adminTab === 'term' ? 'text-white' : 'text-rose-300'}` }),
                             /*#__PURE__*/_jsx("span", { children: "ปีการศึกษา & เทอม" })
                           ]
                         }),
                         /*#__PURE__*/_jsxs("span", {
-                          className: "text-[10px] px-1.5 py-0.5 rounded-md font-mono font-bold bg-slate-800 text-slate-300 border border-slate-700",
+                          className: `text-[10px] px-1.5 py-0.5 rounded-md font-mono font-bold ${adminTab === 'term' ? 'bg-white text-rose-900' : 'bg-black/30 text-rose-200 border border-rose-800/80'}`,
                           children: [adminSem, "/", adminYear]
                         })
                       ]
@@ -4855,9 +4855,9 @@ function AdminPanelModal({
                     /* Tab: general */
                     /*#__PURE__*/_jsxs("button", {
                       onClick: () => setAdminTab('general'),
-                      className: `w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-all ${adminTab === 'general' ? 'bg-sky-500/20 text-sky-300 font-bold border border-sky-500/30 shadow-xs' : 'text-slate-400 hover:text-white hover:bg-slate-800/60'}`,
+                      className: `w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-all ${adminTab === 'general' ? 'bg-white/20 text-white font-bold border border-white/30 shadow-xs backdrop-blur-xs' : 'text-rose-100/80 hover:text-white hover:bg-white/10'}`,
                       children: [
-                        /*#__PURE__*/_jsx(Icon.Gear, { className: `w-4 h-4 ${adminTab === 'general' ? 'text-sky-400' : 'text-slate-400'}` }),
+                        /*#__PURE__*/_jsx(Icon.Gear, { className: `w-4 h-4 ${adminTab === 'general' ? 'text-white' : 'text-rose-300'}` }),
                         /*#__PURE__*/_jsx("span", { children: "เกณฑ์ 80% & วันเข้าแถว" })
                       ]
                     })
@@ -4869,24 +4869,24 @@ function AdminPanelModal({
                   className: "space-y-1",
                   children: [
                     /*#__PURE__*/_jsx("div", {
-                      className: "px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500",
+                      className: "px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-rose-300/80",
                       children: "👥 ข้อมูลบุคลากร"
                     }),
                     /* Tab: students */
                     /*#__PURE__*/_jsxs("button", {
                       onClick: () => setAdminTab('students'),
-                      className: `w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-all ${adminTab === 'students' ? 'bg-sky-500/20 text-sky-300 font-bold border border-sky-500/30 shadow-xs' : 'text-slate-400 hover:text-white hover:bg-slate-800/60'}`,
+                      className: `w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-all ${adminTab === 'students' ? 'bg-white/20 text-white font-bold border border-white/30 shadow-xs backdrop-blur-xs' : 'text-rose-100/80 hover:text-white hover:bg-white/10'}`,
                       children: [
-                        /*#__PURE__*/_jsx(Icon.Users, { className: `w-4 h-4 ${adminTab === 'students' ? 'text-sky-400' : 'text-slate-400'}` }),
+                        /*#__PURE__*/_jsx(Icon.Users, { className: `w-4 h-4 ${adminTab === 'students' ? 'text-white' : 'text-rose-300'}` }),
                         /*#__PURE__*/_jsx("span", { children: "จัดการข้อมูลนักเรียน" })
                       ]
                     }),
                     /* Tab: teachers */
                     /*#__PURE__*/_jsxs("button", {
                       onClick: () => setAdminTab('teachers'),
-                      className: `w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-all ${adminTab === 'teachers' ? 'bg-sky-500/20 text-sky-300 font-bold border border-sky-500/30 shadow-xs' : 'text-slate-400 hover:text-white hover:bg-slate-800/60'}`,
+                      className: `w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-all ${adminTab === 'teachers' ? 'bg-white/20 text-white font-bold border border-white/30 shadow-xs backdrop-blur-xs' : 'text-rose-100/80 hover:text-white hover:bg-white/10'}`,
                       children: [
-                        /*#__PURE__*/_jsx(Icon.Academic, { className: `w-4 h-4 ${adminTab === 'teachers' ? 'text-sky-400' : 'text-slate-400'}` }),
+                        /*#__PURE__*/_jsx(Icon.Academic, { className: `w-4 h-4 ${adminTab === 'teachers' ? 'text-white' : 'text-rose-300'}` }),
                         /*#__PURE__*/_jsx("span", { children: "จัดการครูที่ปรึกษา" })
                       ]
                     })
@@ -4898,24 +4898,24 @@ function AdminPanelModal({
                   className: "space-y-1",
                   children: [
                     /*#__PURE__*/_jsx("div", {
-                      className: "px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500",
+                      className: "px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-rose-300/80",
                       children: "📊 สถิติ & หลักฐาน"
                     }),
                     /* Tab: logs */
                     /*#__PURE__*/_jsxs("button", {
                       onClick: () => setAdminTab('logs'),
-                      className: `w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-all ${adminTab === 'logs' ? 'bg-sky-500/20 text-sky-300 font-bold border border-sky-500/30 shadow-xs' : 'text-slate-400 hover:text-white hover:bg-slate-800/60'}`,
+                      className: `w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-all ${adminTab === 'logs' ? 'bg-white/20 text-white font-bold border border-white/30 shadow-xs backdrop-blur-xs' : 'text-rose-100/80 hover:text-white hover:bg-white/10'}`,
                       children: [
-                        /*#__PURE__*/_jsx(Icon.Camera, { className: `w-4 h-4 ${adminTab === 'logs' ? 'text-sky-400' : 'text-slate-400'}` }),
+                        /*#__PURE__*/_jsx(Icon.Camera, { className: `w-4 h-4 ${adminTab === 'logs' ? 'text-white' : 'text-rose-300'}` }),
                         /*#__PURE__*/_jsx("span", { children: "บันทึกเช็คชื่อ & ภาพถ่าย" })
                       ]
                     }),
                     /* Tab: storage */
                     /*#__PURE__*/_jsxs("button", {
                       onClick: () => setAdminTab('storage'),
-                      className: `w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-all ${adminTab === 'storage' ? 'bg-sky-500/20 text-sky-300 font-bold border border-sky-500/30 shadow-xs' : 'text-slate-400 hover:text-white hover:bg-slate-800/60'}`,
+                      className: `w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-all ${adminTab === 'storage' ? 'bg-white/20 text-white font-bold border border-white/30 shadow-xs backdrop-blur-xs' : 'text-rose-100/80 hover:text-white hover:bg-white/10'}`,
                       children: [
-                        /*#__PURE__*/_jsx(Icon.Shield, { className: `w-4 h-4 ${adminTab === 'storage' ? 'text-sky-400' : 'text-slate-400'}` }),
+                        /*#__PURE__*/_jsx(Icon.Shield, { className: `w-4 h-4 ${adminTab === 'storage' ? 'text-white' : 'text-rose-300'}` }),
                         /*#__PURE__*/_jsx("span", { children: "พื้นที่ & ล้างข้อมูลเทอม" })
                       ]
                     })
@@ -4927,23 +4927,23 @@ function AdminPanelModal({
                   className: "pt-2 space-y-1",
                   children: [
                     /*#__PURE__*/_jsx("div", {
-                      className: "px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500",
+                      className: "px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-rose-300/80",
                       children: "🎪 ระบบภายนอก"
                     }),
                     /*#__PURE__*/_jsxs("a", {
                       href: "recheck/",
                       target: "_blank",
                       rel: "noopener noreferrer",
-                      className: "w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-emerald-300 bg-emerald-950/40 border border-emerald-800/60 hover:bg-emerald-900/40 hover:text-white transition-all cursor-pointer group",
+                      className: "w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-white bg-white/15 border border-white/25 hover:bg-white/25 transition-all cursor-pointer group shadow-xs",
                       children: [
                         /*#__PURE__*/_jsxs("div", {
                           className: "flex items-center gap-2.5",
                           children: [
-                            /*#__PURE__*/_jsx(Icon.Academic, { className: "w-4 h-4 text-emerald-400" }),
+                            /*#__PURE__*/_jsx(Icon.Academic, { className: "w-4 h-4 text-white" }),
                             /*#__PURE__*/_jsx("span", { children: "กิจกรรมกลาง (ReCheck)" })
                           ]
                         }),
-                        /*#__PURE__*/_jsx("span", { className: "text-emerald-400 group-hover:translate-x-0.5 transition-transform", children: "↗" })
+                        /*#__PURE__*/_jsx("span", { className: "text-white/80 group-hover:translate-x-0.5 transition-transform", children: "↗" })
                       ]
                     })
                   ]
@@ -4953,19 +4953,19 @@ function AdminPanelModal({
 
             /* Sidebar Footer */
             /*#__PURE__*/_jsxs("div", {
-              className: "p-3 border-t border-slate-800 bg-slate-950/50 flex items-center justify-between gap-2",
+              className: "p-3.5 border-t border-rose-900/50 bg-[#2b0408]/60 flex items-center justify-between gap-2",
               children: [
                 /*#__PURE__*/_jsxs("button", {
                   onClick: onLogout,
-                  className: "flex items-center gap-1.5 px-3 py-2 text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 rounded-xl text-xs font-semibold transition-colors cursor-pointer",
+                  className: "flex items-center gap-1.5 px-3 py-2 text-rose-200 hover:text-white hover:bg-white/10 rounded-xl text-xs font-semibold transition-colors cursor-pointer",
                   title: "ออกจากระบบแอดมิน",
                   children: [
-                    /*#__PURE__*/_jsx(Icon.Lock, { className: "w-3.5 h-3.5 text-rose-400" }),
+                    /*#__PURE__*/_jsx(Icon.Lock, { className: "w-3.5 h-3.5 text-rose-300" }),
                     /*#__PURE__*/_jsx("span", { children: "ออกจากระบบ" })
                   ]
                 }),
                 /*#__PURE__*/_jsx("span", {
-                  className: "text-[10px] font-mono text-slate-500 hidden sm:inline",
+                  className: "text-[10px] font-mono text-rose-300/70 hidden sm:inline",
                   children: "Secure RPC"
                 })
               ]

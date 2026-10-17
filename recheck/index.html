@@ -51,116 +51,116 @@
   <!-- Full App Wrapper: Left Sidebar + Right Main Content -->
   <div class="min-h-screen flex flex-col md:flex-row bg-slate-100/60 font-sans">
 
-    <!-- ================= LEFT SIDEBAR ================= -->
-    <aside class="w-full md:w-64 lg:w-72 bg-slate-900 text-slate-300 flex-shrink-0 flex flex-col border-r border-slate-800 md:min-h-screen md:sticky md:top-0 md:h-screen z-40">
+    <!-- ================= LEFT SIDEBAR (VOCATIONAL MAROON GRADIENT) ================= -->
+    <aside class="w-full md:w-64 lg:w-72 bg-gradient-to-b from-[#3a050b] via-[#590b14] to-[#7a121e] text-rose-100 flex-shrink-0 flex flex-col border-r border-[#690f1b] md:min-h-screen md:sticky md:top-0 md:h-screen z-40 shadow-xl">
       <!-- Brand Header -->
-      <div class="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between">
+      <div class="p-4 sm:p-5 border-b border-rose-900/50 flex items-center justify-between">
         <div class="flex items-center space-x-3">
-          <div class="w-9 h-9 rounded-2xl bg-sky-500/20 text-sky-400 flex items-center justify-center font-bold text-lg border border-sky-500/30 shadow-inner">🎓</div>
+          <div class="w-9 h-9 rounded-2xl bg-white/15 text-white flex items-center justify-center font-bold text-lg border border-white/25 shadow-inner ring-2 ring-white/20">🎓</div>
           <div>
             <h1 class="text-sm sm:text-base font-bold text-white tracking-tight leading-tight">ReCheck กิจกรรม</h1>
-            <p class="text-[11px] text-slate-400">วอศ.ด่านซ้าย • Admin Portal</p>
+            <p class="text-[11px] text-rose-200/80 font-medium">วก.ด่านซ้าย • Admin Portal</p>
           </div>
         </div>
-        <span class="md:hidden text-[11px] bg-sky-950 text-sky-300 border border-sky-800 font-bold px-2 py-0.5 rounded-lg" id="mobileTermBadge">...</span>
+        <span class="md:hidden text-[11px] bg-white/15 text-white border border-white/20 font-bold px-2 py-0.5 rounded-lg" id="mobileTermBadge">...</span>
       </div>
 
       <!-- Term & Year Selector in Sidebar -->
-      <div class="p-3.5 border-b border-slate-800 bg-slate-950/40">
-        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+      <div class="p-3.5 border-b border-rose-900/50 bg-[#2d0408]/60">
+        <div class="text-[10px] font-bold text-rose-300/80 uppercase tracking-wider mb-1.5 flex items-center justify-between">
           <span>📅 ภาคเรียนที่เลือก</span>
-          <span class="text-[10px] font-normal text-slate-500 font-mono">Real-time</span>
+          <span class="text-[10px] font-normal text-rose-300/60 font-mono">Real-time</span>
         </div>
         <div class="grid grid-cols-2 gap-1.5">
-          <select id="globalSemesterSelect" onchange="changeAcademicTerm()" class="text-xs bg-slate-800 text-sky-300 font-bold px-2 py-2 rounded-xl border border-slate-700 focus:outline-none focus:ring-1 focus:ring-sky-500 cursor-pointer">
+          <select id="globalSemesterSelect" onchange="changeAcademicTerm()" class="text-xs bg-[#48080f] text-rose-100 font-bold px-2.5 py-2 rounded-xl border border-rose-800/80 focus:outline-none focus:ring-1 focus:ring-rose-400 cursor-pointer">
             <option value="1">ภาคเรียนที่ 1</option>
             <option value="2">ภาคเรียนที่ 2</option>
             <option value="3">ภาคฤดูร้อน</option>
           </select>
-          <select id="globalYearSelect" onchange="changeAcademicTerm()" class="text-xs bg-slate-800 text-white font-bold px-2 py-2 rounded-xl border border-slate-700 focus:outline-none focus:ring-1 focus:ring-sky-500 cursor-pointer font-mono">
+          <select id="globalYearSelect" onchange="changeAcademicTerm()" class="text-xs bg-[#48080f] text-white font-bold px-2.5 py-2 rounded-xl border border-rose-800/80 focus:outline-none focus:ring-1 focus:ring-rose-400 cursor-pointer font-mono">
             <option value="2569">2569</option>
           </select>
         </div>
       </div>
 
       <!-- Mobile Navigation Bar (md:hidden) -->
-      <div class="md:hidden flex items-center gap-1.5 p-2 bg-slate-950/70 border-b border-slate-800 overflow-x-auto custom-scroll">
-        <button onclick="switchTab('activitiesTab')" id="mob_btnActivitiesTab" class="mobile-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap bg-sky-600 text-white flex items-center gap-1 cursor-pointer">
+      <div class="md:hidden flex items-center gap-1.5 p-2 bg-[#2d0408]/80 border-b border-rose-900/60 overflow-x-auto custom-scroll">
+        <button onclick="switchTab('activitiesTab')" id="mob_btnActivitiesTab" class="mobile-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap bg-white text-rose-900 shadow-sm flex items-center gap-1 cursor-pointer">
           <span>🎪</span> กิจกรรม
         </button>
-        <button onclick="switchTab('checkinTab')" id="mob_btnCheckinTab" class="mobile-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap text-slate-400 hover:text-white flex items-center gap-1 cursor-pointer">
+        <button onclick="switchTab('checkinTab')" id="mob_btnCheckinTab" class="mobile-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap text-rose-200 hover:text-white flex items-center gap-1 cursor-pointer">
           <span>✍️</span> เช็คชื่อ
         </button>
-        <button onclick="switchTab('summaryTab')" id="mob_btnSummaryTab" class="mobile-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap text-slate-400 hover:text-white flex items-center gap-1 cursor-pointer">
+        <button onclick="switchTab('summaryTab')" id="mob_btnSummaryTab" class="mobile-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap text-rose-200 hover:text-white flex items-center gap-1 cursor-pointer">
           <span>📊</span> สรุปผล
         </button>
-        <button onclick="switchTab('appealsTab')" id="mob_btnAppealsTab" class="mobile-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap text-slate-400 hover:text-white flex items-center gap-1 cursor-pointer">
+        <button onclick="switchTab('appealsTab')" id="mob_btnAppealsTab" class="mobile-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap text-rose-200 hover:text-white flex items-center gap-1 cursor-pointer">
           <span>📩</span> คำร้อง
         </button>
-        <button onclick="switchTab('importTab')" id="mob_btnImportTab" class="mobile-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap text-slate-400 hover:text-white flex items-center gap-1 cursor-pointer">
+        <button onclick="switchTab('importTab')" id="mob_btnImportTab" class="mobile-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap text-rose-200 hover:text-white flex items-center gap-1 cursor-pointer">
           <span>📤</span> Excel
         </button>
       </div>
 
       <!-- Desktop Sidebar Navigation Links -->
-      <nav class="hidden md:flex flex-col flex-1 p-3 space-y-4 overflow-y-auto custom-scroll">
+      <nav class="hidden md:flex flex-col flex-1 p-3.5 space-y-4 overflow-y-auto custom-scroll">
         <div class="space-y-1">
-          <div class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">เมนูการจัดการ</div>
+          <div class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-rose-300/80">เมนูการจัดการ</div>
           
-          <button onclick="switchTab('activitiesTab')" id="btnActivitiesTab" class="tab-btn w-full flex items-center space-x-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-sky-500/20 text-sky-300 font-bold border border-sky-500/30 transition cursor-pointer text-left">
+          <button onclick="switchTab('activitiesTab')" id="btnActivitiesTab" class="tab-btn w-full flex items-center space-x-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-white/20 text-white font-bold border border-white/30 shadow-xs backdrop-blur-xs transition cursor-pointer text-left">
             <span>🎪</span>
             <span>จัดการกิจกรรมกลาง</span>
           </button>
 
-          <button onclick="switchTab('checkinTab')" id="btnCheckinTab" class="tab-btn w-full flex items-center space-x-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800/60 transition cursor-pointer text-left">
+          <button onclick="switchTab('checkinTab')" id="btnCheckinTab" class="tab-btn w-full flex items-center space-x-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-rose-100/80 hover:text-white hover:bg-white/10 transition cursor-pointer text-left">
             <span>✍️</span>
             <span>เช็คชื่อตามใบจริง</span>
           </button>
 
-          <button onclick="switchTab('summaryTab')" id="btnSummaryTab" class="tab-btn w-full flex items-center space-x-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800/60 transition cursor-pointer text-left">
+          <button onclick="switchTab('summaryTab')" id="btnSummaryTab" class="tab-btn w-full flex items-center space-x-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-rose-100/80 hover:text-white hover:bg-white/10 transition cursor-pointer text-left">
             <span>📊</span>
             <span>สรุปผลรายบุคคล</span>
           </button>
 
-          <button onclick="switchTab('appealsTab')" id="btnAppealsTab" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800/60 transition cursor-pointer text-left">
+          <button onclick="switchTab('appealsTab')" id="btnAppealsTab" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-rose-100/80 hover:text-white hover:bg-white/10 transition cursor-pointer text-left">
             <div class="flex items-center space-x-2.5">
               <span>📩</span>
               <span>ตรวจคำร้องตกหล่น</span>
             </div>
-            <span id="badgePendingCount" class="px-2 py-0.5 text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-full font-bold">0</span>
+            <span id="badgePendingCount" class="px-2 py-0.5 text-[10px] bg-amber-400/20 text-amber-200 border border-amber-400/30 rounded-full font-bold">0</span>
           </button>
 
-          <button onclick="switchTab('importTab')" id="btnImportTab" class="tab-btn w-full flex items-center space-x-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800/60 transition cursor-pointer text-left">
+          <button onclick="switchTab('importTab')" id="btnImportTab" class="tab-btn w-full flex items-center space-x-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-rose-100/80 hover:text-white hover:bg-white/10 transition cursor-pointer text-left">
             <span>📤</span>
             <span>นำเข้าข้อมูล Excel</span>
           </button>
         </div>
 
         <div class="pt-2 space-y-1">
-          <div class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">รายงาน & ทางลัด</div>
+          <div class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-rose-300/80">รายงาน & ทางลัด</div>
           
-          <button onclick="exportToExcel()" class="w-full flex items-center space-x-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-emerald-400 bg-emerald-950/30 border border-emerald-800/50 hover:bg-emerald-900/40 hover:text-emerald-300 transition cursor-pointer text-left">
+          <button onclick="exportToExcel()" class="w-full flex items-center space-x-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-white bg-white/15 border border-white/25 hover:bg-white/25 shadow-xs transition cursor-pointer text-left">
             <span>📥</span>
             <span>ส่งออก Excel (แยกชีต)</span>
           </button>
 
-          <a href="../" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800/60 transition cursor-pointer">
+          <a href="../" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-rose-200 hover:text-white hover:bg-white/10 transition cursor-pointer">
             <div class="flex items-center space-x-2.5">
               <span>🏠</span>
               <span>แดชบอร์ดหลัก</span>
             </div>
-            <span class="text-slate-500">↗</span>
+            <span class="text-rose-300/70">↗</span>
           </a>
         </div>
       </nav>
 
       <!-- Sidebar Footer -->
-      <div class="p-3 border-t border-slate-800 bg-slate-950/60 flex items-center justify-between gap-2">
-        <button onclick="logoutAdmin()" class="flex items-center gap-1.5 px-3 py-2 text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 rounded-xl text-xs font-semibold transition cursor-pointer">
+      <div class="p-3.5 border-t border-rose-900/50 bg-[#2b0408]/60 flex items-center justify-between gap-2">
+        <button onclick="logoutAdmin()" class="flex items-center gap-1.5 px-3 py-2 text-rose-200 hover:text-white hover:bg-white/10 rounded-xl text-xs font-semibold transition cursor-pointer">
           <span>🚪</span>
           <span>ออกจากระบบ</span>
         </button>
-        <button onclick="loadAllData()" class="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition cursor-pointer" title="รีเฟรชข้อมูล">
+        <button onclick="loadAllData()" class="p-2 text-rose-200 hover:text-white hover:bg-white/10 rounded-xl transition cursor-pointer" title="รีเฟรชข้อมูล">
           🔄
         </button>
       </div>
@@ -1833,14 +1833,14 @@
 
       // Update Desktop Sidebar Buttons
       document.querySelectorAll('.tab-btn').forEach(b => {
-        b.classList.remove('bg-sky-500/20', 'text-sky-300', 'font-bold', 'border', 'border-sky-500/30');
-        b.classList.add('text-slate-400');
+        b.classList.remove('bg-white/20', 'text-white', 'font-bold', 'border', 'border-white/30', 'shadow-xs', 'backdrop-blur-xs');
+        b.classList.add('text-rose-100/80');
       });
 
       // Update Mobile Pill Buttons
       document.querySelectorAll('.mobile-tab-btn').forEach(b => {
-        b.classList.remove('bg-sky-600', 'text-white');
-        b.classList.add('text-slate-400');
+        b.classList.remove('bg-white', 'text-rose-900', 'shadow-sm');
+        b.classList.add('text-rose-200');
       });
 
       const activeBtnMap = {
@@ -1861,14 +1861,14 @@
 
       const btn = document.getElementById(activeBtnMap[tabId]);
       if (btn) {
-        btn.classList.add('bg-sky-500/20', 'text-sky-300', 'font-bold', 'border', 'border-sky-500/30');
-        btn.classList.remove('text-slate-400');
+        btn.classList.add('bg-white/20', 'text-white', 'font-bold', 'border', 'border-white/30', 'shadow-xs', 'backdrop-blur-xs');
+        btn.classList.remove('text-rose-100/80');
       }
 
       const mobBtn = document.getElementById('mob_' + activeBtnMap[tabId]);
       if (mobBtn) {
-        mobBtn.classList.add('bg-sky-600', 'text-white');
-        mobBtn.classList.remove('text-slate-400');
+        mobBtn.classList.add('bg-white', 'text-rose-900', 'shadow-sm');
+        mobBtn.classList.remove('text-rose-200');
       }
 
       const titleEl = document.getElementById('topBarTitle');
