@@ -5,11 +5,13 @@
 # 1. Ignore everything by default
 *
 
-# 2. Whitelist: Keep ONLY public dashboard files
+# 2. Whitelist: Keep ONLY public dashboard & recheck files
 !/.gitignore
 !/index.html
 !/logo.png
 !/README.md
+!/recheck/
+!/recheck/**
 
 # 3. Explicitly block sensitive & internal directories/files
 uploads/

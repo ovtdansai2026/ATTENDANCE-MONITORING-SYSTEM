@@ -48,103 +48,180 @@
     </div>
   </div>
 
-  <!-- Navbar -->
-  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center py-2.5 md:h-16 gap-2">
-      <div class="flex items-center space-x-3 w-full md:w-auto justify-between md:justify-start">
+  <!-- Full App Wrapper: Left Sidebar + Right Main Content -->
+  <div class="min-h-screen flex flex-col md:flex-row bg-slate-100/60 font-sans">
+
+    <!-- ================= LEFT SIDEBAR ================= -->
+    <aside class="w-full md:w-64 lg:w-72 bg-slate-900 text-slate-300 flex-shrink-0 flex flex-col border-r border-slate-800 md:min-h-screen md:sticky md:top-0 md:h-screen z-40">
+      <!-- Brand Header -->
+      <div class="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between">
         <div class="flex items-center space-x-3">
-          <div class="bg-primary text-white p-2 rounded-xl font-bold text-lg">🎓</div>
+          <div class="w-9 h-9 rounded-2xl bg-sky-500/20 text-sky-400 flex items-center justify-center font-bold text-lg border border-sky-500/30 shadow-inner">🎓</div>
           <div>
-            <h1 class="text-base sm:text-lg font-bold text-slate-900 leading-tight">ReCheck กิจกรรมกลาง</h1>
-            <p class="text-xs text-slate-500">ระบบจัดการและอนุมัติกิจกรรม (Admin Portal)</p>
+            <h1 class="text-sm sm:text-base font-bold text-white tracking-tight leading-tight">ReCheck กิจกรรม</h1>
+            <p class="text-[11px] text-slate-400">วอศ.ด่านซ้าย • Admin Portal</p>
           </div>
         </div>
-        <span class="md:hidden text-xs bg-sky-100 text-sky-800 font-bold px-2 py-0.5 rounded-lg" id="mobileTermBadge">...</span>
+        <span class="md:hidden text-[11px] bg-sky-950 text-sky-300 border border-sky-800 font-bold px-2 py-0.5 rounded-lg" id="mobileTermBadge">...</span>
       </div>
 
-      <!-- Semester & Year Selector -->
-      <div class="flex items-center space-x-2 w-full md:w-auto justify-end overflow-x-auto">
-        <div class="flex items-center bg-slate-100 p-1 rounded-xl space-x-1.5 border border-slate-200">
-          <span class="text-xs font-bold text-slate-600 pl-2">📅 เทอม:</span>
-          <select id="globalSemesterSelect" onchange="changeAcademicTerm()" class="text-xs bg-white font-bold text-primary px-2.5 py-1.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer">
+      <!-- Term & Year Selector in Sidebar -->
+      <div class="p-3.5 border-b border-slate-800 bg-slate-950/40">
+        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+          <span>📅 ภาคเรียนที่เลือก</span>
+          <span class="text-[10px] font-normal text-slate-500 font-mono">Real-time</span>
+        </div>
+        <div class="grid grid-cols-2 gap-1.5">
+          <select id="globalSemesterSelect" onchange="changeAcademicTerm()" class="text-xs bg-slate-800 text-sky-300 font-bold px-2 py-2 rounded-xl border border-slate-700 focus:outline-none focus:ring-1 focus:ring-sky-500 cursor-pointer">
             <option value="1">ภาคเรียนที่ 1</option>
             <option value="2">ภาคเรียนที่ 2</option>
             <option value="3">ภาคฤดูร้อน</option>
           </select>
-          <span class="text-xs font-bold text-slate-600">ปี:</span>
-          <select id="globalYearSelect" onchange="changeAcademicTerm()" class="text-xs bg-white font-bold text-slate-700 px-2 py-1.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer font-mono">
+          <select id="globalYearSelect" onchange="changeAcademicTerm()" class="text-xs bg-slate-800 text-white font-bold px-2 py-2 rounded-xl border border-slate-700 focus:outline-none focus:ring-1 focus:ring-sky-500 cursor-pointer font-mono">
             <option value="2569">2569</option>
           </select>
         </div>
+      </div>
 
-        <button onclick="exportToExcel()" class="inline-flex items-center space-x-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-medium px-3 py-2 rounded-xl transition shadow-sm cursor-pointer" title="ส่งออกเป็น Excel แยกชีตย่อยตามแผนกและชั้นปี">
-          <span>📥</span><span class="hidden sm:inline">ส่งออก</span> Excel (แยกชีต)
+      <!-- Mobile Navigation Bar (md:hidden) -->
+      <div class="md:hidden flex items-center gap-1.5 p-2 bg-slate-950/70 border-b border-slate-800 overflow-x-auto custom-scroll">
+        <button onclick="switchTab('activitiesTab')" id="mob_btnActivitiesTab" class="mobile-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap bg-sky-600 text-white flex items-center gap-1 cursor-pointer">
+          <span>🎪</span> กิจกรรม
         </button>
-        <button onclick="loadAllData()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 p-2 rounded-xl transition text-sm cursor-pointer" title="รีเฟรชข้อมูล">🔄</button>
-        <button onclick="logoutAdmin()" class="bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs px-2.5 py-2 rounded-xl font-medium transition cursor-pointer" title="ออกจากระบบ">🚪 ออกจากระบบ</button>
+        <button onclick="switchTab('checkinTab')" id="mob_btnCheckinTab" class="mobile-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap text-slate-400 hover:text-white flex items-center gap-1 cursor-pointer">
+          <span>✍️</span> เช็คชื่อ
+        </button>
+        <button onclick="switchTab('summaryTab')" id="mob_btnSummaryTab" class="mobile-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap text-slate-400 hover:text-white flex items-center gap-1 cursor-pointer">
+          <span>📊</span> สรุปผล
+        </button>
+        <button onclick="switchTab('appealsTab')" id="mob_btnAppealsTab" class="mobile-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap text-slate-400 hover:text-white flex items-center gap-1 cursor-pointer">
+          <span>📩</span> คำร้อง
+        </button>
+        <button onclick="switchTab('importTab')" id="mob_btnImportTab" class="mobile-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap text-slate-400 hover:text-white flex items-center gap-1 cursor-pointer">
+          <span>📤</span> Excel
+        </button>
       </div>
-    </div>
-  </header>
 
-  <!-- Main Content Container -->
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      <!-- Desktop Sidebar Navigation Links -->
+      <nav class="hidden md:flex flex-col flex-1 p-3 space-y-4 overflow-y-auto custom-scroll">
+        <div class="space-y-1">
+          <div class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">เมนูการจัดการ</div>
+          
+          <button onclick="switchTab('activitiesTab')" id="btnActivitiesTab" class="tab-btn w-full flex items-center space-x-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-sky-500/20 text-sky-300 font-bold border border-sky-500/30 transition cursor-pointer text-left">
+            <span>🎪</span>
+            <span>จัดการกิจกรรมกลาง</span>
+          </button>
 
-    <!-- KPI Dashboard Cards -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
-        <p class="text-xs text-slate-400 font-medium">นักเรียนในเทอมนี้</p>
-        <h3 id="statTotalStudents" class="text-2xl sm:text-3xl font-bold text-slate-800 mt-1">...</h3>
-        <span class="text-xs text-slate-400" id="statStudentSourceLabel">คนในฐานข้อมูล</span>
-      </div>
-      <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
-        <p class="text-xs text-emerald-600 font-medium">ผ่านกิจกรรม (≥80%)</p>
-        <h3 id="statPassedCount" class="text-2xl sm:text-3xl font-bold text-emerald-600 mt-1">...</h3>
-        <span id="statPassedPercent" class="text-xs text-emerald-500 font-medium">0% ของทั้งหมด</span>
-      </div>
-      <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
-        <p class="text-xs text-rose-500 font-medium">ไม่ผ่านกิจกรรม (&lt;80%)</p>
-        <h3 id="statFailedCount" class="text-2xl sm:text-3xl font-bold text-rose-500 mt-1">...</h3>
-        <span class="text-xs text-rose-400">ต้องเร่งซ่อมกิจกรรม</span>
-      </div>
-      <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
-        <p class="text-xs text-sky-600 font-medium">กิจกรรมกลางในเทอมนี้</p>
-        <h3 id="statTotalActivities" class="text-2xl sm:text-3xl font-bold text-primary mt-1">...</h3>
-        <span class="text-xs text-slate-400">กิจกรรมที่บันทึกไว้</span>
-      </div>
-    </div>
+          <button onclick="switchTab('checkinTab')" id="btnCheckinTab" class="tab-btn w-full flex items-center space-x-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800/60 transition cursor-pointer text-left">
+            <span>✍️</span>
+            <span>เช็คชื่อตามใบจริง</span>
+          </button>
 
-    <!-- Active Term Notice Banner -->
-    <div class="bg-sky-50 border border-sky-200 rounded-2xl p-3.5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-      <div class="flex items-center space-x-2">
-        <span class="text-lg">📌</span>
-        <div class="text-xs text-sky-900">
-          กำลังจัดการข้อมูล: <strong id="termNoticeText" class="text-primary text-sm font-bold">...</strong>
-          <span class="text-slate-500 ml-1.5">(นักเรียน <span id="termStudentCount" class="font-bold text-sky-700">0</span> คน • กิจกรรม <span id="termActCount" class="font-bold text-sky-700">0</span> งาน)</span>
+          <button onclick="switchTab('summaryTab')" id="btnSummaryTab" class="tab-btn w-full flex items-center space-x-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800/60 transition cursor-pointer text-left">
+            <span>📊</span>
+            <span>สรุปผลรายบุคคล</span>
+          </button>
+
+          <button onclick="switchTab('appealsTab')" id="btnAppealsTab" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800/60 transition cursor-pointer text-left">
+            <div class="flex items-center space-x-2.5">
+              <span>📩</span>
+              <span>ตรวจคำร้องตกหล่น</span>
+            </div>
+            <span id="badgePendingCount" class="px-2 py-0.5 text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-full font-bold">0</span>
+          </button>
+
+          <button onclick="switchTab('importTab')" id="btnImportTab" class="tab-btn w-full flex items-center space-x-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800/60 transition cursor-pointer text-left">
+            <span>📤</span>
+            <span>นำเข้าข้อมูล Excel</span>
+          </button>
         </div>
-      </div>
-      <span class="text-[11px] px-3 py-1 rounded-xl font-bold border" id="dbSourceBadge">
-        ...
-      </span>
-    </div>
 
-    <!-- Navigation Tabs -->
-    <div class="flex border-b border-slate-200 space-x-2 sm:space-x-8 text-xs sm:text-sm font-medium overflow-x-auto">
-      <button onclick="switchTab('activitiesTab')" id="btnActivitiesTab" class="tab-btn pb-3 text-primary border-b-2 border-primary cursor-pointer whitespace-nowrap">
-        🎪 จัดการกิจกรรมกลาง
-      </button>
-      <button onclick="switchTab('checkinTab')" id="btnCheckinTab" class="tab-btn pb-3 text-slate-500 hover:text-slate-800 cursor-pointer whitespace-nowrap">
-        ✍️ เช็คชื่อตามใบจริง
-      </button>
-      <button onclick="switchTab('summaryTab')" id="btnSummaryTab" class="tab-btn pb-3 text-slate-500 hover:text-slate-800 cursor-pointer whitespace-nowrap">
-        📊 สรุปผลรายบุคคล
-      </button>
-      <button onclick="switchTab('appealsTab')" id="btnAppealsTab" class="tab-btn pb-3 text-slate-500 hover:text-slate-800 cursor-pointer whitespace-nowrap">
-        📩 ตรวจคำร้องตกหล่น <span id="badgePendingCount" class="ml-1 px-2 py-0.5 text-xs bg-amber-100 text-amber-800 rounded-full font-bold">0</span>
-      </button>
-      <button onclick="switchTab('importTab')" id="btnImportTab" class="tab-btn pb-3 text-slate-500 hover:text-slate-800 cursor-pointer whitespace-nowrap">
-        📤 นำเข้าข้อมูล Excel
-      </button>
-    </div>
+        <div class="pt-2 space-y-1">
+          <div class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">รายงาน & ทางลัด</div>
+          
+          <button onclick="exportToExcel()" class="w-full flex items-center space-x-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-emerald-400 bg-emerald-950/30 border border-emerald-800/50 hover:bg-emerald-900/40 hover:text-emerald-300 transition cursor-pointer text-left">
+            <span>📥</span>
+            <span>ส่งออก Excel (แยกชีต)</span>
+          </button>
+
+          <a href="../" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800/60 transition cursor-pointer">
+            <div class="flex items-center space-x-2.5">
+              <span>🏠</span>
+              <span>แดชบอร์ดหลัก</span>
+            </div>
+            <span class="text-slate-500">↗</span>
+          </a>
+        </div>
+      </nav>
+
+      <!-- Sidebar Footer -->
+      <div class="p-3 border-t border-slate-800 bg-slate-950/60 flex items-center justify-between gap-2">
+        <button onclick="logoutAdmin()" class="flex items-center gap-1.5 px-3 py-2 text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 rounded-xl text-xs font-semibold transition cursor-pointer">
+          <span>🚪</span>
+          <span>ออกจากระบบ</span>
+        </button>
+        <button onclick="loadAllData()" class="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition cursor-pointer" title="รีเฟรชข้อมูล">
+          🔄
+        </button>
+      </div>
+    </aside>
+
+    <!-- ================= RIGHT MAIN CONTENT ================= -->
+    <div class="flex-1 flex flex-col min-w-0 bg-slate-50/70">
+      <!-- Top Header Bar -->
+      <header class="bg-white border-b border-slate-200/80 px-4 sm:px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shadow-xs sticky top-0 z-30">
+        <div>
+          <h2 id="topBarTitle" class="text-base sm:text-lg font-bold text-slate-900 tracking-tight leading-tight">🎪 จัดการกิจกรรมกลาง</h2>
+          <p class="text-xs text-slate-500">ระบบ ReCheck กิจกรรมกลาง • วิทยาลัยการอาชีพด่านซ้าย</p>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <span class="text-[11px] px-3 py-1 rounded-xl font-bold border" id="dbSourceBadge">
+            ...
+          </span>
+          <button onclick="loadAllData()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer flex items-center gap-1">
+            <span>🔄</span><span class="hidden sm:inline">รีเฟรช</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Main Content Container -->
+      <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 flex-1 w-full">
+
+        <!-- KPI Dashboard Cards -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+            <p class="text-xs text-slate-400 font-medium">นักเรียนในเทอมนี้</p>
+            <h3 id="statTotalStudents" class="text-2xl sm:text-3xl font-bold text-slate-800 mt-1">...</h3>
+            <span class="text-xs text-slate-400" id="statStudentSourceLabel">คนในฐานข้อมูล</span>
+          </div>
+          <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+            <p class="text-xs text-emerald-600 font-medium">ผ่านกิจกรรม (≥80%)</p>
+            <h3 id="statPassedCount" class="text-2xl sm:text-3xl font-bold text-emerald-600 mt-1">...</h3>
+            <span id="statPassedPercent" class="text-xs text-emerald-500 font-medium">0% ของทั้งหมด</span>
+          </div>
+          <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+            <p class="text-xs text-rose-500 font-medium">ไม่ผ่านกิจกรรม (&lt;80%)</p>
+            <h3 id="statFailedCount" class="text-2xl sm:text-3xl font-bold text-rose-500 mt-1">...</h3>
+            <span class="text-xs text-rose-400">ต้องเร่งซ่อมกิจกรรม</span>
+          </div>
+          <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+            <p class="text-xs text-sky-600 font-medium">กิจกรรมกลางในเทอมนี้</p>
+            <h3 id="statTotalActivities" class="text-2xl sm:text-3xl font-bold text-primary mt-1">...</h3>
+            <span class="text-xs text-slate-400">กิจกรรมที่บันทึกไว้</span>
+          </div>
+        </div>
+
+        <!-- Active Term Notice Banner -->
+        <div class="bg-sky-50 border border-sky-200 rounded-2xl p-3.5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+          <div class="flex items-center space-x-2">
+            <span class="text-lg">📌</span>
+            <div class="text-xs text-sky-900">
+              กำลังจัดการข้อมูล: <strong id="termNoticeText" class="text-primary text-sm font-bold">...</strong>
+              <span class="text-slate-500 ml-1.5">(นักเรียน <span id="termStudentCount" class="font-bold text-sky-700">0</span> คน • กิจกรรม <span id="termActCount" class="font-bold text-sky-700">0</span> งาน)</span>
+            </div>
+          </div>
+        </div>
 
     <!-- TAB 1: จัดการกิจกรรมกลาง -->
     <section id="activitiesTab" class="space-y-4">
@@ -423,7 +500,9 @@
       </div>
     </section>
 
-  </main>
+      </main>
+    </div>
+  </div>
 
   <!-- Modal หน้าต่างดูสถิติผู้เข้าร่วมแยกแผนก/ชั้นปี -->
   <div id="activityStatsModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50 p-4">
@@ -1752,9 +1831,16 @@
       document.querySelectorAll('main > section').forEach(s => s.classList.add('hidden'));
       document.getElementById(tabId)?.classList.remove('hidden');
 
+      // Update Desktop Sidebar Buttons
       document.querySelectorAll('.tab-btn').forEach(b => {
-        b.classList.remove('text-primary', 'border-b-2', 'border-primary');
-        b.classList.add('text-slate-500');
+        b.classList.remove('bg-sky-500/20', 'text-sky-300', 'font-bold', 'border', 'border-sky-500/30');
+        b.classList.add('text-slate-400');
+      });
+
+      // Update Mobile Pill Buttons
+      document.querySelectorAll('.mobile-tab-btn').forEach(b => {
+        b.classList.remove('bg-sky-600', 'text-white');
+        b.classList.add('text-slate-400');
       });
 
       const activeBtnMap = {
@@ -1765,10 +1851,29 @@
         'importTab': 'btnImportTab'
       };
 
+      const titleMap = {
+        'activitiesTab': '🎪 จัดการกิจกรรมกลาง',
+        'checkinTab': '✍️ เช็คชื่อตามใบจริง',
+        'summaryTab': '📊 สรุปผลรายบุคคล',
+        'appealsTab': '📩 ตรวจคำร้องตกหล่น',
+        'importTab': '📤 นำเข้าข้อมูล Excel'
+      };
+
       const btn = document.getElementById(activeBtnMap[tabId]);
       if (btn) {
-        btn.classList.add('text-primary', 'border-b-2', 'border-primary');
-        btn.classList.remove('text-slate-500');
+        btn.classList.add('bg-sky-500/20', 'text-sky-300', 'font-bold', 'border', 'border-sky-500/30');
+        btn.classList.remove('text-slate-400');
+      }
+
+      const mobBtn = document.getElementById('mob_' + activeBtnMap[tabId]);
+      if (mobBtn) {
+        mobBtn.classList.add('bg-sky-600', 'text-white');
+        mobBtn.classList.remove('text-slate-400');
+      }
+
+      const titleEl = document.getElementById('topBarTitle');
+      if (titleEl && titleMap[tabId]) {
+        titleEl.innerText = titleMap[tabId];
       }
     }
 
