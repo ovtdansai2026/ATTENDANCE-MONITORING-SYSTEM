@@ -5245,70 +5245,6 @@ function TeacherCheckinModal({
           ]
         }),
 
-        // Pinned Top Multi-Room Switcher Strip (Permanently visible above the scroll area when >= 2 rooms)
-        step === 'checkin_sheet' && teacherRooms.length > 1 && /*#__PURE__*/_jsx("div", {
-          className: "bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white px-4 py-3 sm:px-6 sm:py-3.5 border-b-2 border-amber-400 shadow-md flex-shrink-0 z-20",
-          children: /*#__PURE__*/_jsxs("div", {
-            className: "flex flex-col sm:flex-row sm:items-center justify-between gap-3",
-            children: [
-              /*#__PURE__*/_jsxs("div", {
-                className: "flex items-center gap-2.5",
-                children: [
-                  /*#__PURE__*/_jsxs("span", {
-                    className: "flex h-3.5 w-3.5 relative flex-shrink-0",
-                    children: [
-                      /*#__PURE__*/_jsx("span", { className: "animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" }),
-                      /*#__PURE__*/_jsx("span", { className: "relative inline-flex rounded-full h-3.5 w-3.5 bg-amber-500" })
-                    ]
-                  }),
-                  /*#__PURE__*/_jsxs("div", {
-                    children: [
-                      /*#__PURE__*/_jsxs("span", {
-                        className: "text-sm sm:text-base font-black text-amber-300 tracking-wide",
-                        children: [`ครูดูแลทั้งหมด ${teacherRooms.length} ห้องเรียน`]
-                      }),
-                      /*#__PURE__*/_jsx("span", {
-                        className: "text-xs text-indigo-200 ml-2 block sm:inline",
-                        children: "(แตะเลือกห้องที่ต้องการเช็คชื่อได้ทันที ไม่ต้องใส่รหัสใหม่)"
-                      })
-                    ]
-                  })
-                ]
-              }),
-              /*#__PURE__*/_jsx("div", {
-                className: "flex flex-wrap items-center gap-2",
-                children: teacherRooms.map((rm, idx) => {
-                  const isCurrent = rm.id === selectedTeacher?.id;
-                  return /*#__PURE__*/_jsxs("button", {
-                    key: rm.id,
-                    type: "button",
-                    onClick: () => handleSwitchRoom(rm),
-                    className: `px-3.5 py-2 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 cursor-pointer shadow-sm ${
-                      isCurrent
-                        ? "bg-emerald-500 text-white ring-2 ring-white shadow-emerald-950/50 scale-[1.02]"
-                        : "bg-white/15 hover:bg-white/25 text-amber-100 border border-amber-400/40 hover:border-amber-300 active:scale-95"
-                    }`,
-                    children: [
-                      /*#__PURE__*/_jsx("span", {
-                        className: `w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-black ${isCurrent ? 'bg-white text-emerald-800' : 'bg-white/20 text-white'}`,
-                        children: idx + 1
-                      }),
-                      /*#__PURE__*/_jsx("span", { children: `${rm.class_level} ${formatDeptDisplay(rm.department)}` }),
-                      isCurrent ? /*#__PURE__*/_jsx("span", {
-                        className: "text-[10px] bg-white text-emerald-800 px-1.5 py-0.5 rounded-md font-black shadow-xs",
-                        children: "✓ กำลังเช็ค"
-                      }) : /*#__PURE__*/_jsx("span", {
-                        className: "text-[10px] bg-amber-400 text-slate-900 px-2 py-0.5 rounded-md font-black shadow-xs",
-                        children: "👉 กดสลับห้อง"
-                      })
-                    ]
-                  }, rm.id);
-                })
-              })
-            ]
-          })
-        }),
-
         // STEP 2: Attendance Check Sheet (Spacious, Clear, Senior-Friendly)
         step === 'checkin_sheet' && /*#__PURE__*/_jsxs("div", {
           className: "flex-1 overflow-y-auto custom-scroll flex flex-col",
@@ -5387,15 +5323,15 @@ function TeacherCheckinModal({
                       ]
                     }),
 
-                    // Multi-room Switch Tabs (When teacher manages 2+ rooms)
+                    // Multi-room Switch Tabs (When teacher manages 2+ rooms) - Compact & Elegant
                     teacherRooms.length > 1 && /*#__PURE__*/_jsxs("div", {
-                      className: "pt-3 border-t border-white/20 flex flex-wrap items-center gap-2",
+                      className: "pt-2.5 border-t border-white/20 flex flex-wrap items-center gap-1.5",
                       children: [
                         /*#__PURE__*/_jsxs("span", {
-                          className: "text-xs font-bold text-emerald-100 flex items-center gap-1.5 mr-1",
+                          className: "text-xs font-bold text-emerald-100 flex items-center gap-1 mr-1",
                           children: [
-                            /*#__PURE__*/_jsx(Icon.Users, { className: "w-4 h-4 text-emerald-200" }),
-                            `ครูดูแล ${teacherRooms.length} ห้อง (กดสลับห้องได้ทันที ไม่ต้องใส่รหัสใหม่):`
+                            /*#__PURE__*/_jsx(Icon.Users, { className: "w-3.5 h-3.5 text-emerald-200" }),
+                            `สลับห้อง (${teacherRooms.length} ห้อง):`
                           ]
                         }),
                         teacherRooms.map(rm => {
@@ -5404,9 +5340,9 @@ function TeacherCheckinModal({
                             key: rm.id,
                             type: "button",
                             onClick: () => handleSwitchRoom(rm),
-                            className: `px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs ${
+                            className: `px-3 py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs ${
                               isCurrent
-                                ? "bg-white text-emerald-950 shadow-md ring-2 ring-emerald-300"
+                                ? "bg-white text-emerald-950 shadow-md ring-2 ring-emerald-300 font-black"
                                 : "bg-black/20 hover:bg-black/30 text-white border border-white/30 hover:border-white/50"
                             }`,
                             children: [
@@ -5416,7 +5352,7 @@ function TeacherCheckinModal({
                                 children: "กำลังเช็ค"
                               }) : /*#__PURE__*/_jsx("span", {
                                 className: "text-[10px] text-emerald-200 bg-white/10 px-1.5 py-0.5 rounded-md",
-                                children: "สลับไปห้องนี้"
+                                children: "สลับ"
                               })
                             ]
                           }, rm.id);
