@@ -256,6 +256,16 @@ function formatDeptDisplay(dept) {
   return clean.startsWith('แผนก') ? clean : 'แผนก' + clean;
 }
 
+// Clean & Normalize Teacher Names for reliable multi-room linking and comparison
+function normalizeTeacherName(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/[\u200B-\u200D\uFEFF\u00A0]/g, '')
+    .replace(/^(นาย|นางสาว|นาง|ว่าที่ร\.ต\.|ว่าที่ ร\.ต\.|ว่าที่ร้อยตรี|อาจารย์|ครู|ผศ\.|รศ\.|ศ\.|ดร\.|อ\.)\s*/g, '')
+    .replace(/\s+/g, '')
+    .toLowerCase();
+}
+
 // Client-side Avatar compression (Auto square center-crop & WebP/JPEG compression ~15KB)
 function compressAvatar(file, size = 180, quality = 0.75) {
   return new Promise((resolve, reject) => {
@@ -4657,22 +4667,69 @@ function TeacherCheckinModal({
   const [isLoadingStudents, setIsLoadingStudents] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState('');
+  const [dbTeacherRooms, setDbTeacherRooms] = useState([]);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-  // Sibling rooms managed by the same teacher (Multi-room support)
+  // Sibling rooms managed by the same teacher (Multi-room support with whitespace & title normalization)
   const teacherRooms = useMemo(() => {
-    if (!selectedTeacher || !teachers || teachers.length === 0) return [];
-    const cleanPrefix = (str) => (str || '').replace(/^(นาย|นางสาว|นาง|ว่าที่ร\.ต\.|ว่าที่ ร\.ต\.|อาจารย์|ครู)\s*/g, '').trim().toLowerCase();
-    const currentClean = cleanPrefix(selectedTeacher.name);
-    const rooms = teachers.filter(t => {
-      if (!t.name) return false;
-      const tClean = cleanPrefix(t.name);
-      return (tClean && tClean === currentClean) || (t.name.trim().toLowerCase() === (selectedTeacher.name || '').trim().toLowerCase());
-    });
-    if (!rooms.some(r => r.id === selectedTeacher.id)) {
-      rooms.unshift(selectedTeacher);
+    if (!selectedTeacher) return [];
+    const targetNorm = normalizeTeacherName(selectedTeacher.name);
+    const combined = [...dbTeacherRooms];
+    if (teachers && teachers.length > 0) {
+      teachers.forEach(t => {
+        if (!combined.some(r => r.id === t.id)) {
+          combined.push(t);
+        }
+      });
     }
-    return rooms;
-  }, [selectedTeacher, teachers]);
+    const matched = combined.filter(t => normalizeTeacherName(t.name) === targetNorm);
+    if (!matched.some(r => r.id === selectedTeacher.id)) {
+      matched.unshift(selectedTeacher);
+    }
+    return matched;
+  }, [selectedTeacher, dbTeacherRooms, teachers]);
+
+  // Auto-fetch all rooms managed by the selected teacher directly from Supabase
+  useEffect(() => {
+    if (!selectedTeacher) return;
+    let isMounted = true;
+    const fetchSiblingRooms = async () => {
+      try {
+        const { data: dbAll } = await dbAssembly
+          .from('teachers')
+          .select('id, name, department, class_level, phone, academic_year, semester, photo_url');
+        if (!isMounted) return;
+        const targetNorm = normalizeTeacherName(selectedTeacher.name);
+        let siblings = (dbAll || []).filter(t => normalizeTeacherName(t.name) === targetNorm);
+        if (teachers && teachers.length > 0) {
+          teachers.forEach(t => {
+            if (normalizeTeacherName(t.name) === targetNorm && !siblings.some(r => r.id === t.id)) {
+              siblings.push(t);
+            }
+          });
+        }
+        if (!siblings.some(r => r.id === selectedTeacher.id)) {
+          siblings.unshift(selectedTeacher);
+        }
+        if (isMounted) setDbTeacherRooms(siblings);
+      } catch (err) {
+        console.warn('Load sibling rooms error:', err);
+      }
+    };
+    fetchSiblingRooms();
+    return () => { isMounted = false; };
+  }, [selectedTeacher?.id, selectedTeacher?.name]);
+
+  const handleSwitchRoom = (nextRoom) => {
+    if (!nextRoom || nextRoom.id === selectedTeacher?.id) return;
+    if (hasUnsavedChanges) {
+      const confirmSwitch = confirm(`คุณมีข้อมูลการเช็คชื่อห้อง ${selectedTeacher.class_level} ที่ยังไม่ได้กดบันทึก\nต้องการสลับไปเช็คห้อง ${nextRoom.class_level} ทันทีหรือไม่?`);
+      if (!confirmSwitch) return;
+    }
+    setHasUnsavedChanges(false);
+    setSelectedTeacher(nextRoom);
+    loadRoomStudents(nextRoom, checkDate);
+  };
 
   // Photo Evidence State
   const [photoDataUrl, setPhotoDataUrl] = useState(null);
@@ -4785,6 +4842,7 @@ function TeacherCheckinModal({
       const compressed = await compressImage(file, 1024, 1024, 0.68);
       setPhotoDataUrl(compressed);
       setPhotoFile(file);
+      setHasUnsavedChanges(true);
     } catch (err) {
       alert('เกิดข้อผิดพลาดในการโหลดรูป: ' + err.message);
     } finally {
@@ -4839,8 +4897,26 @@ function TeacherCheckinModal({
       }
 
       if (matchedTeacher) {
+        // Query ALL rooms for this teacher from Supabase directly
+        try {
+          const { data: allTeachers } = await dbAssembly
+            .from('teachers')
+            .select('id, name, department, class_level, phone, academic_year, semester, photo_url');
+          if (allTeachers && allTeachers.length > 0) {
+            const targetNorm = normalizeTeacherName(matchedTeacher.name);
+            const siblings = allTeachers.filter(t => normalizeTeacherName(t.name) === targetNorm);
+            if (!siblings.some(r => r.id === matchedTeacher.id)) {
+              siblings.unshift(matchedTeacher);
+            }
+            setDbTeacherRooms(siblings);
+          }
+        } catch (eRooms) {
+          console.warn('Direct sibling rooms query fallback:', eRooms);
+        }
+
         setSelectedTeacher(matchedTeacher);
         setPinError('');
+        setHasUnsavedChanges(false);
         setStep('checkin_sheet');
         loadRoomStudents(matchedTeacher, checkDate);
       } else {
@@ -4902,6 +4978,7 @@ function TeacherCheckinModal({
     });
     setAttendanceMap(updated);
     setSaveSuccessMsg('');
+    setHasUnsavedChanges(true);
   };
 
   const handleMarkAllAbsent = () => {
@@ -4911,6 +4988,7 @@ function TeacherCheckinModal({
     });
     setAttendanceMap(updated);
     setSaveSuccessMsg('');
+    setHasUnsavedChanges(true);
   };
 
   const handleSetStudentStatus = (studentId, status) => {
@@ -4919,6 +4997,7 @@ function TeacherCheckinModal({
       [studentId]: status
     }));
     setSaveSuccessMsg('');
+    setHasUnsavedChanges(true);
   };
 
   // Save Daily Attendance & Upload Evidence
@@ -5026,6 +5105,7 @@ function TeacherCheckinModal({
       }
 
       setSaveSuccessMsg(`บันทึกการเข้าแถววันที่ ${checkDate} เรียบร้อยแล้ว (มา ${pCount} คน | ขาด ${aCount} คน | ลา ${lCount} คน)${finalPhotoUrl ? ' • แนบรูปหลักฐานแล้ว' : ''}`);
+      setHasUnsavedChanges(false);
       if (onSuccessUpdate) onSuccessUpdate();
     } catch (e) {
       alert('บันทึกล้มเหลว: ' + e.message);
@@ -5165,6 +5245,70 @@ function TeacherCheckinModal({
           ]
         }),
 
+        // Pinned Top Multi-Room Switcher Strip (Permanently visible above the scroll area when >= 2 rooms)
+        step === 'checkin_sheet' && teacherRooms.length > 1 && /*#__PURE__*/_jsx("div", {
+          className: "bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white px-4 py-3 sm:px-6 sm:py-3.5 border-b-2 border-amber-400 shadow-md flex-shrink-0 z-20",
+          children: /*#__PURE__*/_jsxs("div", {
+            className: "flex flex-col sm:flex-row sm:items-center justify-between gap-3",
+            children: [
+              /*#__PURE__*/_jsxs("div", {
+                className: "flex items-center gap-2.5",
+                children: [
+                  /*#__PURE__*/_jsxs("span", {
+                    className: "flex h-3.5 w-3.5 relative flex-shrink-0",
+                    children: [
+                      /*#__PURE__*/_jsx("span", { className: "animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" }),
+                      /*#__PURE__*/_jsx("span", { className: "relative inline-flex rounded-full h-3.5 w-3.5 bg-amber-500" })
+                    ]
+                  }),
+                  /*#__PURE__*/_jsxs("div", {
+                    children: [
+                      /*#__PURE__*/_jsxs("span", {
+                        className: "text-sm sm:text-base font-black text-amber-300 tracking-wide",
+                        children: [`ครูดูแลทั้งหมด ${teacherRooms.length} ห้องเรียน`]
+                      }),
+                      /*#__PURE__*/_jsx("span", {
+                        className: "text-xs text-indigo-200 ml-2 block sm:inline",
+                        children: "(แตะเลือกห้องที่ต้องการเช็คชื่อได้ทันที ไม่ต้องใส่รหัสใหม่)"
+                      })
+                    ]
+                  })
+                ]
+              }),
+              /*#__PURE__*/_jsx("div", {
+                className: "flex flex-wrap items-center gap-2",
+                children: teacherRooms.map((rm, idx) => {
+                  const isCurrent = rm.id === selectedTeacher?.id;
+                  return /*#__PURE__*/_jsxs("button", {
+                    key: rm.id,
+                    type: "button",
+                    onClick: () => handleSwitchRoom(rm),
+                    className: `px-3.5 py-2 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 cursor-pointer shadow-sm ${
+                      isCurrent
+                        ? "bg-emerald-500 text-white ring-2 ring-white shadow-emerald-950/50 scale-[1.02]"
+                        : "bg-white/15 hover:bg-white/25 text-amber-100 border border-amber-400/40 hover:border-amber-300 active:scale-95"
+                    }`,
+                    children: [
+                      /*#__PURE__*/_jsx("span", {
+                        className: `w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-black ${isCurrent ? 'bg-white text-emerald-800' : 'bg-white/20 text-white'}`,
+                        children: idx + 1
+                      }),
+                      /*#__PURE__*/_jsx("span", { children: `${rm.class_level} ${formatDeptDisplay(rm.department)}` }),
+                      isCurrent ? /*#__PURE__*/_jsx("span", {
+                        className: "text-[10px] bg-white text-emerald-800 px-1.5 py-0.5 rounded-md font-black shadow-xs",
+                        children: "✓ กำลังเช็ค"
+                      }) : /*#__PURE__*/_jsx("span", {
+                        className: "text-[10px] bg-amber-400 text-slate-900 px-2 py-0.5 rounded-md font-black shadow-xs",
+                        children: "👉 กดสลับห้อง"
+                      })
+                    ]
+                  }, rm.id);
+                })
+              })
+            ]
+          })
+        }),
+
         // STEP 2: Attendance Check Sheet (Spacious, Clear, Senior-Friendly)
         step === 'checkin_sheet' && /*#__PURE__*/_jsxs("div", {
           className: "flex-1 overflow-y-auto custom-scroll flex flex-col",
@@ -5259,11 +5403,7 @@ function TeacherCheckinModal({
                           return /*#__PURE__*/_jsxs("button", {
                             key: rm.id,
                             type: "button",
-                            onClick: () => {
-                              if (isCurrent) return;
-                              setSelectedTeacher(rm);
-                              loadRoomStudents(rm, checkDate);
-                            },
+                            onClick: () => handleSwitchRoom(rm),
                             className: `px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs ${
                               isCurrent
                                 ? "bg-white text-emerald-950 shadow-md ring-2 ring-emerald-300"
@@ -5427,10 +5567,7 @@ function TeacherCheckinModal({
                         teacherRooms.filter(r => r.id !== selectedTeacher?.id).map(nextR => /*#__PURE__*/_jsxs("button", {
                           key: nextR.id,
                           type: "button",
-                          onClick: () => {
-                            setSelectedTeacher(nextR);
-                            loadRoomStudents(nextR, checkDate);
-                          },
+                          onClick: () => handleSwitchRoom(nextR),
                           className: "px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md cursor-pointer flex items-center gap-1.5 transition-all animate-pulse hover:animate-none",
                           children: [
                             /*#__PURE__*/_jsx(Icon.ArrowRight, { className: "w-4 h-4 text-white" }),
@@ -7081,9 +7218,8 @@ function AdminPanelModal({
         pinHash = await hashPassword(cleanPin);
         const { data: dup } = await dbAssembly.from('teachers').select('id, name, department, class_level').eq('pin_hash', pinHash);
         if (dup && dup.length > 0) {
-          const cleanPrefix = (str) => (str || '').replace(/^(นาย|นางสาว|นาง|ว่าที่ร\.ต\.|ว่าที่ ร\.ต\.|อาจารย์|ครู)\s*/g, '').trim().toLowerCase();
-          const currentClean = cleanPrefix(newTeacherName);
-          const isDifferentPerson = dup.some(d => cleanPrefix(d.name) !== currentClean);
+          const currentClean = normalizeTeacherName(newTeacherName);
+          const isDifferentPerson = dup.some(d => normalizeTeacherName(d.name) !== currentClean);
           if (isDifferentPerson) {
             setSavingTeacher(false);
             return alert(`รหัส "${cleanPin}" นี้ซ้ำกับ ${dup[0].name} (${dup[0].class_level} แผนก${dup[0].department})\nกรุณาใช้รหัสอื่นที่ไม่ซ้ำกัน`);
@@ -7130,17 +7266,34 @@ function AdminPanelModal({
         .eq('pin_hash', newHash)
         .neq('id', teacherId);
       if (duplicate && duplicate.length > 0) {
-        const cleanPrefix = (str) => (str || '').replace(/^(นาย|นางสาว|นาง|ว่าที่ร\.ต\.|ว่าที่ ร\.ต\.|อาจารย์|ครู)\s*/g, '').trim().toLowerCase();
-        const currentClean = cleanPrefix(teacherName);
-        const isDifferentPerson = duplicate.some(d => cleanPrefix(d.name) !== currentClean);
+        const currentClean = normalizeTeacherName(teacherName);
+        const isDifferentPerson = duplicate.some(d => normalizeTeacherName(d.name) !== currentClean);
         if (isDifferentPerson) {
           alert(`รหัส "${cleanPin}" นี้ซ้ำกับ ${duplicate[0].name} (${duplicate[0].class_level} แผนก${duplicate[0].department})\nกรุณาใช้รหัสอื่นที่ไม่ซ้ำกัน`);
           return;
         }
       }
-      const { error } = await dbAssembly.from('teachers').update({ pin_hash: newHash }).eq('id', teacherId);
+
+      // Sync PIN to all rooms managed by the same teacher
+      const currentClean = normalizeTeacherName(teacherName);
+      let siblingIds = [teacherId];
+      try {
+        const { data: allTeachers } = await dbAssembly.from('teachers').select('id, name');
+        if (allTeachers && allTeachers.length > 0) {
+          siblingIds = allTeachers.filter(t => normalizeTeacherName(t.name) === currentClean).map(t => t.id);
+          if (!siblingIds.includes(teacherId)) siblingIds.push(teacherId);
+        }
+      } catch (sibErr) {
+        console.warn('Sibling IDs fetch fallback:', sibErr);
+      }
+
+      const { error } = await dbAssembly.from('teachers').update({ pin_hash: newHash }).in('id', siblingIds);
       if (error) throw error;
-      alert(`บันทึกรหัสประจำห้อง "${cleanPin}" ให้ ${teacherName} (${currentLevel} แผนก${currentDept}) เรียบร้อยแล้ว`);
+      if (siblingIds.length > 1) {
+        alert(`บันทึกรหัสประจำห้อง "${cleanPin}" ให้ ${teacherName} ครบทั้ง ${siblingIds.length} ห้องเรียนที่ดูแลเรียบร้อยแล้ว`);
+      } else {
+        alert(`บันทึกรหัสประจำห้อง "${cleanPin}" ให้ ${teacherName} (${currentLevel} แผนก${currentDept}) เรียบร้อยแล้ว`);
+      }
       if (onUpdateTeachers) onUpdateTeachers();
     } catch (e) {
       alert('บันทึกรหัสล้มเหลว: ' + e.message);
