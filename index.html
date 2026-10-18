@@ -954,7 +954,8 @@ const Icon = {
   Clock: ({ className = "w-4 h-4" }) => /*#__PURE__*/_jsx("svg", { className, fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", strokeWidth: "2", children: /*#__PURE__*/_jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" }) }),
   Message: ({ className = "w-4 h-4" }) => /*#__PURE__*/_jsx("svg", { className, fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", strokeWidth: "2", children: /*#__PURE__*/_jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" }) }),
   Send: ({ className = "w-4 h-4" }) => /*#__PURE__*/_jsx("svg", { className, fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", strokeWidth: "2", children: /*#__PURE__*/_jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M12 19l9 2-9-18-9 18 9-2zm0 0v-8" }) }),
-  Copy: ({ className = "w-4 h-4" }) => /*#__PURE__*/_jsx("svg", { className, fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", strokeWidth: "2", children: /*#__PURE__*/_jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" }) })
+  Copy: ({ className = "w-4 h-4" }) => /*#__PURE__*/_jsx("svg", { className, fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", strokeWidth: "2", children: /*#__PURE__*/_jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" }) }),
+  Edit: ({ className = "w-4 h-4" }) => /*#__PURE__*/_jsx("svg", { className, fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", strokeWidth: "2", children: /*#__PURE__*/_jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" }) })
 };
 
 
@@ -1361,6 +1362,7 @@ function App() {
   const [isAdvisorModalOpen, setIsAdvisorModalOpen] = useState(false);
   const [isTeacherCheckinModalOpen, setIsTeacherCheckinModalOpen] = useState(false);
   const [selectedTeacherForCheckin, setSelectedTeacherForCheckin] = useState(null);
+  const [selectedDateForCheckin, setSelectedDateForCheckin] = useState(null);
 
   // Calendar & Checkin Sessions State
   const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
@@ -2233,12 +2235,13 @@ function App() {
         className: "max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-4 pb-1 w-full",
         children: [
           /*#__PURE__*/_jsxs("div", {
-            className: `grid grid-cols-1 ${isCalendarEnabled ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-3`,
+            className: "grid grid-cols-1 sm:grid-cols-3 gap-3",
             children: [
               /* Check-in Button with Dynamic Cut-off Window Styling */
               currentCheckinTimeStatus.allowed ? /*#__PURE__*/_jsxs("button", {
                 onClick: () => {
                   setSelectedTeacherForCheckin(null);
+                  setSelectedDateForCheckin(formatLocalDate(new Date()));
                   setIsTeacherCheckinModalOpen(true);
                 },
                 className: "flex items-center gap-3.5 p-4 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white rounded-2xl shadow-md cursor-pointer transition-all active:scale-[0.98] border border-emerald-500",
@@ -2298,7 +2301,8 @@ function App() {
                   })
                 ]
               }),
-              isCalendarEnabled && /*#__PURE__*/_jsxs("button", {
+              /* Attendance Calendar & History Button - Always Available */
+              /*#__PURE__*/_jsxs("button", {
                 onClick: () => setIsCalendarModalOpen(true),
                 className: "flex items-center gap-3.5 p-4 bg-white hover:bg-amber-50 text-slate-800 border-2 border-amber-300 hover:border-amber-400 rounded-2xl shadow-xs cursor-pointer transition-all active:scale-[0.98]",
                 children: [
@@ -2312,16 +2316,16 @@ function App() {
                       /*#__PURE__*/_jsxs("div", {
                         className: "text-base font-bold text-slate-900 tracking-tight flex items-center gap-1.5",
                         children: [
-                          "ปฏิทิน & บันทึกการเช็คชื่อ",
+                          "ปฏิทิน & เช็คชื่อย้อนหลัง",
                           /*#__PURE__*/_jsx("span", {
                             className: "text-[10px] bg-amber-100 text-amber-800 font-bold px-1.5 py-0.5 rounded-md",
-                            children: "UI ปฏิทิน"
+                            children: "ดูรายวัน"
                           })
                         ]
                       }),
                       /*#__PURE__*/_jsx("div", {
                         className: "text-xs text-slate-500 truncate mt-0.5",
-                        children: "ดูรายวัน • ตรวจสอบรูปถ่ายหลักฐาน • เช็คห้องที่ขาดส่ง"
+                        children: "ตรวจสอบรายวัน • เช็คชื่อย้อนหลัง • ดูรูปหลักฐาน"
                       })
                     ]
                   })
@@ -3230,10 +3234,14 @@ function App() {
           setIsCalendarModalOpen(false);
           setIsPasswordModalOpen(true);
         },
-        onSelectClassForCheckin: (t) => {
+        onSelectClassForCheckin: (t, dateStr) => {
           setIsCalendarModalOpen(false);
           setSelectedTeacherForCheckin(t);
-          if (!currentCheckinTimeStatus.allowed) {
+          const targetDate = dateStr || formatLocalDate(new Date());
+          setSelectedDateForCheckin(targetDate);
+          const todayStr = formatLocalDate(new Date());
+          const isPast = targetDate < todayStr;
+          if (!isPast && !currentCheckinTimeStatus.allowed) {
             setIsTimeRestrictionModalOpen(true);
           } else {
             setIsTeacherCheckinModalOpen(true);
@@ -3258,6 +3266,7 @@ function App() {
         onSelectTeacherForCheckin: t => {
           setIsAdvisorModalOpen(false);
           setSelectedTeacherForCheckin(t);
+          setSelectedDateForCheckin(formatLocalDate(new Date()));
           if (!currentCheckinTimeStatus.allowed) {
             setIsTimeRestrictionModalOpen(true);
           } else {
@@ -3273,6 +3282,7 @@ function App() {
         teacherPhotosMap: teacherPhotosMap,
         onOpenTeacherPhoto: (t) => setPhotoModalTeacher(t),
         initialTeacher: selectedTeacherForCheckin,
+        initialDate: selectedDateForCheckin,
         masterStudents: masterStudents,
         academicYear: currentAcademicYear,
         semester: currentSemester,
@@ -3281,13 +3291,20 @@ function App() {
         specialHolidays: specialHolidays,
         compensatoryDays: compensatoryDays,
         onSuccessUpdate: reloadData,
-        onClose: () => setIsTeacherCheckinModalOpen(false)
+        onClose: () => {
+          setIsTeacherCheckinModalOpen(false);
+          setSelectedDateForCheckin(null);
+        }
       }),
 
       // Time Restriction Modal (07:35 - 08:20 Cut-off Policy)
       isTimeRestrictionModalOpen && /*#__PURE__*/_jsx(TimeRestrictionModal, {
         timeStatus: currentCheckinTimeStatus,
         isAdminLoggedIn: isAdminLoggedIn,
+        onOpenCalendar: () => {
+          setIsTimeRestrictionModalOpen(false);
+          setIsCalendarModalOpen(true);
+        },
         onProceedAdmin: () => {
           setIsTimeRestrictionModalOpen(false);
           setIsTeacherCheckinModalOpen(true);
@@ -3862,13 +3879,18 @@ function AttendanceCalendarModal({
                           children: [
                             session?.evidence_photo_url && /*#__PURE__*/_jsx("button", {
                               onClick: () => setViewingPhotoUrl(session.evidence_photo_url),
-                              className: "px-2.5 py-1.5 bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 rounded-xl text-xs font-bold cursor-pointer flex items-center gap-1 shadow-xs",
+                              className: "px-2.5 py-1.5 bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 rounded-xl text-xs font-bold cursor-pointer flex items-center gap-1 shadow-xs transition-colors",
                               children: [/*#__PURE__*/_jsx(Icon.Camera, { className: "w-3.5 h-3.5 mr-1" }), "ดูรูปหลักฐาน"]
                             }),
-                            !session && /*#__PURE__*/_jsx("button", {
-                              onClick: () => onSelectClassForCheckin(t),
-                              className: "px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold cursor-pointer shadow-xs",
-                              children: "เช็คชื่อห้องนี้"
+                            session ? /*#__PURE__*/_jsxs("button", {
+                              onClick: () => onSelectClassForCheckin(t, selectedDateStr),
+                              className: "px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold cursor-pointer flex items-center gap-1 shadow-xs transition-colors",
+                              title: "ดูรายชื่อและแก้ไขการเช็คชื่อของวันนี้",
+                              children: [/*#__PURE__*/_jsx(Icon.Edit, { className: "w-3.5 h-3.5 text-slate-600" }), "แก้ไข/ดูรายชื่อ"]
+                            }) : /*#__PURE__*/_jsxs("button", {
+                              onClick: () => onSelectClassForCheckin(t, selectedDateStr),
+                              className: "px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold cursor-pointer shadow-xs flex items-center gap-1 transition-colors",
+                              children: [/*#__PURE__*/_jsx(Icon.CheckSimple, { className: "w-3.5 h-3.5 text-white" }), selectedDateStr === formatLocalDate(new Date()) ? "เช็คชื่อห้องนี้" : "เช็คชื่อย้อนหลัง"]
                             })
                           ]
                         })
@@ -4196,6 +4218,7 @@ function AdvisorDirectoryModal({
 function TimeRestrictionModal({
   timeStatus,
   isAdminLoggedIn,
+  onOpenCalendar,
   onProceedAdmin,
   onOpenAdminLogin,
   onClose
@@ -4311,6 +4334,15 @@ function TimeRestrictionModal({
             /*#__PURE__*/_jsxs("div", {
               className: "space-y-2 pt-2",
               children: [
+                onOpenCalendar && /*#__PURE__*/_jsxs("button", {
+                  type: "button",
+                  onClick: onOpenCalendar,
+                  className: "w-full py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white text-xs font-bold shadow-md cursor-pointer transition-all flex items-center justify-center gap-2",
+                  children: [
+                    /*#__PURE__*/_jsx(Icon.Calendar, { className: "w-4 h-4 text-white" }),
+                    "เปิดดูปฏิทิน & บันทึกเช็คชื่อย้อนหลัง"
+                  ]
+                }),
                 isAdminLoggedIn ? /*#__PURE__*/_jsxs("button", {
                   type: "button",
                   onClick: onProceedAdmin,
@@ -4350,6 +4382,7 @@ function TeacherCheckinModal({
   teachers,
   teacherPhotosMap = {},
   initialTeacher,
+  initialDate,
   masterStudents,
   academicYear,
   semester,
@@ -4365,7 +4398,7 @@ function TeacherCheckinModal({
   const [selectedTeacher, setSelectedTeacher] = useState(initialTeacher || null);
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState('');
-  const [checkDate, setCheckDate] = useState(() => formatLocalDate(new Date()));
+  const [checkDate, setCheckDate] = useState(() => initialDate || formatLocalDate(new Date()));
   const [roomStudents, setRoomStudents] = useState([]);
   const [attendanceMap, setAttendanceMap] = useState({});
   const [isLoadingStudents, setIsLoadingStudents] = useState(false);
@@ -4583,10 +4616,18 @@ function TeacherCheckinModal({
 
   // Save Daily Attendance & Upload Evidence
   const handleSaveDailyAttendance = async () => {
-    const liveTimeStatus = getCheckinTimeStatus(specialHolidays, compensatoryDays, isAdminLoggedIn || allowOffHoursCheckin);
-    if (!liveTimeStatus.allowed) {
-      alert(`ไม่สามารถบันทึกการเช็คชื่อได้: ${liveTimeStatus.label}\n\n${liveTimeStatus.subtext}`);
+    const todayStr = formatLocalDate(new Date());
+    const isPastDate = checkDate < todayStr;
+    if (checkDate > todayStr) {
+      alert('ไม่สามารถบันทึกการเช็คชื่อล่วงหน้าได้ กรุณาเลือกวันที่ปัจจุบันหรือย้อนหลัง');
       return;
+    }
+    if (!isPastDate) {
+      const liveTimeStatus = getCheckinTimeStatus(specialHolidays, compensatoryDays, isAdminLoggedIn || allowOffHoursCheckin);
+      if (!liveTimeStatus.allowed) {
+        alert(`ไม่สามารถบันทึกการเช็คชื่อสำหรับวันนี้ได้: ${liveTimeStatus.label}\n\n${liveTimeStatus.subtext}`);
+        return;
+      }
     }
     setIsSaving(true);
     setSaveSuccessMsg('');
@@ -4944,7 +4985,7 @@ function TeacherCheckinModal({
                   className: "flex flex-col sm:flex-row sm:items-center justify-between gap-3",
                   children: [
                     /*#__PURE__*/_jsxs("div", {
-                      className: "flex items-center gap-2.5",
+                      className: "flex items-center flex-wrap gap-2.5",
                       children: [
                         /*#__PURE__*/_jsx("label", {
                           className: "text-sm font-black text-slate-800 whitespace-nowrap",
@@ -4953,11 +4994,22 @@ function TeacherCheckinModal({
                         /*#__PURE__*/_jsx("input", {
                           type: "date",
                           value: checkDate,
+                          max: formatLocalDate(new Date()),
                           onChange: e => {
-                            setCheckDate(e.target.value);
-                            loadRoomStudents(selectedTeacher, e.target.value);
+                            const newDate = e.target.value;
+                            if (newDate) {
+                              setCheckDate(newDate);
+                              loadRoomStudents(selectedTeacher, newDate);
+                            }
                           },
                           className: "bg-white border-2 border-slate-300 rounded-xl px-3.5 py-2 text-sm sm:text-base font-bold text-slate-800 shadow-xs cursor-pointer focus:outline-none focus:border-emerald-500"
+                        }),
+                        checkDate < formatLocalDate(new Date()) && /*#__PURE__*/_jsxs("span", {
+                          className: "text-xs font-bold px-2.5 py-1 bg-amber-100 text-amber-900 border border-amber-300 rounded-lg flex items-center gap-1 shadow-xs",
+                          children: [
+                            /*#__PURE__*/_jsx(Icon.Clock, { className: "w-3 h-3 text-amber-700" }),
+                            "โหมดบันทึกย้อนหลัง"
+                          ]
                         })
                       ]
                     }),
