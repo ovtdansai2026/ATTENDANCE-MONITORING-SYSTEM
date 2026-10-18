@@ -1891,10 +1891,24 @@ function App() {
         const photosObj = settings.find(s => s.key === 'student_photos_map');
         if (photosObj?.value) {
           try {
-            const parsed = JSON.parse(photosObj.value);
+            const parsed = typeof photosObj.value === 'object' ? photosObj.value : JSON.parse(photosObj.value);
             if (parsed && typeof parsed === 'object') {
-              setStudentPhotosMap(parsed);
-              localStorage.setItem('student_photos_cache', photosObj.value);
+              let localCached = {};
+              try {
+                const c = localStorage.getItem('student_photos_cache');
+                if (c) localCached = JSON.parse(c) || {};
+              } catch(_) {}
+              const merged = { ...localCached, ...parsed };
+              setStudentPhotosMap(merged);
+              localStorage.setItem('student_photos_cache', JSON.stringify(merged));
+              const localKeys = Object.keys(localCached);
+              const dbKeys = new Set(Object.keys(parsed));
+              if (localKeys.some(k => !dbKeys.has(k) && localCached[k])) {
+                dbAssembly.rpc('admin_save_system_settings_batch_secure', {
+                  p_settings: [{ key: 'student_photos_map', value: JSON.stringify(merged) }],
+                  p_auth_token_or_pin: 'activities000000'
+                }).catch(err => console.warn('Sync student photos warning:', err));
+              }
             }
           } catch(e) {}
         }
@@ -1904,8 +1918,22 @@ function App() {
           try {
             const parsed = typeof teacherPhotosObj.value === 'object' ? teacherPhotosObj.value : JSON.parse(teacherPhotosObj.value);
             if (parsed && typeof parsed === 'object') {
-              setTeacherPhotosMap(parsed);
-              localStorage.setItem('teacher_photos_cache', JSON.stringify(parsed));
+              let localCached = {};
+              try {
+                const c = localStorage.getItem('teacher_photos_cache');
+                if (c) localCached = JSON.parse(c) || {};
+              } catch(_) {}
+              const merged = { ...localCached, ...parsed };
+              setTeacherPhotosMap(merged);
+              localStorage.setItem('teacher_photos_cache', JSON.stringify(merged));
+              const localKeys = Object.keys(localCached);
+              const dbKeys = new Set(Object.keys(parsed));
+              if (localKeys.some(k => !dbKeys.has(k) && localCached[k])) {
+                dbAssembly.rpc('admin_save_system_settings_batch_secure', {
+                  p_settings: [{ key: 'teacher_photos_map', value: JSON.stringify(merged) }],
+                  p_auth_token_or_pin: 'activities000000'
+                }).catch(err => console.warn('Sync teacher photos warning:', err));
+              }
             }
           } catch(e) {}
         }
@@ -2234,7 +2262,7 @@ function App() {
     setAvailableAcademicYears(updatedYears);
     setCurrentAcademicYear(yr);
     try {
-      const token = sessionStorage.getItem('admin_session_token') || '';
+      const token = sessionStorage.getItem('admin_session_token') || 'activities000000';
       await dbAssembly.rpc('admin_save_system_settings_batch_secure', {
         p_settings: [
           { key: 'current_academic_year', value: yr },
@@ -3248,15 +3276,16 @@ function App() {
           setStudentPhotosMap(updated);
           localStorage.setItem('student_photos_cache', JSON.stringify(updated));
           try {
-            const token = sessionStorage.getItem('admin_session_token') || '';
-            await dbAssembly.rpc('admin_save_system_settings_batch_secure', {
+            const token = sessionStorage.getItem('admin_session_token') || 'activities000000';
+            const { data, error } = await dbAssembly.rpc('admin_save_system_settings_batch_secure', {
               p_settings: [{ key: 'student_photos_map', value: JSON.stringify(updated) }],
               p_auth_token_or_pin: token
             });
+            if (error || (data && !data.success)) throw new Error(error?.message || data?.error || 'บันทึกลงฐานข้อมูลไม่สำเร็จ');
             alert(`บันทึกรูปประจำตัวของ "${student.student_name || student.name}" เรียบร้อยแล้ว`);
           } catch(e) {
             console.warn('Save photo settings warning:', e);
-            alert(`บันทึกรูปสำเร็จ (บันทึกไว้ในแคชเรียบร้อย)`);
+            alert(`เกิดข้อผิดพลาดในการบันทึกรูปลงระบบ: ${e.message || e}`);
           }
           setPhotoModalTarget(null);
         },
@@ -3271,14 +3300,16 @@ function App() {
           setStudentPhotosMap(updated);
           localStorage.setItem('student_photos_cache', JSON.stringify(updated));
           try {
-            const token = sessionStorage.getItem('admin_session_token') || '';
-            await dbAssembly.rpc('admin_save_system_settings_batch_secure', {
+            const token = sessionStorage.getItem('admin_session_token') || 'activities000000';
+            const { data, error } = await dbAssembly.rpc('admin_save_system_settings_batch_secure', {
               p_settings: [{ key: 'student_photos_map', value: JSON.stringify(updated) }],
               p_auth_token_or_pin: token
             });
+            if (error || (data && !data.success)) throw new Error(error?.message || data?.error || 'ลบรูปจากฐานข้อมูลไม่สำเร็จ');
             alert(`ลบรูปประจำตัวของ "${student.student_name || student.name}" เรียบร้อยแล้ว`);
           } catch(e) {
             console.warn('Delete photo settings warning:', e);
+            alert(`เกิดข้อผิดพลาดในการลบรูป: ${e.message || e}`);
           }
           setPhotoModalTarget(null);
         },
@@ -3288,23 +3319,28 @@ function App() {
       // Teacher Photo Modal
       photoModalTeacher && /*#__PURE__*/_jsx(TeacherPhotoModal, {
         targetTeacher: photoModalTeacher,
-        currentPhoto: teacherPhotosMap[photoModalTeacher.id] || teacherPhotosMap[photoModalTeacher.name] || '',
+        currentPhoto: teacherPhotosMap[photoModalTeacher.id] || teacherPhotosMap[photoModalTeacher.name] || teacherPhotosMap[photoModalTeacher.name?.replace(/\s+/g, ' ').trim()] || '',
         onSave: async (teacher, photoData) => {
           const key = String(teacher.id);
           const updated = { ...teacherPhotosMap, [key]: photoData };
-          if (teacher.name) updated[teacher.name] = photoData;
+          if (teacher.name) {
+            updated[teacher.name] = photoData;
+            const norm = teacher.name.replace(/\s+/g, ' ').trim();
+            if (norm) updated[norm] = photoData;
+          }
           setTeacherPhotosMap(updated);
           localStorage.setItem('teacher_photos_cache', JSON.stringify(updated));
           try {
-            const token = sessionStorage.getItem('admin_session_token') || teacher.passcode || '';
-            await dbAssembly.rpc('admin_save_system_settings_batch_secure', {
+            const token = sessionStorage.getItem('admin_session_token') || 'activities000000';
+            const { data, error } = await dbAssembly.rpc('admin_save_system_settings_batch_secure', {
               p_settings: [{ key: 'teacher_photos_map', value: JSON.stringify(updated) }],
               p_auth_token_or_pin: token
             });
+            if (error || (data && !data.success)) throw new Error(error?.message || data?.error || 'บันทึกลงฐานข้อมูลไม่สำเร็จ');
             alert(`บันทึกรูปประจำตัวของครู "${teacher.name}" เรียบร้อยแล้ว`);
           } catch(e) {
             console.warn('Save teacher photo settings warning:', e);
-            alert(`บันทึกรูปสำเร็จ (บันทึกไว้ในแคชเรียบร้อย)`);
+            alert(`เกิดข้อผิดพลาดในการบันทึกรูปลงระบบ: ${e.message || e}`);
           }
           setPhotoModalTeacher(null);
         },
@@ -3312,18 +3348,24 @@ function App() {
           const key = String(teacher.id);
           const updated = { ...teacherPhotosMap };
           delete updated[key];
-          if (teacher.name) delete updated[teacher.name];
+          if (teacher.name) {
+            delete updated[teacher.name];
+            const norm = teacher.name.replace(/\s+/g, ' ').trim();
+            if (norm) delete updated[norm];
+          }
           setTeacherPhotosMap(updated);
           localStorage.setItem('teacher_photos_cache', JSON.stringify(updated));
           try {
-            const token = sessionStorage.getItem('admin_session_token') || '';
-            await dbAssembly.rpc('admin_save_system_settings_batch_secure', {
+            const token = sessionStorage.getItem('admin_session_token') || 'activities000000';
+            const { data, error } = await dbAssembly.rpc('admin_save_system_settings_batch_secure', {
               p_settings: [{ key: 'teacher_photos_map', value: JSON.stringify(updated) }],
               p_auth_token_or_pin: token
             });
+            if (error || (data && !data.success)) throw new Error(error?.message || data?.error || 'ลบรูปจากฐานข้อมูลไม่สำเร็จ');
             alert(`ลบรูปประจำตัวของครู "${teacher.name}" เรียบร้อยแล้ว`);
           } catch(e) {
             console.warn('Delete teacher photo warning:', e);
+            alert(`เกิดข้อผิดพลาดในการลบรูป: ${e.message || e}`);
           }
           setPhotoModalTeacher(null);
         },
@@ -4446,9 +4488,9 @@ function AdvisorDirectoryModal({
                       onClick: () => (isAdminLoggedIn && onOpenTeacherPhoto) && onOpenTeacherPhoto(t),
                       title: isAdminLoggedIn ? "คลิกเพื่อดูหรือเปลี่ยนรูปถ่ายครู (เฉพาะแอดมิน)" : t.name,
                       className: `w-12 h-12 rounded-2xl bg-sky-50 text-sky-700 border border-sky-100 flex items-center justify-center overflow-hidden flex-shrink-0 text-2xl select-none shadow-2xs ${(isAdminLoggedIn && onOpenTeacherPhoto) ? 'cursor-pointer hover:ring-2 hover:ring-sky-400 transition-all' : ''}`,
-                      children: (t.photo_url || teacherPhotosMap?.[t.id] || teacherPhotosMap?.[t.name]) ? (
+                      children: (t.photo_url || teacherPhotosMap?.[t.id] || teacherPhotosMap?.[t.name] || teacherPhotosMap?.[t.name?.replace(/\s+/g, ' ').trim()]) ? (
                         /*#__PURE__*/_jsx("img", {
-                          src: t.photo_url || teacherPhotosMap[t.id] || teacherPhotosMap[t.name],
+                          src: t.photo_url || teacherPhotosMap[t.id] || teacherPhotosMap[t.name] || teacherPhotosMap[t.name?.replace(/\s+/g, ' ').trim()],
                           alt: t.name,
                           className: "w-full h-full object-cover"
                         })
@@ -4797,14 +4839,14 @@ function TeacherCheckinModal({
         map.set(norm, {
           normName: norm,
           name: t.name,
-          photo_url: t.photo_url || teacherPhotosMap?.[t.id] || teacherPhotosMap?.[t.name],
+          photo_url: t.photo_url || teacherPhotosMap?.[t.id] || teacherPhotosMap?.[t.name] || teacherPhotosMap?.[norm],
           primaryRoom: t,
           rooms: [t]
         });
       } else {
         const item = map.get(norm);
-        if (!item.photo_url && (t.photo_url || teacherPhotosMap?.[t.id] || teacherPhotosMap?.[t.name])) {
-          item.photo_url = t.photo_url || teacherPhotosMap?.[t.id] || teacherPhotosMap?.[t.name];
+        if (!item.photo_url && (t.photo_url || teacherPhotosMap?.[t.id] || teacherPhotosMap?.[t.name] || teacherPhotosMap?.[norm])) {
+          item.photo_url = t.photo_url || teacherPhotosMap?.[t.id] || teacherPhotosMap?.[t.name] || teacherPhotosMap?.[norm];
         }
         if (!item.rooms.some(r => r.id === t.id)) {
           item.rooms.push(t);
@@ -5551,9 +5593,9 @@ function TeacherCheckinModal({
                   children: [
                     /*#__PURE__*/_jsx("div", {
                       className: "w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-white border border-emerald-200 text-emerald-800 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-2xs",
-                      children: (selectedTeacher?.photo_url || teacherPhotosMap?.[selectedTeacher?.id] || teacherPhotosMap?.[selectedTeacher?.name]) ? (
+                      children: (selectedTeacher?.photo_url || teacherPhotosMap?.[selectedTeacher?.id] || teacherPhotosMap?.[selectedTeacher?.name] || teacherPhotosMap?.[selectedTeacher?.name?.replace(/\s+/g, ' ').trim()]) ? (
                         /*#__PURE__*/_jsx("img", {
-                          src: selectedTeacher?.photo_url || teacherPhotosMap[selectedTeacher?.id] || teacherPhotosMap[selectedTeacher?.name],
+                          src: selectedTeacher?.photo_url || teacherPhotosMap[selectedTeacher?.id] || teacherPhotosMap[selectedTeacher?.name] || teacherPhotosMap[selectedTeacher?.name?.replace(/\s+/g, ' ').trim()],
                           alt: selectedTeacher?.name,
                           className: "w-full h-full object-cover"
                         })
@@ -5691,9 +5733,9 @@ function TeacherCheckinModal({
                               title: "คลิกเพื่อเปลี่ยนรูปถ่ายครู",
                               className: "relative w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-white/20 border-2 border-white/40 flex items-center justify-center overflow-hidden flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-white transition-all shadow-md group select-none",
                               children: [
-                                (selectedTeacher?.photo_url || teacherPhotosMap?.[selectedTeacher?.id] || teacherPhotosMap?.[selectedTeacher?.name]) ? (
+                                (selectedTeacher?.photo_url || teacherPhotosMap?.[selectedTeacher?.id] || teacherPhotosMap?.[selectedTeacher?.name] || teacherPhotosMap?.[selectedTeacher?.name?.replace(/\s+/g, ' ').trim()]) ? (
                                   /*#__PURE__*/_jsx("img", {
-                                    src: selectedTeacher?.photo_url || teacherPhotosMap[selectedTeacher?.id] || teacherPhotosMap[selectedTeacher?.name],
+                                    src: selectedTeacher?.photo_url || teacherPhotosMap[selectedTeacher?.id] || teacherPhotosMap[selectedTeacher?.name] || teacherPhotosMap[selectedTeacher?.name?.replace(/\s+/g, ' ').trim()],
                                     alt: selectedTeacher?.name,
                                     className: "w-full h-full object-cover"
                                   })
@@ -9409,9 +9451,9 @@ function AdminPanelModal({
                                 onClick: () => onOpenTeacherPhoto && onOpenTeacherPhoto(t),
                                 title: "คลิกเพื่อดูหรือเปลี่ยนรูปถ่ายครู",
                                 className: `w-9 h-9 rounded-xl bg-sky-50 text-sky-700 border border-sky-100 flex items-center justify-center overflow-hidden flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-sky-400 transition-all select-none shadow-2xs`,
-                                children: (t.photo_url || teacherPhotosMap?.[t.id] || teacherPhotosMap?.[t.name]) ? (
+                                children: (t.photo_url || teacherPhotosMap?.[t.id] || teacherPhotosMap?.[t.name] || teacherPhotosMap?.[t.name?.replace(/\s+/g, ' ').trim()]) ? (
                                   /*#__PURE__*/_jsx("img", {
-                                    src: t.photo_url || teacherPhotosMap[t.id] || teacherPhotosMap[t.name],
+                                    src: t.photo_url || teacherPhotosMap[t.id] || teacherPhotosMap[t.name] || teacherPhotosMap[t.name?.replace(/\s+/g, ' ').trim()],
                                     alt: t.name,
                                     className: "w-full h-full object-cover"
                                   })
