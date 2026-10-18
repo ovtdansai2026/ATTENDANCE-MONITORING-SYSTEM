@@ -1375,34 +1375,61 @@ function App() {
       return cached ? JSON.parse(cached) : {};
     } catch(e) { return {}; }
   });
+  const [allowOffHoursCheckin, setAllowOffHoursCheckin] = useState(() => {
+    try {
+      const cached = localStorage.getItem('allow_off_hours_checkin');
+      if (cached !== null) return cached === 'true';
+      const lineCached = localStorage.getItem('line_notification_settings');
+      if (lineCached) {
+        const parsed = JSON.parse(lineCached);
+        if (parsed.allowOffHoursCheckin !== undefined) return Boolean(parsed.allowOffHoursCheckin);
+      }
+      return false;
+    } catch(e) { return false; }
+  });
   const [isTimeRestrictionModalOpen, setIsTimeRestrictionModalOpen] = useState(false);
   const [currentCheckinTimeStatus, setCurrentCheckinTimeStatus] = useState(() =>
-    getCheckinTimeStatus(specialHolidays, compensatoryDays, isAdminLoggedIn || Boolean(lineSettings?.allowOffHoursCheckin))
+    getCheckinTimeStatus(specialHolidays, compensatoryDays, isAdminLoggedIn || allowOffHoursCheckin)
   );
 
   useEffect(() => {
     const updateTimeStatus = () => {
       setCurrentCheckinTimeStatus(
-        getCheckinTimeStatus(specialHolidays, compensatoryDays, isAdminLoggedIn || Boolean(lineSettings?.allowOffHoursCheckin))
+        getCheckinTimeStatus(specialHolidays, compensatoryDays, isAdminLoggedIn || allowOffHoursCheckin)
       );
     };
     updateTimeStatus();
     const intervalTimer = setInterval(updateTimeStatus, 30000);
     return () => clearInterval(intervalTimer);
-  }, [specialHolidays, compensatoryDays, isAdminLoggedIn, lineSettings?.allowOffHoursCheckin]);
+  }, [specialHolidays, compensatoryDays, isAdminLoggedIn, allowOffHoursCheckin]);
 
   const handleSaveLineSettings = async (newSettings) => {
     setLineSettings(newSettings);
     localStorage.setItem('line_notification_settings', JSON.stringify(newSettings));
     try {
       const token = sessionStorage.getItem('admin_session_token') || '';
-      await dbAssembly.rpc('admin_save_system_settings_batch_secure', {
-        p_keys: ['line_notification_settings'],
-        p_values: [JSON.stringify(newSettings)],
+      await dbAssembly.rpc('admin_save_system_setting_secure', {
+        p_key: 'line_notification_settings',
+        p_value: JSON.stringify(newSettings),
         p_auth_token_or_pin: token
       });
     } catch (err) {
       console.warn('Persisting line settings fallback to localStorage:', err);
+    }
+  };
+
+  const handleToggleOffHoursCheckin = async (enabled) => {
+    setAllowOffHoursCheckin(enabled);
+    localStorage.setItem('allow_off_hours_checkin', String(enabled));
+    try {
+      const token = sessionStorage.getItem('admin_session_token') || '';
+      await dbAssembly.rpc('admin_save_system_setting_secure', {
+        p_key: 'allow_off_hours_checkin',
+        p_value: String(enabled),
+        p_auth_token_or_pin: token
+      });
+    } catch (err) {
+      console.warn('Persisting allow_off_hours_checkin error:', err);
     }
   };
 
@@ -1543,6 +1570,13 @@ function App() {
           } catch(e) {}
         }
 
+        const offHoursObj = settings.find(s => s.key === 'allow_off_hours_checkin');
+        if (offHoursObj) {
+          const val = offHoursObj.value === 'true';
+          setAllowOffHoursCheckin(val);
+          localStorage.setItem('allow_off_hours_checkin', String(val));
+        }
+
         const lineObj = settings.find(s => s.key === 'line_notification_settings');
         if (lineObj?.value) {
           try {
@@ -1550,6 +1584,9 @@ function App() {
             if (parsed && typeof parsed === 'object') {
               setLineSettings(parsed);
               localStorage.setItem('line_notification_settings', JSON.stringify(parsed));
+              if (!offHoursObj && parsed.allowOffHoursCheckin !== undefined) {
+                setAllowOffHoursCheckin(Boolean(parsed.allowOffHoursCheckin));
+              }
             }
           } catch(e) {}
         }
@@ -3088,6 +3125,8 @@ function App() {
         sessions: checkinSessions,
         lineSettings: lineSettings,
         onSaveLineSettings: handleSaveLineSettings,
+        allowOffHoursCheckin: allowOffHoursCheckin,
+        onToggleOffHoursCheckin: handleToggleOffHoursCheckin,
         masterStudents: masterStudents,
         onLogout: () => {
           sessionStorage.removeItem('admin_session_token');
@@ -3160,7 +3199,7 @@ function App() {
         academicYear: currentAcademicYear,
         semester: currentSemester,
         isAdminLoggedIn: isAdminLoggedIn,
-        allowOffHoursCheckin: Boolean(lineSettings?.allowOffHoursCheckin),
+        allowOffHoursCheckin: allowOffHoursCheckin,
         specialHolidays: specialHolidays,
         compensatoryDays: compensatoryDays,
         onSuccessUpdate: reloadData,
@@ -5375,11 +5414,9 @@ function AdminLineSettingsTab({
 }) {
   const [channelAccessToken, setChannelAccessToken] = useState(lineSettings.channelAccessToken || '');
   const [destinationId, setDestinationId] = useState(lineSettings.destinationId || '');
-  const [notifyToken, setNotifyToken] = useState(lineSettings.notifyToken || '');
   const [dashboardUrl, setDashboardUrl] = useState(lineSettings.dashboardUrl || (typeof window !== 'undefined' ? window.location.origin : 'https://attendance-dashboard.vercel.app'));
   const [customNote, setCustomNote] = useState(lineSettings.customNote || 'งานพัฒนากิจกรรมนักเรียนนักศึกษา วก.ด่านซ้าย');
   const [autoSendOnCutoff, setAutoSendOnCutoff] = useState(Boolean(lineSettings.autoSendOnCutoff));
-  const [allowOffHoursCheckin, setAllowOffHoursCheckin] = useState(Boolean(lineSettings.allowOffHoursCheckin));
 
   const [previewTab, setPreviewTab] = useState('flex'); // 'flex' | 'text' | 'json'
   const [useMockData, setUseMockData] = useState(false);
@@ -5408,11 +5445,9 @@ function AdminLineSettingsTab({
       const payload = {
         channelAccessToken: channelAccessToken.trim(),
         destinationId: destinationId.trim(),
-        notifyToken: notifyToken.trim(),
         dashboardUrl: dashboardUrl.trim(),
         customNote: customNote.trim(),
-        autoSendOnCutoff: Boolean(autoSendOnCutoff),
-        allowOffHoursCheckin: Boolean(allowOffHoursCheckin)
+        autoSendOnCutoff: Boolean(autoSendOnCutoff)
       };
       if (onSaveLineSettings) {
         await onSaveLineSettings(payload);
@@ -5467,10 +5502,9 @@ function AdminLineSettingsTab({
 
   const handleSendToLine = async (isTestPing = false) => {
     const hasMessagingApi = Boolean(channelAccessToken.trim() && destinationId.trim());
-    const hasNotifyApi = Boolean(notifyToken.trim());
 
-    if (!hasMessagingApi && !hasNotifyApi) {
-      alert('กรุณากรอก LINE Channel Access Token + Destination ID หรือ LINE Notify Token ก่อนสั่งส่งรายงาน');
+    if (!hasMessagingApi) {
+      alert('กรุณากรอก LINE Channel Access Token และ Destination Group ID ก่อนสั่งส่งรายงาน');
       return;
     }
 
@@ -5484,7 +5518,6 @@ function AdminLineSettingsTab({
       const bodyPayload = {
         channelAccessToken: channelAccessToken.trim(),
         destinationId: destinationId.trim(),
-        notifyToken: notifyToken.trim(),
         flexMessage: isTestPing ? null : reportData.flexMessage,
         textMessage: isTestPing 
           ? '🔔 [ทดสอบการเชื่อมต่อ] ระบบเช็คชื่อเข้าแถวดิจิทัล วก.ด่านซ้าย เชื่อมต่อกับระบบแจ้งเตือน LINE เรียบร้อยแล้ว' 
@@ -5639,27 +5672,6 @@ function AdminLineSettingsTab({
                 ]
               }),
 
-              /* LINE Notify Token (Alternative Fallback) */
-              /*#__PURE__*/_jsxs("div", {
-                className: "space-y-1.5 pt-1 border-t border-slate-100",
-                children: [
-                  /*#__PURE__*/_jsxs("div", {
-                    className: "flex items-center justify-between",
-                    children: [
-                      /*#__PURE__*/_jsx("label", { className: "text-xs font-bold text-slate-700", children: "LINE Notify Token (ทางเลือกเสริม)" }),
-                      /*#__PURE__*/_jsx("span", { className: "text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-bold", children: "Fallback" })
-                    ]
-                  }),
-                  /*#__PURE__*/_jsx("input", {
-                    type: "password",
-                    value: notifyToken,
-                    onChange: (e) => setNotifyToken(e.target.value),
-                    placeholder: "Token สำหรับส่งผ่าน LINE Notify...",
-                    className: "w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:border-rose-800 focus:ring-1 focus:ring-rose-800 text-xs font-mono bg-slate-50/50"
-                  })
-                ]
-              }),
-
               /* Dashboard URL */
               /*#__PURE__*/_jsxs("div", {
                 className: "space-y-1.5",
@@ -5690,47 +5702,27 @@ function AdminLineSettingsTab({
                 ]
               }),
 
-              /* Switches: Auto Send & Allow Off Hours */
-              /*#__PURE__*/_jsxs("div", {
-                className: "space-y-3 pt-3 border-t border-slate-100",
-                children: [
-                  /*#__PURE__*/_jsxs("label", {
-                    className: "flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200/80 cursor-pointer hover:bg-slate-100/70 transition-colors",
-                    children: [
-                      /*#__PURE__*/_jsx("input", {
-                        type: "checkbox",
-                        checked: autoSendOnCutoff,
-                        onChange: (e) => setAutoSendOnCutoff(e.target.checked),
-                        className: "mt-0.5 rounded text-rose-800 focus:ring-rose-800"
-                      }),
-                      /*#__PURE__*/_jsxs("div", {
-                        className: "text-xs",
-                        children: [
-                          /*#__PURE__*/_jsx("span", { className: "font-bold text-slate-800 block", children: "ส่งรายงานอัตโนมัติเมื่อถึงเวลาตัดรอบ (08:20 น.)" }),
-                          /*#__PURE__*/_jsx("span", { className: "text-slate-500 text-[11px]", children: "ระบบจะสรุปและส่งเข้า LINE กลุ่มครูทันทีที่ครบเวลาเช็คชื่อ" })
-                        ]
-                      })
-                    ]
-                  }),
-                  /*#__PURE__*/_jsxs("label", {
-                    className: "flex items-start gap-3 p-3 rounded-xl bg-amber-50/70 border border-amber-200/80 cursor-pointer hover:bg-amber-100/70 transition-colors",
-                    children: [
-                      /*#__PURE__*/_jsx("input", {
-                        type: "checkbox",
-                        checked: allowOffHoursCheckin,
-                        onChange: (e) => setAllowOffHoursCheckin(e.target.checked),
-                        className: "mt-0.5 rounded text-amber-700 focus:ring-amber-700"
-                      }),
-                      /*#__PURE__*/_jsxs("div", {
-                        className: "text-xs",
-                        children: [
-                          /*#__PURE__*/_jsx("span", { className: "font-bold text-amber-950 block", children: "ปลดล็อกอนุญาตให้ครูเช็คชื่อนอกเวลา (Admin Bypass / วันกิจกรรมพิเศษ)" }),
-                          /*#__PURE__*/_jsx("span", { className: "text-amber-800 text-[11px]", children: "เมื่อเปิดใช้งาน คุณครูจะสามารถเช็คชื่อได้ตลอดเวลาโดยไม่มีการล็อกปุ่มสีเทา" })
-                        ]
-                      })
-                    ]
-                  })
-                ]
+              /* Switch: Auto Send on Cutoff */
+              /*#__PURE__*/_jsx("div", {
+                className: "pt-2 border-t border-slate-100",
+                children: /*#__PURE__*/_jsxs("label", {
+                  className: "flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200/80 cursor-pointer hover:bg-slate-100/70 transition-colors",
+                  children: [
+                    /*#__PURE__*/_jsx("input", {
+                      type: "checkbox",
+                      checked: autoSendOnCutoff,
+                      onChange: (e) => setAutoSendOnCutoff(e.target.checked),
+                      className: "mt-0.5 rounded text-rose-800 focus:ring-rose-800"
+                    }),
+                    /*#__PURE__*/_jsxs("div", {
+                      className: "text-xs",
+                      children: [
+                        /*#__PURE__*/_jsx("span", { className: "font-bold text-slate-800 block", children: "ส่งรายงานอัตโนมัติเมื่อถึงเวลาตัดรอบ (08:20 น.)" }),
+                        /*#__PURE__*/_jsx("span", { className: "text-slate-500 text-[11px]", children: "ระบบจะสรุปและส่งเข้า LINE กลุ่มครูทันทีที่ครบเวลาเช็คชื่อ" })
+                      ]
+                    })
+                  ]
+                })
               }),
 
               /* Save & Test Buttons */
@@ -6050,6 +6042,8 @@ function AdminPanelModal({
   sessions,
   lineSettings = {},
   onSaveLineSettings,
+  allowOffHoursCheckin = false,
+  onToggleOffHoursCheckin,
   masterStudents = [],
   onLogout,
   onClose
@@ -6057,6 +6051,27 @@ function AdminPanelModal({
   const [adminTab, setAdminTab] = useState('term'); // 'term', 'students', 'logs', 'teachers', 'general', 'storage', 'line'
   const [days, setDays] = useState(baseTotalDays);
   const [ruleList, setRuleList] = useState(rules);
+  const [localAllowOffHours, setLocalAllowOffHours] = useState(Boolean(allowOffHoursCheckin));
+  const [savingOffHours, setSavingOffHours] = useState(false);
+
+  useEffect(() => {
+    setLocalAllowOffHours(Boolean(allowOffHoursCheckin));
+  }, [allowOffHoursCheckin]);
+
+  const handleToggleOffHours = async (checked) => {
+    setLocalAllowOffHours(checked);
+    setSavingOffHours(true);
+    try {
+      if (onToggleOffHoursCheckin) {
+        await onToggleOffHoursCheckin(checked);
+      }
+    } catch (err) {
+      alert('เปลี่ยนการตั้งค่าเช็คชื่อนอกเวลาล้มเหลว: ' + (err.message || err));
+      setLocalAllowOffHours(!checked);
+    } finally {
+      setSavingOffHours(false);
+    }
+  };
   const [availableYears, setAvailableYears] = useState(availableAcademicYears || ['2569', '2568', '2567']);
   const [adminYear, setAdminYear] = useState(() => localStorage.getItem('admin_working_year') || academicYear || '2569');
   const [adminSem, setAdminSem] = useState(() => localStorage.getItem('admin_working_sem') || semester || '1');
@@ -6881,8 +6896,8 @@ function AdminPanelModal({
       subtitle: `ภาคเรียนที่ ${adminSem}/${adminYear} • กำหนดวันเปิด-ปิดเทอม หรือโหมดวันรวมคงที่`
     },
     general: {
-      title: "เกณฑ์เงื่อนไข & วันเข้าแถว",
-      subtitle: "กำหนดเกณฑ์ 80% วันรวม และข้อกำหนดการแก้กิจกรรม"
+      title: "เกณฑ์ 80% & วันเข้าแถว",
+      subtitle: "กำหนดเกณฑ์ 80%, วันรวม, ปลดล็อกเช็คนอกเวลา และแนวทางแก้กิจกรรม"
     },
     students: {
       title: "จัดการข้อมูลนักเรียน",
@@ -8293,6 +8308,75 @@ function AdminPanelModal({
                           disabled: savingDays,
                           className: "py-2 px-4 bg-slate-900 text-white font-medium text-xs rounded-xl cursor-pointer disabled:opacity-50",
                           children: savingDays ? 'กำลังบันทึก...' : 'บันทึกเกณฑ์วัน'
+                        })
+                      ]
+                    })
+                  ]
+                }),
+
+                /* ปลดล็อกอนุญาตให้ครูเช็คชื่อนอกเวลา (Admin Bypass / วันกิจกรรมพิเศษ) */
+                /*#__PURE__*/_jsxs("div", {
+                  className: "p-4 rounded-xl bg-amber-50/80 border border-amber-200/90 space-y-3",
+                  children: [
+                    /*#__PURE__*/_jsxs("div", {
+                      className: "flex items-start justify-between gap-3",
+                      children: [
+                        /*#__PURE__*/_jsxs("div", {
+                          className: "space-y-1",
+                          children: [
+                            /*#__PURE__*/_jsxs("div", {
+                              className: "flex items-center gap-1.5",
+                              children: [
+                                /*#__PURE__*/_jsx("span", { className: "text-amber-800 text-sm", children: "⚡" }),
+                                /*#__PURE__*/_jsx("h4", {
+                                  className: "text-xs font-bold text-amber-950",
+                                  children: "ปลดล็อกอนุญาตให้ครูเช็คชื่อนอกเวลา (Admin Bypass / วันกิจกรรมพิเศษ)"
+                                }),
+                                /*#__PURE__*/_jsx(InfoTooltip, {
+                                  title: "Admin Bypass เช็คชื่อนอกเวลา",
+                                  text: "เมื่อเปิดใช้งาน คุณครูสามารถเช็คชื่อและส่งภาพถ่ายได้ตลอดเวลาโดยไม่มีการล็อกปุ่มสีเทา ไม่จำกัดเฉพาะ 07:35 - 08:20 น."
+                                })
+                              ]
+                            }),
+                            /*#__PURE__*/_jsx("p", {
+                              className: "text-[11px] text-amber-800/90 leading-relaxed",
+                              children: "เมื่อเปิดใช้งาน คุณครูจะสามารถเช็คชื่อได้ตลอดเวลาโดยไม่มีการล็อกปุ่มสีเทา (เหมาะสำหรับวันกิจกรรมพิเศษ, งานพิธีสำคัญ หรือกรณีมีเหตุขัดข้อง)"
+                            })
+                          ]
+                        }),
+                        /*#__PURE__*/_jsxs("label", {
+                          className: "relative inline-flex items-center cursor-pointer flex-shrink-0 mt-0.5",
+                          children: [
+                            /*#__PURE__*/_jsx("input", {
+                              type: "checkbox",
+                              checked: localAllowOffHours,
+                              onChange: e => handleToggleOffHours(e.target.checked),
+                              disabled: savingOffHours,
+                              className: "sr-only peer"
+                            }),
+                            /*#__PURE__*/_jsx("div", {
+                              className: "w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"
+                            })
+                          ]
+                        })
+                      ]
+                    }),
+                    /*#__PURE__*/_jsxs("div", {
+                      className: "text-[11px] text-amber-900 flex items-center justify-between pt-2 border-t border-amber-200/60 font-medium",
+                      children: [
+                        /*#__PURE__*/_jsxs("span", {
+                          className: "flex items-center gap-1",
+                          children: [
+                            /*#__PURE__*/_jsx("span", { children: "สถานะปัจจุบัน:" }),
+                            /*#__PURE__*/_jsx("strong", {
+                              className: localAllowOffHours ? "text-emerald-700 font-bold" : "text-slate-600 font-bold",
+                              children: localAllowOffHours ? "🟢 ปลดล็อกอยู่ (คุณครูเช็คชื่อได้ตลอดเวลา)" : "🔒 บังคับเวลาปกติ (เปิดระบบ 07:35 - 08:20 น.)"
+                            })
+                          ]
+                        }),
+                        savingOffHours && /*#__PURE__*/_jsxs("span", {
+                          className: "text-amber-700 flex items-center gap-1 text-[10px]",
+                          children: [/*#__PURE__*/_jsx(Icon.Spin, { className: "w-3 h-3" }), "กำลังบันทึก..."]
                         })
                       ]
                     })
