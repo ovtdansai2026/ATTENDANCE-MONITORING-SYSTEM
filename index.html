@@ -3963,6 +3963,10 @@ function AdminPanelModal({
     }
   }, [adminYear, adminSem, getDatesForTerm]);
 
+  const adminLiveStats = useMemo(() => {
+    return calculateSchoolDaysStats(adminStartDate, adminEndDate, specialHolidays, compensatoryDays);
+  }, [adminStartDate, adminEndDate, specialHolidays, compensatoryDays]);
+
   const handleAddNewYearPrompt = async () => {
     const input = prompt('กรุณากรอกปีการศึกษา พ.ศ. ใหม่ เช่น 2570, 2571:');
     if (!input) return;
@@ -5244,8 +5248,8 @@ function AdminPanelModal({
                                       children: [
                                         /*#__PURE__*/_jsx(Icon.Chart, { className: "w-3.5 h-3.5 inline text-slate-600" }),
                                         "วันเรียนที่ผ่านมาแล้ว: ",
-                                        /*#__PURE__*/_jsxs("span", { className: "text-sky-800 font-mono font-bold", children: [calendarStats?.elapsedDays || 65, " วัน"] }),
-                                        /*#__PURE__*/_jsxs("span", { className: "text-slate-500 font-normal", children: [" (จากทั้งเทอม ~", calendarStats?.totalTermDays || 65, " วัน)"] })
+                                        /*#__PURE__*/_jsxs("span", { className: "text-sky-800 font-mono font-bold", children: [adminLiveStats.elapsedDays, " วัน"] }),
+                                        /*#__PURE__*/_jsxs("span", { className: "text-slate-500 font-normal", children: [" (จากทั้งเทอม ~", adminLiveStats.totalTermDays, " วัน)"] })
                                       ]
                                     }),
                                     /*#__PURE__*/_jsxs("div", {
