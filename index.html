@@ -960,9 +960,9 @@ const Icon = {
 
 
 // MODAL: จัดการรูปประจำตัวนักเรียน (Client-side Compression & Preview)
+// MODAL: จัดการรูปประจำตัวนักเรียน (Client-side Compression & Preview)
 function StudentPhotoModal({ targetStudent, currentPhoto, onSave, onDelete, onClose }) {
   const [photoPreview, setPhotoPreview] = useState(currentPhoto || '');
-  const [urlInput, setUrlInput] = useState(currentPhoto && !currentPhoto.startsWith('data:') ? currentPhoto : '');
   const [isProcessing, setIsProcessing] = useState(false);
   const [fileInfo, setFileInfo] = useState('');
   const fileInputRef = useRef(null);
@@ -977,20 +977,11 @@ function StudentPhotoModal({ targetStudent, currentPhoto, onSave, onDelete, onCl
       const compressed = await compressAvatar(file, 200, 0.75);
       const compressedSizeKb = Math.round((compressed.length * 3 / 4) / 1024);
       setPhotoPreview(compressed);
-      setFileInfo(`ไฟล์ต้นฉบับ: ${originalSizeKb} KB ➔ บีบอัดเหลือ: ~${compressedSizeKb} KB (ประหยัด 95%)`);
+      setFileInfo(`ไฟล์ต้นฉบับ: ${originalSizeKb} KB ➔ บีบอัดเหลือ: ~${compressedSizeKb} KB`);
     } catch(err) {
       alert('ไม่สามารถประมวลผลรูปภาพได้: ' + err.message);
     } finally {
       setIsProcessing(false);
-    }
-  };
-
-  const handleUrlChange = (val) => {
-    setUrlInput(val);
-    const converted = convertDrivePhotoUrl(val);
-    if (converted) {
-      setPhotoPreview(converted);
-      setFileInfo('ดึงรูปผ่านลิงก์ Google Drive / Web URL สำเร็จ');
     }
   };
 
@@ -1002,7 +993,8 @@ function StudentPhotoModal({ targetStudent, currentPhoto, onSave, onDelete, onCl
   };
 
   return /*#__PURE__*/_jsx("div", {
-    className: "fixed inset-0 z-70 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4",
+    className: "fixed inset-0 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4",
+    style: { zIndex: 9999 },
     onClick: onClose,
     children: /*#__PURE__*/_jsxs("div", {
       className: "bg-white border border-slate-200 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-200",
@@ -1045,45 +1037,24 @@ function StudentPhotoModal({ targetStudent, currentPhoto, onSave, onDelete, onCl
           ]
         }),
 
-        /*#__PURE__*/_jsxs("div", {
+        /*#__PURE__*/_jsx("div", {
           className: "space-y-3",
-          children: [
-            /*#__PURE__*/_jsxs("div", {
-              children: [
-                /*#__PURE__*/_jsx("label", { className: "text-xs font-bold text-slate-700 block mb-1.5", children: "1. เลือกรูปจากคอมพิวเตอร์ / มือถือ (ระบบบีบอัดให้อัตโนมัติ):" }),
-                /*#__PURE__*/_jsx("input", {
-                  type: "file",
-                  accept: "image/*",
-                  ref: fileInputRef,
-                  onChange: handleFileChange,
-                  className: "hidden"
-                }),
-                /*#__PURE__*/_jsxs("button", {
-                  type: "button",
-                  disabled: isProcessing,
-                  onClick: () => fileInputRef.current?.click(),
-                  className: "w-full py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold border border-slate-300 flex items-center justify-center gap-2 cursor-pointer transition-colors",
-                  children: [
-                    /*#__PURE__*/_jsx(Icon.Camera, { className: "w-4 h-4 text-slate-600" }),
-                    isProcessing ? "กำลังบีบอัดรูปภาพ..." : "คลิกเพื่อเลือกไฟล์รูปภาพ (Preview สด)"
-                  ]
-                })
-              ]
-            }),
-
-            /*#__PURE__*/_jsxs("div", {
-              children: [
-                /*#__PURE__*/_jsx("label", { className: "text-xs font-bold text-slate-700 block mb-1.5", children: "2. หรือ วางลิงก์รูปภาพ (Google Drive / Direct URL):" }),
-                /*#__PURE__*/_jsx("input", {
-                  type: "text",
-                  value: urlInput,
-                  onChange: e => handleUrlChange(e.target.value),
-                  placeholder: "วางลิงก์ เช่น https://drive.google.com/file/d/...",
-                  className: "w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono focus:outline-none focus:border-emerald-500"
-                })
-              ]
-            })
-          ]
+          children: /*#__PURE__*/_jsxs("div", {
+            className: "border-2 border-dashed border-slate-300 hover:border-emerald-500 rounded-2xl p-5 text-center cursor-pointer transition-all bg-slate-50/50 hover:bg-emerald-50/30 group",
+            onClick: () => fileInputRef.current?.click(),
+            children: [
+              /*#__PURE__*/_jsx("input", {
+                ref: fileInputRef,
+                type: "file",
+                accept: "image/*",
+                onChange: handleFileChange,
+                className: "hidden"
+              }),
+              /*#__PURE__*/_jsx(Icon.Camera, { className: "w-8 h-8 mx-auto text-emerald-600 mb-2 group-hover:scale-110 transition-transform" }),
+              /*#__PURE__*/_jsx("p", { className: "text-sm font-bold text-slate-800", children: isProcessing ? "กำลังประมวลผลรูปภาพ..." : "แตะเพื่อเลือกรูปถ่าย หรือเปิดกล้อง" }),
+              /*#__PURE__*/_jsx("p", { className: "text-xs text-slate-400 mt-1", children: "เลือกรูปจากเครื่องหรือถ่ายภาพสด ระบบจะปรับขนาดและบีบอัดให้อัตโนมัติ" })
+            ]
+          })
         }),
 
         /*#__PURE__*/_jsxs("div", {
@@ -1092,7 +1063,7 @@ function StudentPhotoModal({ targetStudent, currentPhoto, onSave, onDelete, onCl
             currentPhoto && /*#__PURE__*/_jsx("button", {
               type: "button",
               onClick: () => {
-                if (confirm(`ต้องการลบรูปภาพของ "${targetStudent?.student_name}" หรือไม่?`)) {
+                if (confirm(`ต้องการลบรูปภาพของ "${targetStudent?.student_name || targetStudent?.name}" หรือไม่?`)) {
                   onDelete(targetStudent);
                 }
               },
@@ -1124,7 +1095,6 @@ function StudentPhotoModal({ targetStudent, currentPhoto, onSave, onDelete, onCl
 
 function TeacherPhotoModal({ targetTeacher, currentPhoto, onSave, onDelete, onClose }) {
   const [photoPreview, setPhotoPreview] = useState(currentPhoto || '');
-  const [urlInput, setUrlInput] = useState(currentPhoto && !currentPhoto.startsWith('data:') ? currentPhoto : '');
   const [isProcessing, setIsProcessing] = useState(false);
   const [fileInfo, setFileInfo] = useState('');
   const fileInputRef = useRef(null);
@@ -1139,20 +1109,11 @@ function TeacherPhotoModal({ targetTeacher, currentPhoto, onSave, onDelete, onCl
       const compressed = await compressAvatar(file, 200, 0.75);
       const compressedSizeKb = Math.round((compressed.length * 3 / 4) / 1024);
       setPhotoPreview(compressed);
-      setFileInfo(`ไฟล์ต้นฉบับ: ${originalSizeKb} KB ➔ บีบอัดเหลือ: ~${compressedSizeKb} KB (ประหยัด 95%)`);
+      setFileInfo(`ไฟล์ต้นฉบับ: ${originalSizeKb} KB ➔ บีบอัดเหลือ: ~${compressedSizeKb} KB`);
     } catch(err) {
       alert('ไม่สามารถประมวลผลรูปภาพได้: ' + err.message);
     } finally {
       setIsProcessing(false);
-    }
-  };
-
-  const handleUrlChange = (val) => {
-    setUrlInput(val);
-    const converted = convertDrivePhotoUrl(val);
-    if (converted) {
-      setPhotoPreview(converted);
-      setFileInfo('ดึงรูปผ่านลิงก์ Google Drive / Web URL สำเร็จ');
     }
   };
 
@@ -1164,7 +1125,8 @@ function TeacherPhotoModal({ targetTeacher, currentPhoto, onSave, onDelete, onCl
   };
 
   return /*#__PURE__*/_jsx("div", {
-    className: "fixed inset-0 z-70 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4",
+    className: "fixed inset-0 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4",
+    style: { zIndex: 9999 },
     onClick: onClose,
     children: /*#__PURE__*/_jsxs("div", {
       className: "bg-white border border-slate-200 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-200",
@@ -1207,40 +1169,24 @@ function TeacherPhotoModal({ targetTeacher, currentPhoto, onSave, onDelete, onCl
           ]
         }),
 
-        /*#__PURE__*/_jsxs("div", {
+        /*#__PURE__*/_jsx("div", {
           className: "space-y-3",
-          children: [
-            /*#__PURE__*/_jsxs("div", {
-              className: "border-2 border-dashed border-slate-300 hover:border-sky-500 rounded-2xl p-4 text-center cursor-pointer transition-all bg-slate-50/50 hover:bg-sky-50/30",
-              onClick: () => fileInputRef.current?.click(),
-              children: [
-                /*#__PURE__*/_jsx("input", {
-                  ref: fileInputRef,
-                  type: "file",
-                  accept: "image/*",
-                  onChange: handleFileChange,
-                  className: "hidden"
-                }),
-                /*#__PURE__*/_jsx(Icon.Camera, { className: "w-7 h-7 mx-auto text-sky-600 mb-1.5" }),
-                /*#__PURE__*/_jsx("p", { className: "text-xs font-bold text-slate-700", children: "เลือกไฟล์รูปจากเครื่อง (มือถือ / คอม)" }),
-                /*#__PURE__*/_jsx("p", { className: "text-[10px] text-slate-400 mt-0.5", children: "ระบบจะบีบอัดรูปจัตุรัสให้สวยคมชัดและประหยัดพื้นที่อัตโนมัติ" })
-              ]
-            }),
-
-            /*#__PURE__*/_jsxs("div", {
-              className: "space-y-1.5",
-              children: [
-                /*#__PURE__*/_jsx("label", { className: "text-xs font-bold text-slate-600", children: "หรือวางลิงก์รูปภาพ (Google Drive / ลิงก์เว็บ):" }),
-                /*#__PURE__*/_jsx("input", {
-                  type: "text",
-                  value: urlInput,
-                  onChange: e => handleUrlChange(e.target.value),
-                  placeholder: "วางลิงก์รูปภาพที่นี่...",
-                  className: "w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-sky-500 font-mono"
-                })
-              ]
-            })
-          ]
+          children: /*#__PURE__*/_jsxs("div", {
+            className: "border-2 border-dashed border-slate-300 hover:border-sky-500 rounded-2xl p-5 text-center cursor-pointer transition-all bg-slate-50/50 hover:bg-sky-50/30 group",
+            onClick: () => fileInputRef.current?.click(),
+            children: [
+              /*#__PURE__*/_jsx("input", {
+                ref: fileInputRef,
+                type: "file",
+                accept: "image/*",
+                onChange: handleFileChange,
+                className: "hidden"
+              }),
+              /*#__PURE__*/_jsx(Icon.Camera, { className: "w-8 h-8 mx-auto text-sky-600 mb-2 group-hover:scale-110 transition-transform" }),
+              /*#__PURE__*/_jsx("p", { className: "text-sm font-bold text-slate-800", children: isProcessing ? "กำลังประมวลผลรูปภาพ..." : "แตะเพื่อเลือกรูปถ่าย หรือเปิดกล้อง" }),
+              /*#__PURE__*/_jsx("p", { className: "text-xs text-slate-400 mt-1", children: "เลือกรูปจากเครื่องหรือถ่ายภาพสด ระบบจะปรับขนาดและบีบอัดให้อัตโนมัติ" })
+            ]
+          })
         }),
 
         /*#__PURE__*/_jsxs("div", {
