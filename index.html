@@ -553,9 +553,9 @@ function generateDailyLineReport({
   });
 
   const hasAnyTodaySession = todaySessions.length > 0;
-  const useSimulatedData = forceMock || !hasAnyTodaySession;
+  const useSimulatedData = Boolean(forceMock);
 
-  // Realistic mock data template if today's sessions haven't arrived yet
+  // Realistic mock data template (used only when forceMock toggle is explicitly ON)
   const mockDeptStats = {
     'ช่างยนต์': { p: 28, a: 2, l: 0 },
     'ช่างไฟฟ้ากำลัง': { p: 25, a: 1, l: 0 },
@@ -569,36 +569,14 @@ function generateDailyLineReport({
 
   const deptList = CANONICAL_DEPTS.map(deptName => {
     const studentsInDept = deptStudentMap[deptName] || [];
-    const totalDeptStudents = studentsInDept.length || 20;
+    const totalDeptStudents = studentsInDept.length || 0;
 
     if (useSimulatedData) {
       const mock = mockDeptStats[deptName] || { p: 18, a: 2, l: 0 };
-      const p = Math.min(totalDeptStudents, mock.p);
+      const tot = totalDeptStudents > 0 ? totalDeptStudents : 20;
+      const p = Math.min(tot, mock.p);
       const a = mock.a;
       const l = mock.l;
-      const pct = totalDeptStudents > 0 ? Math.round((p / totalDeptStudents) * 100) : 0;
-      return {
-        name: deptName,
-        total: totalDeptStudents,
-        present: p,
-        absent: a,
-        leave: l,
-        percent: pct,
-        isCheckedIn: true,
-        teacherName: 'ครูประจำแผนก'
-      };
-    }
-
-    const sess = todaySessions.find(s => 
-      s.department === deptName || 
-      normalizeDepartmentName(s.department) === deptName
-    );
-
-    if (sess) {
-      const p = Number(sess.present_count) || 0;
-      const a = Number(sess.absent_count) || 0;
-      const l = Number(sess.leave_count) || 0;
-      const tot = totalDeptStudents > 0 ? totalDeptStudents : (p + a + l);
       const pct = tot > 0 ? Math.round((p / tot) * 100) : 0;
       return {
         name: deptName,
@@ -608,7 +586,32 @@ function generateDailyLineReport({
         leave: l,
         percent: pct,
         isCheckedIn: true,
-        teacherName: sess.teacher_name || ''
+        teacherName: 'ครูประจำแผนก'
+      };
+    }
+
+    const deptSessions = todaySessions.filter(s => 
+      s.department === deptName || 
+      normalizeDepartmentName(s.department) === deptName
+    );
+
+    if (deptSessions.length > 0) {
+      const p = deptSessions.reduce((sum, s) => sum + (Number(s.present_count) || 0), 0);
+      const a = deptSessions.reduce((sum, s) => sum + (Number(s.absent_count) || 0), 0);
+      const l = deptSessions.reduce((sum, s) => sum + (Number(s.leave_count) || 0), 0);
+      const checkedInStudents = p + a + l;
+      const tot = totalDeptStudents > 0 ? totalDeptStudents : checkedInStudents;
+      const pct = tot > 0 ? Math.round((p / tot) * 100) : 0;
+      const teacherNames = [...new Set(deptSessions.map(s => s.teacher_name).filter(Boolean))].join(', ');
+      return {
+        name: deptName,
+        total: tot,
+        present: p,
+        absent: a,
+        leave: l,
+        percent: pct,
+        isCheckedIn: true,
+        teacherName: teacherNames
       };
     } else {
       return {
@@ -640,15 +643,19 @@ function generateDailyLineReport({
   text += `⏰ สรุปยอดตัดรอบเวลา 08:20 น.\n`;
   text += `────────────────────\n`;
   text += `👥 ยอดนักเรียนทั้งหมด: ${totalStudents} คน\n`;
-  text += `✅ มาเข้าแถว: ${totalPresent} คน (${overallPercent}%)\n`;
-  text += `❌ ขาดแถว: ${totalAbsent} คน | 📝 ลา: ${totalLeave} คน\n`;
+  if (checkedCount === 0) {
+    text += `⏳ สถานะ: รอครูที่ปรึกษาบันทึกเช็คชื่อ (0/8 แผนก)\n`;
+  } else {
+    text += `✅ มาเข้าแถว: ${totalPresent} คน (${overallPercent}%)\n`;
+    text += `❌ ขาดแถว: ${totalAbsent} คน | 📝 ลา: ${totalLeave} คน\n`;
+  }
   text += `────────────────────\n`;
   text += `📊 *สรุปยอดรายแผนกวิชา (ส่งยอด ${checkedCount}/8 แผนก):*\n`;
 
   deptList.forEach(d => {
     if (d.isCheckedIn) {
       const icon = d.percent >= 90 ? '🟢' : (d.percent >= 80 ? '🟡' : '🔴');
-      const badge = d.percent === 100 ? ' ⭐ ครบ 100%' : (d.absent > 0 ? ` (ขาด ${d.absent})` : '');
+      const badge = d.percent === 100 ? ' (มาครบ 100%)' : (d.absent > 0 ? ` (ขาด ${d.absent})` : '');
       text += `${icon} *${d.name}:* มา ${d.present}/${d.total} (${d.percent}%)${badge}\n`;
     } else {
       text += `⚪ *${d.name}:* รอส่งยอด (${d.total} คน)\n`;
@@ -691,12 +698,12 @@ function generateDailyLineReport({
       },
       {
         type: "text",
-        text: d.isCheckedIn ? (d.percent === 100 ? "⭐" : (d.absent > 0 ? `ขาด ${d.absent}` : "ครบ")) : "รอส่ง",
+        text: d.isCheckedIn ? (d.percent === 100 ? "ครบ 100%" : (d.absent > 0 ? `ขาด ${d.absent}` : "ครบ")) : "รอส่ง",
         size: "xxs",
         color: d.isCheckedIn ? (d.absent > 0 ? "#e11d48" : "#059669") : "#cbd5e1",
         weight: "bold",
         align: "end",
-        flex: 2
+        flex: 3
       }
     ]
   }));
@@ -1432,6 +1439,77 @@ function App() {
       console.warn('Persisting allow_off_hours_checkin error:', err);
     }
   };
+
+  // LINE Auto-send at 08:20 Cut-off on School Days (Excluding Weekends & Special Holidays)
+  useEffect(() => {
+    if (!lineSettings?.autoSendOnCutoff || !lineSettings?.channelAccessToken || !lineSettings?.destinationId) return;
+
+    const checkAndSendCutoffReport = async () => {
+      const now = new Date();
+      const todayStr = formatLocalDate(now);
+      const dayOfWeek = now.getDay();
+
+      // Check School Day vs Holiday using the EXACT same criteria as teacher check-in
+      const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+      const isCompensatory = (compensatoryDays || []).includes(todayStr);
+      const isHoliday = (specialHolidays || []).includes(todayStr);
+      const isSchoolDay = (!isWeekend || isCompensatory) && !isHoliday;
+
+      // Do NOT send on holidays or weekends
+      if (!isSchoolDay) return;
+
+      // Check if current time is within cutoff window (08:20 - 09:30 น.)
+      const curHour = now.getHours();
+      const curMin = now.getMinutes();
+      const isCutoffTime = (curHour === 8 && curMin >= 20) || (curHour > 8 && curHour <= 9);
+
+      if (!isCutoffTime) return;
+
+      // Check if already sent today to prevent duplicate sending
+      const lastSentDate = localStorage.getItem('line_last_autosent_date');
+      if (lastSentDate === todayStr) return;
+
+      // Mark as sent immediately to avoid race conditions
+      localStorage.setItem('line_last_autosent_date', todayStr);
+
+      try {
+        const report = generateDailyLineReport({
+          masterStudents,
+          sessions: checkinSessions,
+          academicYear: currentAcademicYear,
+          semester: currentSemester,
+          customNote: lineSettings.customNote,
+          dashboardUrl: lineSettings.dashboardUrl,
+          forceMock: false
+        });
+
+        console.log('⏰ กำลังส่งรายงานสรุปยอดการเข้าแถวอัตโนมัติ (ตัดรอบ 08:20 น.) เข้า LINE...');
+        const res = await fetch('/api/line-notify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            channelAccessToken: lineSettings.channelAccessToken.trim(),
+            destinationId: lineSettings.destinationId.trim(),
+            flexMessage: report.flexMessage,
+            textMessage: report.textMessage,
+            altText: `สรุปยอดการเข้าแถว วก.ด่านซ้าย ประจำ${report.dateFormatted}`
+          })
+        });
+        const json = await res.json().catch(() => ({}));
+        if (res.ok && json.success) {
+          console.log('✅ ส่งรายงานอัตโนมัติ 08:20 น. เข้า LINE เรียบร้อยแล้ว');
+        } else {
+          console.warn('⚠️ ส่งรายงานอัตโนมัติ 08:20 น. ล้มเหลว:', json.error || res.status);
+        }
+      } catch (err) {
+        console.error('Error auto-sending 08:20 LINE report:', err);
+      }
+    };
+
+    const intervalTimer = setInterval(checkAndSendCutoffReport, 30000);
+    checkAndSendCutoffReport();
+    return () => clearInterval(intervalTimer);
+  }, [lineSettings, specialHolidays, compensatoryDays, masterStudents, checkinSessions, currentAcademicYear, currentSemester]);
 
   // Fetch Check-in Sessions
   const fetchSessions = useCallback(async () => {
@@ -5721,7 +5799,7 @@ function AdminLineSettingsTab({
                       className: "text-xs",
                       children: [
                         /*#__PURE__*/_jsx("span", { className: "font-bold text-slate-800 block", children: "ส่งรายงานอัตโนมัติเมื่อถึงเวลาตัดรอบ (08:20 น.)" }),
-                        /*#__PURE__*/_jsx("span", { className: "text-slate-500 text-[11px]", children: "ระบบจะสรุปและส่งเข้า LINE กลุ่มครูทันทีที่ครบเวลาเช็คชื่อ" })
+                        /*#__PURE__*/_jsx("span", { className: "text-slate-500 text-[11px]", children: "ระบบจะสรุปและส่งเข้า LINE กลุ่มครูอัตโนมัติเวลา 08:20 น. (เช็คตามปฏิทิน: ส่งเฉพาะวันเรียนปกติ ยกเว้นวันหยุดเสาร์-อาทิตย์และวันหยุดพิเศษ)" })
                       ]
                     })
                   ]
