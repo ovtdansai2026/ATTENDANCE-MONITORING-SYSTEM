@@ -5535,6 +5535,9 @@ function AdminLineSettingsTab({
 
       const json = await res.json().catch(() => ({}));
       if (!res.ok || json.error) {
+        if (res.status === 404) {
+          throw new Error('ไม่พบเซิร์ฟเวอร์ API สำหรับส่ง LINE (HTTP 404)\nโปรดรีสตาร์ตเซิร์ฟเวอร์โดยปิดหน้าต่าง CMD แล้วเปิดไฟล์ "เปิดระบบแดชบอร์ด.cmd" ใหม่อีกครั้ง');
+        }
         throw new Error(json.error || `HTTP ${res.status}`);
       }
 
