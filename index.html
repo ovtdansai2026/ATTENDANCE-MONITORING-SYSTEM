@@ -3272,7 +3272,7 @@ function App() {
           setTeacherPhotosMap(updated);
           localStorage.setItem('teacher_photos_cache', JSON.stringify(updated));
           try {
-            const token = sessionStorage.getItem('admin_session_token') || '';
+            const token = sessionStorage.getItem('admin_session_token') || teacher.passcode || '';
             await dbAssembly.rpc('admin_save_system_settings_batch_secure', {
               p_settings: [{ key: 'teacher_photos_map', value: JSON.stringify(updated) }],
               p_auth_token_or_pin: token
@@ -3491,7 +3491,7 @@ function App() {
       isAdvisorModalOpen && /*#__PURE__*/_jsx(AdvisorDirectoryModal, {
         teachers: teachersList,
         teacherPhotosMap: teacherPhotosMap,
-        onOpenTeacherPhoto: (t) => setPhotoModalTeacher(t),
+        onOpenTeacherPhoto: isAdminLoggedIn ? (t) => setPhotoModalTeacher(t) : null,
         academicYear: currentAcademicYear,
         semester: currentSemester,
         isAdminLoggedIn: isAdminLoggedIn,
@@ -4366,9 +4366,9 @@ function AdvisorDirectoryModal({
                   className: "flex items-center gap-3 min-w-0 flex-1",
                   children: [
                     /*#__PURE__*/_jsx("div", {
-                      onClick: () => onOpenTeacherPhoto && onOpenTeacherPhoto(t),
-                      title: "คลิกเพื่อดูหรือเปลี่ยนรูปถ่ายครู",
-                      className: `w-12 h-12 rounded-2xl bg-sky-50 text-sky-700 border border-sky-100 flex items-center justify-center overflow-hidden flex-shrink-0 text-2xl select-none shadow-2xs ${onOpenTeacherPhoto ? 'cursor-pointer hover:ring-2 hover:ring-sky-400 transition-all' : ''}`,
+                      onClick: () => (isAdminLoggedIn && onOpenTeacherPhoto) && onOpenTeacherPhoto(t),
+                      title: isAdminLoggedIn ? "คลิกเพื่อดูหรือเปลี่ยนรูปถ่ายครู (เฉพาะแอดมิน)" : t.name,
+                      className: `w-12 h-12 rounded-2xl bg-sky-50 text-sky-700 border border-sky-100 flex items-center justify-center overflow-hidden flex-shrink-0 text-2xl select-none shadow-2xs ${(isAdminLoggedIn && onOpenTeacherPhoto) ? 'cursor-pointer hover:ring-2 hover:ring-sky-400 transition-all' : ''}`,
                       children: (t.photo_url || teacherPhotosMap?.[t.id] || teacherPhotosMap?.[t.name]) ? (
                         /*#__PURE__*/_jsx("img", {
                           src: t.photo_url || teacherPhotosMap[t.id] || teacherPhotosMap[t.name],
@@ -4414,7 +4414,7 @@ function AdvisorDirectoryModal({
                       className: "px-2.5 py-1 bg-sky-50 text-sky-800 border border-sky-200 rounded-lg text-xs font-bold whitespace-nowrap",
                       children: "ครูที่ปรึกษา"
                     }),
-                    onOpenTeacherPhoto && /*#__PURE__*/_jsxs("button", {
+                    (isAdminLoggedIn && onOpenTeacherPhoto) && /*#__PURE__*/_jsxs("button", {
                       onClick: () => onOpenTeacherPhoto(t),
                       className: "text-[11px] font-semibold text-sky-700 hover:text-sky-900 bg-white hover:bg-sky-50 border border-sky-200 px-2 py-0.5 rounded-lg flex items-center gap-1 cursor-pointer transition-colors shadow-2xs",
                       children: [
