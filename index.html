@@ -510,15 +510,18 @@ function getCheckinTimeStatus(specialHolidays = [], compensatoryDays = [], admin
   };
 }
 
-// Canonical 8 Departments of วก.ด่านซ้าย
+// Canonical Standard Vocational Departments of วก.ด่านซ้าย
 const CANONICAL_DEPTS = [
   'ช่างยนต์',
+  'ช่างกลโรงงาน',
+  'ช่างเชื่อมโลหะ',
   'ช่างไฟฟ้ากำลัง',
   'ช่างอิเล็กทรอนิกส์',
   'ช่างก่อสร้าง',
   'การบัญชี',
   'การตลาด',
   'เทคโนโลยีธุรกิจดิจิทัล',
+  'อาหารและโภชนาการ',
   'การโรงแรม'
 ];
 
@@ -543,9 +546,16 @@ function generateDailyLineReport({
     String(s.semester || semester) === String(semester)
   );
 
+  // Dynamically determine active departments from active students in college, fallback to CANONICAL_DEPTS
+  const activeDepts = Array.from(new Set(
+    (masterStudents && masterStudents.length > 0)
+      ? masterStudents.map(s => normalizeDepartmentName(s.dept || s.department)).filter(Boolean)
+      : CANONICAL_DEPTS
+  )).filter(d => d && d !== 'ทั่วไป').sort((a, b) => a.localeCompare(b, 'th'));
+
   // Group master students by department
   const deptStudentMap = {};
-  CANONICAL_DEPTS.forEach(d => { deptStudentMap[d] = []; });
+  activeDepts.forEach(d => { deptStudentMap[d] = []; });
   (masterStudents || []).forEach(s => {
     const norm = normalizeDepartmentName(s.dept || s.department);
     if (!deptStudentMap[norm]) deptStudentMap[norm] = [];
@@ -558,16 +568,19 @@ function generateDailyLineReport({
   // Realistic mock data template (used only when forceMock toggle is explicitly ON)
   const mockDeptStats = {
     'ช่างยนต์': { p: 28, a: 2, l: 0 },
+    'ช่างกลโรงงาน': { p: 22, a: 1, l: 0 },
+    'ช่างเชื่อมโลหะ': { p: 15, a: 1, l: 0 },
     'ช่างไฟฟ้ากำลัง': { p: 25, a: 1, l: 0 },
     'ช่างอิเล็กทรอนิกส์': { p: 19, a: 1, l: 0 },
     'ช่างก่อสร้าง': { p: 18, a: 2, l: 0 },
     'การบัญชี': { p: 24, a: 0, l: 1 },
     'การตลาด': { p: 18, a: 0, l: 0 },
     'เทคโนโลยีธุรกิจดิจิทัล': { p: 20, a: 2, l: 0 },
+    'อาหารและโภชนาการ': { p: 21, a: 1, l: 0 },
     'การโรงแรม': { p: 16, a: 2, l: 0 }
   };
 
-  const deptList = CANONICAL_DEPTS.map(deptName => {
+  const deptList = activeDepts.map(deptName => {
     const studentsInDept = deptStudentMap[deptName] || [];
     const totalDeptStudents = studentsInDept.length || 0;
 
@@ -630,7 +643,7 @@ function generateDailyLineReport({
   const totalStudents = masterStudents.length || deptList.reduce((acc, d) => acc + d.total, 0);
   const checkedInDepts = deptList.filter(d => d.isCheckedIn);
   const checkedCount = checkedInDepts.length;
-  const isAllChecked = checkedCount === CANONICAL_DEPTS.length;
+  const isAllChecked = checkedCount === activeDepts.length;
 
   const totalPresent = deptList.reduce((acc, d) => acc + (d.isCheckedIn ? d.present : 0), 0);
   const totalAbsent = deptList.reduce((acc, d) => acc + (d.isCheckedIn ? d.absent : 0), 0);
@@ -876,7 +889,7 @@ function generateDailyLineReport({
     totalLeave,
     overallPercent,
     checkedCount,
-    totalDepts: CANONICAL_DEPTS.length,
+    totalDepts: activeDepts.length,
     deptList,
     useSimulatedData,
     textMessage: text,
@@ -2232,9 +2245,10 @@ function App() {
   // Filters and Computations
   const departments = useMemo(() => {
     const s = new Set();
-    masterStudents.forEach(st => st.dept && s.add(st.dept));
-    return Array.from(s).sort();
-  }, [masterStudents]);
+    masterStudents.forEach(st => st.dept && s.add(normalizeDepartmentName(st.dept)));
+    (teachersList || []).forEach(t => t.department && s.add(normalizeDepartmentName(t.department)));
+    return Array.from(s).filter(d => d && d !== 'ทั่วไป').sort((a, b) => a.localeCompare(b, 'th'));
+  }, [masterStudents, teachersList]);
 
   const levels = useMemo(() => {
     const s = new Set();
@@ -6584,12 +6598,43 @@ function AdminPanelModal({
   useEffect(() => {
     setTeachers(teachersList || []);
   }, [teachersList]);
+
+  // Available Departments synced dynamically with masterStudents, existing teachers, and standard list
+  const availableDepartments = useMemo(() => {
+    const s = new Set();
+    // 1. Existing students in masterStudents
+    (masterStudents || []).forEach(st => {
+      const d = (st.dept || st.department || '').trim();
+      if (d) s.add(normalizeDepartmentName(d));
+    });
+    // 2. Existing teachers
+    (teachers || []).forEach(t => {
+      const d = (t.department || '').trim();
+      if (d) s.add(normalizeDepartmentName(d));
+    });
+    // 3. Known standard departments
+    CANONICAL_DEPTS.forEach(d => {
+      if (d) s.add(normalizeDepartmentName(d));
+    });
+    return Array.from(s).filter(d => d && d !== 'ทั่วไป').sort((a, b) => a.localeCompare(b, 'th'));
+  }, [masterStudents, teachers]);
+
+  const [isCustomTeacherDept, setIsCustomTeacherDept] = useState(false);
+  const [isCustomStudentDept, setIsCustomStudentDept] = useState(false);
+
   const [newTeacherName, setNewTeacherName] = useState('');
   const [newTeacherDept, setNewTeacherDept] = useState('ช่างยนต์');
   const [newTeacherLevel, setNewTeacherLevel] = useState('ปวช.1');
   const [newTeacherPhone, setNewTeacherPhone] = useState('');
   const [newTeacherPin, setNewTeacherPin] = useState('');
   const [savingTeacher, setSavingTeacher] = useState(false);
+
+  // Initialize newTeacherDept from availableDepartments
+  useEffect(() => {
+    if (availableDepartments.length > 0 && !isCustomTeacherDept && (!newTeacherDept || !availableDepartments.includes(newTeacherDept))) {
+      setNewTeacherDept(availableDepartments[0]);
+    }
+  }, [availableDepartments]);
 
   // Student Management State
   const [studentSubTab, setStudentSubTab] = useState('list'); // 'list', 'form', 'excel'
@@ -6605,6 +6650,13 @@ function AdminPanelModal({
   const [newStudentTeacher, setNewStudentTeacher] = useState('');
   const [editingStudentId, setEditingStudentId] = useState(null);
   const [savingStudent, setSavingStudent] = useState(false);
+
+  // Initialize newStudentDept from availableDepartments
+  useEffect(() => {
+    if (availableDepartments.length > 0 && !isCustomStudentDept && (!newStudentDept || !availableDepartments.includes(newStudentDept))) {
+      setNewStudentDept(availableDepartments[0]);
+    }
+  }, [availableDepartments]);
 
   // Excel Import State
   const [excelFile, setExcelFile] = useState(null);
@@ -6685,6 +6737,8 @@ function AdminPanelModal({
   // Save Student (Add / Edit)
   const handleSaveStudent = async () => {
     if (!newStudentName.trim()) return alert('กรุณากรอกชื่อ-นามสกุลนักเรียน');
+    const cleanDept = normalizeDepartmentName(newStudentDept);
+    if (!cleanDept || cleanDept === 'ทั่วไป') return alert('กรุณาระบุหรือเลือกแผนกวิชา');
     setSavingStudent(true);
     try {
       if (editingStudentId) {
@@ -6693,7 +6747,7 @@ function AdminPanelModal({
           const { error } = await dbAssembly.from('attendance_summary').insert([{
             student_name: newStudentName.trim(),
             pure_level: newStudentLevel,
-            department: newStudentDept,
+            department: cleanDept,
             teacher_email: newStudentTeacher.trim() || '-',
             present_days: 0,
             total_days: 0,
@@ -6706,7 +6760,7 @@ function AdminPanelModal({
           const { error } = await dbAssembly.from('attendance_summary').update({
             student_name: newStudentName.trim(),
             pure_level: newStudentLevel,
-            department: newStudentDept,
+            department: cleanDept,
             teacher_email: newStudentTeacher.trim() || '-',
             academic_year: adminYear,
             semester: adminSem
@@ -6718,7 +6772,7 @@ function AdminPanelModal({
         const { error } = await dbAssembly.from('attendance_summary').insert([{
           student_name: newStudentName.trim(),
           pure_level: newStudentLevel,
-          department: newStudentDept,
+          department: cleanDept,
           teacher_email: newStudentTeacher.trim() || '-',
           present_days: 0,
           total_days: 0,
@@ -6731,6 +6785,7 @@ function AdminPanelModal({
       }
       setNewStudentName('');
       setNewStudentTeacher('');
+      setIsCustomStudentDept(false);
       setEditingStudentId(null);
       setStudentSubTab('list');
       await fetchTermStudents();
@@ -6745,7 +6800,9 @@ function AdminPanelModal({
   const handleEditStudentClick = (student) => {
     setEditingStudentId(student.id);
     setNewStudentName(student.student_name || '');
-    setNewStudentDept(student.department || 'ช่างยนต์');
+    const cleanD = normalizeDepartmentName(student.department || '');
+    setNewStudentDept(cleanD || 'ช่างยนต์');
+    setIsCustomStudentDept(Boolean(cleanD && !availableDepartments.includes(cleanD)));
     setNewStudentLevel(student.pure_level || 'ปวช.1');
     setNewStudentTeacher(student.teacher_email || '');
     setStudentSubTab('form');
@@ -6974,6 +7031,8 @@ function AdminPanelModal({
   // Add Teacher
   const handleAddTeacher = async () => {
     if (!newTeacherName.trim()) return alert('กรุณากรอกชื่อ-นามสกุลครู');
+    const cleanDept = normalizeDepartmentName(newTeacherDept);
+    if (!cleanDept || cleanDept === 'ทั่วไป') return alert('กรุณาระบุหรือเลือกแผนกวิชา');
     setSavingTeacher(true);
     try {
       let pinHash = DEFAULT_PIN_HASH;
@@ -6997,7 +7056,7 @@ function AdminPanelModal({
       }
       const newRec = {
         name: newTeacherName.trim(),
-        department: newTeacherDept,
+        department: cleanDept,
         class_level: newTeacherLevel,
         phone: newTeacherPhone.trim(),
         pin_hash: pinHash,
@@ -7010,6 +7069,7 @@ function AdminPanelModal({
       setNewTeacherName('');
       setNewTeacherPhone('');
       setNewTeacherPin('');
+      setIsCustomTeacherDept(false);
       if (data && data[0]) setTeachers([...teachers, data[0]]);
       if (onUpdateTeachers) onUpdateTeachers();
     } catch (e) {
@@ -8081,21 +8141,28 @@ function AdminPanelModal({
                               children: [
                                 /*#__PURE__*/_jsx("label", { className: "text-xs font-bold text-slate-700 block mb-1", children: "แผนกวิชา:" }),
                                 /*#__PURE__*/_jsxs("select", {
-                                  value: newStudentDept,
-                                  onChange: e => setNewStudentDept(e.target.value),
+                                  value: isCustomStudentDept ? '__custom__' : newStudentDept,
+                                  onChange: e => {
+                                    if (e.target.value === '__custom__') {
+                                      setIsCustomStudentDept(true);
+                                      setNewStudentDept('');
+                                    } else {
+                                      setIsCustomStudentDept(false);
+                                      setNewStudentDept(e.target.value);
+                                    }
+                                  },
                                   className: "w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-medium text-slate-800 cursor-pointer shadow-2xs",
                                   children: [
-                                    /*#__PURE__*/_jsx("option", { value: "ช่างยนต์", children: "ช่างยนต์" }),
-                                    /*#__PURE__*/_jsx("option", { value: "ช่างไฟฟ้ากำลัง", children: "ช่างไฟฟ้ากำลัง" }),
-                                    /*#__PURE__*/_jsx("option", { value: "การบัญชี", children: "การบัญชี" }),
-                                    /*#__PURE__*/_jsx("option", { value: "คอมพิวเตอร์ธุรกิจ", children: "คอมพิวเตอร์ธุรกิจ" }),
-                                    /*#__PURE__*/_jsx("option", { value: "การโรงแรม", children: "การโรงแรม" }),
-                                    /*#__PURE__*/_jsx("option", { value: "ช่างกลโรงงาน", children: "ช่างกลโรงงาน" }),
-                                    /*#__PURE__*/_jsx("option", { value: "ช่างเชื่อมโลหะ", children: "ช่างเชื่อมโลหะ" }),
-                                    /*#__PURE__*/_jsx("option", { value: "ช่างอิเล็กทรอนิกส์", children: "ช่างอิเล็กทรอนิกส์" }),
-                                    /*#__PURE__*/_jsx("option", { value: "แผนกวิชาอาหารและโภชนาการ", children: "อาหารและโภชนาการ" }),
-                                    /*#__PURE__*/_jsx("option", { value: "แผนกวิชาการตลาด", children: "การตลาด" })
+                                    availableDepartments.map(d => /*#__PURE__*/_jsx("option", { value: d, children: d }, d)),
+                                    /*#__PURE__*/_jsx("option", { value: "__custom__", children: "✏️ + ระบุแผนกอื่น (พิมพ์เอง)..." })
                                   ]
+                                }),
+                                isCustomStudentDept && /*#__PURE__*/_jsx("input", {
+                                  type: "text",
+                                  value: newStudentDept,
+                                  onChange: e => setNewStudentDept(e.target.value),
+                                  placeholder: "พิมพ์ชื่อแผนกวิชาใหม่...",
+                                  className: "mt-1.5 w-full bg-amber-50 border border-amber-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-amber-500 font-semibold"
                                 })
                               ]
                             })
@@ -8467,18 +8534,20 @@ function AdminPanelModal({
                           className: "bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs sm:col-span-2 focus:outline-none focus:border-sky-400"
                         }),
                         /*#__PURE__*/_jsxs("select", {
-                          value: newTeacherDept,
-                          onChange: e => setNewTeacherDept(e.target.value),
-                          className: "bg-white border border-slate-200 rounded-xl px-2.5 py-2 text-xs cursor-pointer",
+                          value: isCustomTeacherDept ? '__custom__' : newTeacherDept,
+                          onChange: e => {
+                            if (e.target.value === '__custom__') {
+                              setIsCustomTeacherDept(true);
+                              setNewTeacherDept('');
+                            } else {
+                              setIsCustomTeacherDept(false);
+                              setNewTeacherDept(e.target.value);
+                            }
+                          },
+                          className: "bg-white border border-slate-200 rounded-xl px-2.5 py-2 text-xs cursor-pointer font-medium text-slate-800",
                           children: [
-                            /*#__PURE__*/_jsx("option", { value: "ช่างยนต์", children: "ช่างยนต์" }),
-                            /*#__PURE__*/_jsx("option", { value: "ช่างไฟฟ้ากำลัง", children: "ช่างไฟฟ้ากำลัง" }),
-                            /*#__PURE__*/_jsx("option", { value: "ช่างอิเล็กทรอนิกส์", children: "ช่างอิเล็กทรอนิกส์" }),
-                            /*#__PURE__*/_jsx("option", { value: "ช่างก่อสร้าง", children: "ช่างก่อสร้าง" }),
-                            /*#__PURE__*/_jsx("option", { value: "การบัญชี", children: "การบัญชี" }),
-                            /*#__PURE__*/_jsx("option", { value: "การตลาด", children: "การตลาด" }),
-                            /*#__PURE__*/_jsx("option", { value: "เทคโนโลยีธุรกิจดิจิทัล", children: "เทคโนโลยีธุรกิจดิจิทัล" }),
-                            /*#__PURE__*/_jsx("option", { value: "การโรงแรม", children: "การโรงแรม" })
+                            availableDepartments.map(d => /*#__PURE__*/_jsx("option", { value: d, children: d }, d)),
+                            /*#__PURE__*/_jsx("option", { value: "__custom__", children: "✏️ + ระบุแผนกอื่น (พิมพ์เอง)..." })
                           ]
                         }),
                         /*#__PURE__*/_jsxs("select", {
@@ -8492,6 +8561,13 @@ function AdminPanelModal({
                             /*#__PURE__*/_jsx("option", { value: "ปวส.1", children: "ปวส.1" }),
                             /*#__PURE__*/_jsx("option", { value: "ปวส.2", children: "ปวส.2" })
                           ]
+                        }),
+                        isCustomTeacherDept && /*#__PURE__*/_jsx("input", {
+                          type: "text",
+                          value: newTeacherDept,
+                          onChange: e => setNewTeacherDept(e.target.value),
+                          placeholder: "พิมพ์ชื่อแผนกวิชาใหม่...",
+                          className: "bg-amber-50 border border-amber-300 text-slate-900 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-amber-500 font-semibold sm:col-span-4 shadow-2xs placeholder:text-amber-400"
                         })
                       ]
                     }),
