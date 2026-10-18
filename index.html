@@ -4689,8 +4689,60 @@ function TimeRestrictionModal({
   });
 }
 
+// คำนวณรหัส PIN 5 หลักเริ่มต้นจากรหัสนักศึกษา (เช่น 69301050002 -> 30105) หรือรหัสสาขาวิชามาตรฐาน
+function getDefaultTeacherPin(teacher, masterStudents = []) {
+  if (!teacher) return '12345';
+  const normDept = normalizeDepartmentName(teacher.department);
+  const classLvl = String(teacher.class_level || '').trim();
+
+  // 1. ค้นหาจากนักเรียนในห้องนี้ที่มีรหัสนักศึกษา (เช่น 69301050002 -> ดึง 5 หลักตรงกลาง 30105)
+  const student = (masterStudents || []).find(s => {
+    const sDept = normalizeDepartmentName(s.department || s.dept);
+    const sLvl = String(s.class_level || s.level || s.pure_level || '').trim();
+    const rawId = String(s.student_id || s.id || '').replace(/\D/g, '');
+    return sDept === normDept && sLvl === classLvl && rawId.length >= 7;
+  });
+
+  if (student) {
+    const rawId = String(student.student_id || student.id).replace(/\D/g, '');
+    const mid5 = rawId.slice(2, 7);
+    if (/^\d{5}$/.test(mid5)) return mid5;
+  }
+
+  // 2. ค้นหาจากนักศึกษาแผนกเดียวกันในระดับชั้นเดียวกัน (ปวช. หรือ ปวส.)
+  const isPvs = classLvl.includes('ปวส');
+  const levelPrefix = isPvs ? 'ปวส' : 'ปวช';
+  const anyDeptStudent = (masterStudents || []).find(s => {
+    const sDept = normalizeDepartmentName(s.department || s.dept);
+    const sLvl = String(s.class_level || s.level || s.pure_level || '').trim();
+    const rawId = String(s.student_id || s.id || '').replace(/\D/g, '');
+    return sDept === normDept && sLvl.includes(levelPrefix) && rawId.length >= 7;
+  });
+
+  if (anyDeptStudent) {
+    const rawId = String(anyDeptStudent.student_id || anyDeptStudent.id).replace(/\D/g, '');
+    const mid5 = rawId.slice(2, 7);
+    if (/^\d{5}$/.test(mid5)) return mid5;
+  }
+
+  // 3. Fallback รหัสสาขาวิชามาตรฐาน สอศ.
+  const pfx = isPvs ? '3' : '2';
+  if (normDept.includes('ยนต์')) return pfx + '0101';
+  if (normDept.includes('กลโรงงาน')) return pfx + '0102';
+  if (normDept.includes('เชื่อม')) return pfx + '0103';
+  if (normDept.includes('ไฟฟ้า')) return pfx + '0104';
+  if (normDept.includes('อิเล็ก')) return pfx + '0105';
+  if (normDept.includes('ก่อสร้าง')) return pfx + '0106';
+  if (normDept.includes('บัญชี')) return pfx + '0201';
+  if (normDept.includes('ตลาด')) return isPvs ? '30202' : '20208';
+  if (normDept.includes('ธุรกิจดิจิทัล') || normDept.includes('คอมพิวเตอร์')) return isPvs ? '31910' : '21910';
+  if (normDept.includes('โรงแรม')) return pfx + '0701';
+
+  return '12345';
+}
+
 // ==========================================
-// MODAL: ระบบเช็คชื่อสำหรับครู (Senior-Friendly with Camera)
+// MODAL: ระบบเช็คชื่อสำหรับครู (เลือกครูก่อน -> ใส่รหัส 5 หลัก)
 // ==========================================
 function TeacherCheckinModal({
   teachers,
@@ -4709,8 +4761,11 @@ function TeacherCheckinModal({
   onClose
 }) {
   const timeStatus = getCheckinTimeStatus(specialHolidays, compensatoryDays, isAdminLoggedIn || allowOffHoursCheckin);
-  const [step, setStep] = useState('enter_pin');
+  const [step, setStep] = useState(initialTeacher ? 'enter_pin' : 'select_teacher');
   const [selectedTeacher, setSelectedTeacher] = useState(initialTeacher || null);
+  const [teacherSearch, setTeacherSearch] = useState('');
+  const [deptFilter, setDeptFilter] = useState('ALL');
+  const [isChangePinOpen, setIsChangePinOpen] = useState(false);
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
@@ -4722,6 +4777,30 @@ function TeacherCheckinModal({
   const [saveSuccessMsg, setSaveSuccessMsg] = useState('');
   const [dbTeacherRooms, setDbTeacherRooms] = useState([]);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  // Unique departments for filter
+  const uniqueDepartments = useMemo(() => {
+    const depts = new Set();
+    (teachers || []).forEach(t => {
+      if (t.department) depts.add(t.department);
+    });
+    return Array.from(depts);
+  }, [teachers]);
+
+  // Filtered teachers list for Step 1
+  const filteredTeachers = useMemo(() => {
+    return (teachers || []).filter(t => {
+      if (deptFilter !== 'ALL' && t.department !== deptFilter) return false;
+      if (teacherSearch.trim()) {
+        const q = teacherSearch.trim().toLowerCase();
+        const mName = (t.name || '').toLowerCase().includes(q);
+        const mDept = (t.department || '').toLowerCase().includes(q);
+        const mLvl = (t.class_level || '').toLowerCase().includes(q);
+        return mName || mDept || mLvl;
+      }
+      return true;
+    });
+  }, [teachers, deptFilter, teacherSearch]);
 
   // Sibling rooms managed by the same teacher (Multi-room support with whitespace & title normalization)
   const teacherRooms = useMemo(() => {
@@ -4903,10 +4982,15 @@ function TeacherCheckinModal({
     }
   };
 
-  // Handle 5-Digit PIN Verification & Auto Room Identification
+  // Handle 5-Digit PIN Verification for Selected Teacher
   const handleVerifyPin = async (pinToTest) => {
     try {
       const pin = String(pinToTest !== undefined ? pinToTest : pinInput).trim();
+      if (!selectedTeacher) {
+        setPinError('กรุณาเลือกครูที่ปรึกษาก่อน');
+        setStep('select_teacher');
+        return;
+      }
       if (!pin || pin.length !== 5 || !/^\d{5}$/.test(pin)) {
         setPinError('กรุณากรอกรหัสประจำห้องให้ครบ 5 หลัก');
         return;
@@ -4915,51 +4999,54 @@ function TeacherCheckinModal({
       setIsVerifying(true);
       setPinError('');
       const targetHash = await hashPassword(pin);
+      const defaultPin = getDefaultTeacherPin(selectedTeacher, masterStudents);
+      const defaultHash = await hashPassword(defaultPin);
 
-      let matchedTeacher = null;
-
-      // 1. ค้นหาครูจาก Supabase โดยตรงที่มี pin_hash ตรงกับรหัส 5 หลักที่กรอก
+      let teacherPinHash = selectedTeacher.pin_hash;
       try {
-        const { data: dbTeachers, error: qErr } = await dbAssembly
+        const { data: dbTeacher, error: qErr } = await dbAssembly
           .from('teachers')
-          .select('id, name, department, class_level, phone, academic_year, semester')
-          .eq('pin_hash', targetHash);
-        if (!qErr && dbTeachers && dbTeachers.length > 0) {
-          if (initialTeacher && dbTeachers.some(t => t.id === initialTeacher.id)) {
-            matchedTeacher = initialTeacher;
-          } else {
-            matchedTeacher = dbTeachers[0];
-          }
+          .select('id, name, department, class_level, phone, academic_year, semester, pin_hash')
+          .eq('id', selectedTeacher.id)
+          .maybeSingle();
+        if (!qErr && dbTeacher && dbTeacher.pin_hash) {
+          teacherPinHash = dbTeacher.pin_hash;
         }
       } catch (dbEx) {
-        console.warn('Teacher query by pin_hash error:', dbEx);
+        console.warn('Teacher query by id error:', dbEx);
       }
 
-      // 2. ค้นหาจาก memory teachers prop (ถ้ามี pin_hash ติดมาด้วย)
-      if (!matchedTeacher && teachers && teachers.length > 0) {
-        matchedTeacher = teachers.find(t => t.pin_hash === targetHash);
-      }
+      // Check if PIN matches:
+      // 1. Matches customized hash in DB
+      // 2. Matches default PIN (or default hash) derived from curriculum code / student ID (e.g. 30105, 20201)
+      // 3. Or DB still had DEFAULT_PIN_HASH ('1234') or empty
+      const isMatch = (
+        (teacherPinHash && teacherPinHash === targetHash) ||
+        pin === defaultPin ||
+        targetHash === defaultHash ||
+        (!teacherPinHash && (pin === defaultPin || pin === '12345')) ||
+        (teacherPinHash === DEFAULT_PIN_HASH && (pin === '1234' || pin === '12345' || pin === defaultPin))
+      );
 
-      // 3. Fallback รหัสเริ่มต้น 12345 หรือตรงกับ DEFAULT_PIN_HASH
-      if (!matchedTeacher && (pin === '12345' || targetHash === DEFAULT_PIN_HASH)) {
-        if (initialTeacher) {
-          matchedTeacher = initialTeacher;
-        } else if (teachers && teachers.length > 0) {
-          matchedTeacher = teachers[0];
+      if (isMatch) {
+        // If DB had empty or old default hash, update to targetHash
+        if (!teacherPinHash || teacherPinHash === DEFAULT_PIN_HASH) {
+          try {
+            await dbAssembly.from('teachers').update({ pin_hash: targetHash }).eq('id', selectedTeacher.id);
+            selectedTeacher.pin_hash = targetHash;
+          } catch(e) {}
         }
-      }
 
-      if (matchedTeacher) {
-        // Query ALL rooms for this teacher from Supabase directly
+        // Query sibling rooms if teacher manages 2+ rooms
         try {
           const { data: allTeachers } = await dbAssembly
             .from('teachers')
             .select('id, name, department, class_level, phone, academic_year, semester, photo_url');
           if (allTeachers && allTeachers.length > 0) {
-            const targetNorm = normalizeTeacherName(matchedTeacher.name);
+            const targetNorm = normalizeTeacherName(selectedTeacher.name);
             const siblings = allTeachers.filter(t => normalizeTeacherName(t.name) === targetNorm);
-            if (!siblings.some(r => r.id === matchedTeacher.id)) {
-              siblings.unshift(matchedTeacher);
+            if (!siblings.some(r => r.id === selectedTeacher.id)) {
+              siblings.unshift(selectedTeacher);
             }
             setDbTeacherRooms(siblings);
           }
@@ -4967,13 +5054,13 @@ function TeacherCheckinModal({
           console.warn('Direct sibling rooms query fallback:', eRooms);
         }
 
-        setSelectedTeacher(matchedTeacher);
         setPinError('');
         setHasUnsavedChanges(false);
         setStep('checkin_sheet');
-        loadRoomStudents(matchedTeacher, checkDate);
+        loadRoomStudents(selectedTeacher, checkDate);
       } else {
-        setPinError('ไม่พบห้องเรียนที่ตรงกับรหัส 5 หลักนี้ กรุณาตรวจสอบอีกครั้ง');
+        setPinError(`รหัสประจำห้อง 5 หลักไม่ถูกต้อง (รหัสเริ่มต้นของห้องนี้คือ ${defaultPin})`);
+        setPinInput('');
       }
     } catch (err) {
       console.error('Verify PIN error:', err);
@@ -5202,7 +5289,7 @@ function TeacherCheckinModal({
                     }),
                     /*#__PURE__*/_jsx("p", {
                       className: "text-[11px] sm:text-xs text-emerald-100 font-medium truncate",
-                      children: selectedTeacher ? `${selectedTeacher.name} • ${selectedTeacher.class_level} แผนก${selectedTeacher.department}` : 'ระบุรหัสประจำห้อง 5 หลักเพื่อเริ่มเช็คชื่อ'
+                      children: selectedTeacher ? `${selectedTeacher.name} • ${selectedTeacher.class_level} แผนก${selectedTeacher.department}` : 'เลือกครูที่ปรึกษา / ห้องเรียนเพื่อเริ่มเช็คชื่อ'
                     })
                   ]
                 })
@@ -5229,24 +5316,200 @@ function TeacherCheckinModal({
           ]
         }),
 
-        // Direct 5-Digit Room PIN Entry (Keypad + Auto-Detect)
-        step === 'enter_pin' && /*#__PURE__*/_jsxs("div", {
-          className: "p-4 sm:p-8 overflow-y-auto custom-scroll flex-1 flex flex-col items-center justify-center space-y-4 sm:space-y-6 text-center max-w-md mx-auto w-full",
+        // STEP 1: Select Teacher / Room (Restored Workflow)
+        step === 'select_teacher' && /*#__PURE__*/_jsxs("div", {
+          className: "p-3.5 sm:p-6 overflow-y-auto custom-scroll flex-1 space-y-3 sm:space-y-4",
           children: [
             /*#__PURE__*/_jsxs("div", {
-              className: "space-y-1 sm:space-y-2",
+              className: "flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-slate-50 p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200",
               children: [
-                /*#__PURE__*/_jsx("div", {
-                  className: "w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto mb-1.5 sm:mb-2 shadow-inner",
-                  children: /*#__PURE__*/_jsx(Icon.Key, { className: "w-6 h-6 sm:w-8 sm:h-8 text-emerald-700" })
+                /*#__PURE__*/_jsxs("div", {
+                  children: [
+                    /*#__PURE__*/_jsx("h3", {
+                      className: "text-base sm:text-lg font-black text-slate-900 tracking-tight",
+                      children: "เลือกครูที่ปรึกษา / ห้องเรียน"
+                    }),
+                    /*#__PURE__*/_jsx("p", {
+                      className: "text-xs text-slate-500",
+                      children: "แตะที่ชื่อของท่านเพื่อใส่รหัสประจำห้อง 5 หลักเข้าสู่ระบบเช็คชื่อ"
+                    })
+                  ]
                 }),
+                /*#__PURE__*/_jsxs("div", {
+                  className: "flex items-center gap-2 flex-wrap sm:flex-nowrap",
+                  children: [
+                    /*#__PURE__*/_jsxs("div", {
+                      className: "relative flex-1 sm:w-56",
+                      children: [
+                        /*#__PURE__*/_jsx(Icon.Search, { className: "w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" }),
+                        /*#__PURE__*/_jsx("input", {
+                          type: "text",
+                          value: teacherSearch,
+                          onChange: (e) => setTeacherSearch(e.target.value),
+                          placeholder: "ค้นหาชื่อ / แผนก / ชั้น...",
+                          className: "w-full pl-9 pr-7 py-1.5 sm:py-2 text-xs sm:text-sm bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                        }),
+                        teacherSearch && /*#__PURE__*/_jsx("button", {
+                          type: "button",
+                          onClick: () => setTeacherSearch(''),
+                          className: "absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold w-4 h-4 rounded-full flex items-center justify-center",
+                          children: "✕"
+                        })
+                      ]
+                    }),
+                    uniqueDepartments.length > 1 && /*#__PURE__*/_jsxs("select", {
+                      value: deptFilter,
+                      onChange: (e) => setDeptFilter(e.target.value),
+                      className: "py-1.5 sm:py-2 px-2.5 text-xs sm:text-sm bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none font-medium text-slate-700 cursor-pointer",
+                      children: [
+                        /*#__PURE__*/_jsx("option", { value: "ALL", children: "ทุกแผนกวิชา" }),
+                        uniqueDepartments.map(d => /*#__PURE__*/_jsx("option", { key: d, value: d, children: formatDeptDisplay(d) }, d))
+                      ]
+                    })
+                  ]
+                })
+              ]
+            }),
+
+            /*#__PURE__*/_jsx("div", {
+              className: "grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3",
+              children: filteredTeachers.length === 0 ? /*#__PURE__*/_jsxs("div", {
+                className: "col-span-1 sm:col-span-2 p-8 bg-slate-50 rounded-2xl border border-dashed border-slate-300 text-center text-slate-400 space-y-2",
+                children: [
+                  /*#__PURE__*/_jsx(Icon.Users, { className: "w-8 h-8 mx-auto text-slate-300" }),
+                  /*#__PURE__*/_jsx("p", { className: "text-sm font-bold text-slate-700", children: "ไม่พบข้อมูลครูที่ปรึกษาที่ตรงกับเงื่อนไขค้นหา" }),
+                  /*#__PURE__*/_jsx("button", {
+                    type: "button",
+                    onClick: () => { setTeacherSearch(''); setDeptFilter('ALL'); },
+                    className: "text-xs font-bold text-emerald-600 hover:underline cursor-pointer",
+                    children: "ล้างตัวกรองทั้งหมด"
+                  })
+                ]
+              }) : filteredTeachers.map(t => {
+                const photoSrc = t.photo_url || teacherPhotosMap?.[t.id] || teacherPhotosMap?.[t.name];
+                return /*#__PURE__*/_jsxs("button", {
+                  key: t.id,
+                  type: "button",
+                  onClick: () => {
+                    setSelectedTeacher(t);
+                    setPinInput('');
+                    setPinError('');
+                    setStep('enter_pin');
+                  },
+                  className: "p-3 sm:p-4 bg-white hover:bg-emerald-50/80 active:bg-emerald-100 hover:border-emerald-500 border border-slate-200 rounded-xl sm:rounded-2xl text-left transition-all cursor-pointer flex items-center gap-3 group active:scale-[0.99] shadow-xs",
+                  children: [
+                    /*#__PURE__*/_jsx("div", {
+                      className: "w-11 h-11 sm:w-13 sm:h-13 rounded-xl bg-emerald-100 border border-emerald-200 text-emerald-800 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-xs",
+                      children: photoSrc ? (
+                        /*#__PURE__*/_jsx("img", {
+                          src: photoSrc,
+                          alt: t.name,
+                          className: "w-full h-full object-cover"
+                        })
+                      ) : (
+                        /*#__PURE__*/_jsx(Icon.Users, { className: "w-5 h-5 sm:w-6 sm:h-6 text-emerald-700" })
+                      )
+                    }),
+                    /*#__PURE__*/_jsxs("div", {
+                      className: "min-w-0 flex-1",
+                      children: [
+                        /*#__PURE__*/_jsx("div", {
+                          className: "text-sm sm:text-base font-black text-slate-900 group-hover:text-emerald-950 truncate",
+                          children: t.name
+                        }),
+                        /*#__PURE__*/_jsxs("div", {
+                          className: "flex items-center gap-1.5 mt-0.5 flex-wrap",
+                          children: [
+                            /*#__PURE__*/_jsx("span", {
+                              className: "font-bold bg-emerald-100 text-emerald-800 text-[11px] sm:text-xs px-2 py-0.5 rounded-md border border-emerald-200",
+                              children: t.class_level
+                            }),
+                            /*#__PURE__*/_jsx("span", {
+                              className: "text-xs font-semibold text-slate-600 truncate",
+                              children: formatDeptDisplay(t.department)
+                            })
+                          ]
+                        })
+                      ]
+                    }),
+                    /*#__PURE__*/_jsx("div", {
+                      className: "text-slate-300 group-hover:text-emerald-600 text-base font-bold pr-1",
+                      children: /*#__PURE__*/_jsx(Icon.ArrowRight, { className: "w-4 h-4 text-slate-300 group-hover:text-emerald-600 transition-transform group-hover:translate-x-1" })
+                    })
+                  ]
+                });
+              })
+            })
+          ]
+        }),
+
+        // STEP 2: 5-Digit PIN Entry for Selected Teacher
+        step === 'enter_pin' && /*#__PURE__*/_jsxs("div", {
+          className: "p-4 sm:p-7 overflow-y-auto custom-scroll flex-1 flex flex-col items-center justify-center space-y-3.5 sm:space-y-4 text-center max-w-md mx-auto w-full",
+          children: [
+            /*#__PURE__*/_jsxs("div", {
+              className: "w-full bg-emerald-50 border border-emerald-200 rounded-2xl p-3 sm:p-3.5 flex items-center justify-between gap-3 text-left shadow-2xs",
+              children: [
+                /*#__PURE__*/_jsxs("div", {
+                  className: "flex items-center gap-3 min-w-0",
+                  children: [
+                    /*#__PURE__*/_jsx("div", {
+                      className: "w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-white border border-emerald-200 text-emerald-800 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-2xs",
+                      children: (selectedTeacher?.photo_url || teacherPhotosMap?.[selectedTeacher?.id] || teacherPhotosMap?.[selectedTeacher?.name]) ? (
+                        /*#__PURE__*/_jsx("img", {
+                          src: selectedTeacher?.photo_url || teacherPhotosMap[selectedTeacher?.id] || teacherPhotosMap[selectedTeacher?.name],
+                          alt: selectedTeacher?.name,
+                          className: "w-full h-full object-cover"
+                        })
+                      ) : (
+                        /*#__PURE__*/_jsx(Icon.Users, { className: "w-6 h-6 text-emerald-700" })
+                      )
+                    }),
+                    /*#__PURE__*/_jsxs("div", {
+                      className: "min-w-0",
+                      children: [
+                        /*#__PURE__*/_jsx("div", {
+                          className: "text-sm sm:text-base font-black text-emerald-950 truncate",
+                          children: selectedTeacher?.name || 'ครูที่ปรึกษา'
+                        }),
+                        /*#__PURE__*/_jsxs("div", {
+                          className: "text-xs font-semibold text-emerald-800 truncate mt-0.5",
+                          children: ["ห้อง ", selectedTeacher?.class_level, " แผนก", formatDeptDisplay(selectedTeacher?.department)]
+                        })
+                      ]
+                    })
+                  ]
+                }),
+                /*#__PURE__*/_jsx("button", {
+                  type: "button",
+                  onClick: () => {
+                    setSelectedTeacher(null);
+                    setStep('select_teacher');
+                    setPinInput('');
+                    setPinError('');
+                  },
+                  className: "text-xs font-bold text-emerald-700 hover:text-emerald-900 bg-white/80 hover:bg-white px-2.5 py-1.5 rounded-lg border border-emerald-200 flex-shrink-0 cursor-pointer shadow-2xs transition-colors",
+                  children: "เปลี่ยนครู"
+                })
+              ]
+            }),
+
+            /*#__PURE__*/_jsxs("div", {
+              className: "space-y-1",
+              children: [
                 /*#__PURE__*/_jsx("h3", {
-                  className: "text-xl sm:text-3xl font-black text-slate-900 tracking-tight",
+                  className: "text-lg sm:text-2xl font-black text-slate-900 tracking-tight",
                   children: "ระบุรหัสประจำห้อง 5 หลัก"
                 }),
-                /*#__PURE__*/_jsx("p", {
-                  className: "text-xs sm:text-base text-slate-500 font-medium",
-                  children: "กดรหัสตัวเลข 5 หลักประจำแผนกและชั้นปีเพื่อเข้าสู่ระบบเช็คชื่อ"
+                /*#__PURE__*/_jsxs("p", {
+                  className: "text-xs sm:text-sm text-slate-600 font-medium",
+                  children: [
+                    "รหัสเริ่มต้นคือรหัสหลักสูตรประจำห้อง เช่น ",
+                    /*#__PURE__*/_jsx("span", {
+                      className: "font-black text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-md",
+                      children: selectedTeacher ? getDefaultTeacherPin(selectedTeacher, masterStudents) : '30105'
+                    })
+                  ]
                 })
               ]
             }),
@@ -5254,14 +5517,9 @@ function TeacherCheckinModal({
             /*#__PURE__*/_jsx("div", {
               className: "flex justify-center gap-2 sm:gap-3.5 my-0.5 sm:my-1",
               children: [0, 1, 2, 3, 4].map(i => /*#__PURE__*/_jsx("div", {
-                className: `w-11 h-14 sm:w-14 sm:h-18 rounded-xl sm:rounded-2xl border-2 flex items-center justify-center text-2xl sm:text-3xl font-black transition-all ${pinInput.length > i ? 'bg-emerald-50 border-emerald-500 text-emerald-800 shadow-sm' : pinInput.length === i ? 'bg-white border-emerald-400 ring-2 ring-emerald-200 text-slate-400' : 'bg-slate-50 border-slate-300 text-slate-300'}`,
+                className: `w-11 h-13 sm:w-13 sm:h-16 rounded-xl sm:rounded-2xl border-2 flex items-center justify-center text-2xl sm:text-3xl font-black transition-all ${pinInput.length > i ? 'bg-emerald-50 border-emerald-500 text-emerald-800 shadow-sm' : pinInput.length === i ? 'bg-white border-emerald-400 ring-2 ring-emerald-200 text-slate-400' : 'bg-slate-50 border-slate-300 text-slate-300'}`,
                 children: pinInput[i] || '—'
               }, i))
-            }),
-
-            /*#__PURE__*/_jsx("p", {
-              className: "text-[11px] sm:text-xs text-slate-400 font-medium",
-              children: "กดตัวเลข 5 หลักบนหน้าจอ หรือพิมพ์จากแป้นพิมพ์ (ค้นหาห้องเรียนอัตโนมัติ)"
             }),
 
             pinError && /*#__PURE__*/_jsx("div", {
@@ -5270,35 +5528,51 @@ function TeacherCheckinModal({
             }),
 
             /*#__PURE__*/_jsx("div", {
-              className: "w-full max-w-[280px] grid grid-cols-3 gap-2 sm:gap-3 pt-0.5 sm:pt-1",
+              className: "w-full max-w-[280px] grid grid-cols-3 gap-2 sm:gap-2.5 pt-0.5",
               children: [1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => /*#__PURE__*/_jsx("button", {
+                type: "button",
                 onClick: () => handleKeypadPress(String(num)),
                 disabled: isVerifying,
-                className: "h-13 sm:h-16 bg-slate-100 hover:bg-slate-200 active:bg-emerald-100 text-slate-900 text-xl sm:text-2xl font-bold rounded-xl sm:rounded-2xl cursor-pointer shadow-xs active:scale-95 transition-all flex items-center justify-center disabled:opacity-50 select-none",
+                className: "h-12 sm:h-14 bg-slate-100 hover:bg-slate-200 active:bg-emerald-100 text-slate-900 text-xl sm:text-2xl font-bold rounded-xl sm:rounded-2xl cursor-pointer shadow-xs active:scale-95 transition-all flex items-center justify-center disabled:opacity-50 select-none",
                 children: num
               }, num)).concat([
                 /*#__PURE__*/_jsx("button", {
                   key: "del",
+                  type: "button",
                   onClick: handleKeypadDelete,
                   disabled: isVerifying,
-                  className: "h-13 sm:h-16 bg-rose-50 hover:bg-rose-100 text-rose-700 text-sm sm:text-base font-bold rounded-xl sm:rounded-2xl cursor-pointer shadow-xs active:scale-95 transition-all flex items-center justify-center disabled:opacity-50 select-none",
+                  className: "h-12 sm:h-14 bg-rose-50 hover:bg-rose-100 text-rose-700 text-sm sm:text-base font-bold rounded-xl sm:rounded-2xl cursor-pointer shadow-xs active:scale-95 transition-all flex items-center justify-center disabled:opacity-50 select-none",
                   children: "⌫ ลบ"
                 }),
                 /*#__PURE__*/_jsx("button", {
                   key: "0",
+                  type: "button",
                   onClick: () => handleKeypadPress('0'),
                   disabled: isVerifying,
-                  className: "h-13 sm:h-16 bg-slate-100 hover:bg-slate-200 text-slate-900 text-xl sm:text-2xl font-bold rounded-xl sm:rounded-2xl cursor-pointer shadow-xs active:scale-95 transition-all flex items-center justify-center disabled:opacity-50 select-none",
+                  className: "h-12 sm:h-14 bg-slate-100 hover:bg-slate-200 text-slate-900 text-xl sm:text-2xl font-bold rounded-xl sm:rounded-2xl cursor-pointer shadow-xs active:scale-95 transition-all flex items-center justify-center disabled:opacity-50 select-none",
                   children: "0"
                 }),
                 /*#__PURE__*/_jsx("button", {
                   key: "ok",
+                  type: "button",
                   onClick: () => handleVerifyPin(),
                   disabled: isVerifying,
-                  className: "h-13 sm:h-16 bg-emerald-600 hover:bg-emerald-700 text-white text-sm sm:text-base font-bold rounded-xl sm:rounded-2xl cursor-pointer shadow-xs active:scale-95 transition-all flex items-center justify-center disabled:opacity-50 select-none",
+                  className: "h-12 sm:h-14 bg-emerald-600 hover:bg-emerald-700 text-white text-sm sm:text-base font-bold rounded-xl sm:rounded-2xl cursor-pointer shadow-xs active:scale-95 transition-all flex items-center justify-center disabled:opacity-50 select-none",
                   children: isVerifying ? /*#__PURE__*/_jsx(Icon.Spin, { className: "w-5 h-5 text-white" }) : "ตกลง"
                 })
               ])
+            }),
+
+            /*#__PURE__*/_jsx("button", {
+              type: "button",
+              onClick: () => {
+                setSelectedTeacher(null);
+                setStep('select_teacher');
+                setPinInput('');
+                setPinError('');
+              },
+              className: "text-xs sm:text-sm text-slate-500 hover:text-emerald-700 font-bold cursor-pointer underline flex items-center gap-1 pt-1",
+              children: "⬅ กลับไปเลือกครู / ห้องเรียนอื่น"
             })
           ]
         }),
@@ -5363,18 +5637,29 @@ function TeacherCheckinModal({
                             })
                           ]
                         }),
-                        /*#__PURE__*/_jsx("div", {
-                          className: "flex items-center gap-2 flex-shrink-0 self-end sm:self-auto",
+                        /*#__PURE__*/_jsxs("div", {
+                          className: "flex items-center gap-1.5 sm:gap-2 flex-shrink-0 self-end sm:self-auto",
                           children: [
                             /*#__PURE__*/_jsxs("button", {
+                              type: "button",
                               onClick: () => {
-                                setStep('enter_pin');
+                                if (hasUnsavedChanges) {
+                                  const confirmLeave = confirm('คุณมีข้อมูลการเช็คชื่อที่ยังไม่ได้กดบันทึก\nต้องการเปลี่ยนไปเลือกห้องเรียนหรือครูท่านอื่นหรือไม่?');
+                                  if (!confirmLeave) return;
+                                }
+                                setStep('select_teacher');
                                 setPinInput('');
                                 setPinError('');
                                 setSelectedTeacher(null);
                               },
-                              className: "px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs sm:text-sm font-bold border border-white/25 cursor-pointer shadow-xs transition-colors",
-                              children: [/*#__PURE__*/_jsx(Icon.Refresh, { className: "w-3.5 h-3.5 inline mr-1" }), "เปลี่ยนรหัสห้อง"]
+                              className: "px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-[11px] sm:text-xs font-bold border border-white/25 cursor-pointer shadow-xs transition-colors flex items-center gap-1",
+                              children: [/*#__PURE__*/_jsx(Icon.Users, { className: "w-3.5 h-3.5" }), "เลือกห้อง/ครูอื่น"]
+                            }),
+                            /*#__PURE__*/_jsxs("button", {
+                              type: "button",
+                              onClick: () => setIsChangePinOpen(true),
+                              className: "px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-[11px] sm:text-xs font-bold border border-white/25 cursor-pointer shadow-xs transition-colors flex items-center gap-1",
+                              children: [/*#__PURE__*/_jsx(Icon.Key, { className: "w-3.5 h-3.5" }), "เปลี่ยน PIN"]
                             })
                           ]
                         })
@@ -5719,6 +6004,220 @@ function TeacherCheckinModal({
           ]
         }),
 
+        isChangePinOpen && selectedTeacher && /*#__PURE__*/_jsx(ChangePinModal, {
+          teacher: selectedTeacher,
+          defaultPin: getDefaultTeacherPin(selectedTeacher, masterStudents),
+          onClose: () => setIsChangePinOpen(false),
+          onSuccess: (newHash) => {
+            selectedTeacher.pin_hash = newHash;
+            setIsChangePinOpen(false);
+            alert(`เปลี่ยนรหัส PIN ประจำห้อง ${selectedTeacher.class_level} เรียบร้อยแล้ว`);
+          }
+        })
+
+      ]
+    })
+  });
+}
+
+// ==========================================
+// MODAL: เปลี่ยนรหัส PIN ครูที่ปรึกษา (5 หลัก)
+// ==========================================
+function ChangePinModal({ teacher, defaultPin, onClose, onSuccess }) {
+  const [oldPin, setOldPin] = useState('');
+  const [newPin, setNewPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
+  const [err, setErr] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSavePin = async () => {
+    setErr('');
+    const cleanNew = String(newPin).trim();
+    const cleanConfirm = String(confirmPin).trim();
+    const cleanOld = String(oldPin).trim();
+
+    if (!cleanOld) {
+      setErr(`กรุณากรอกรหัส PIN เดิม (รหัสเริ่มต้นของห้องนี้คือ ${defaultPin})`);
+      return;
+    }
+    if (!/^\d{5}$/.test(cleanNew)) {
+      setErr('รหัสผ่านใหม่ต้องเป็นตัวเลข 5 หลัก');
+      return;
+    }
+    if (cleanNew !== cleanConfirm) {
+      setErr('รหัสผ่านใหม่และยืนยันรหัสผ่านไม่ตรงกัน');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // 1. ตรวจสอบรหัส PIN เดิม
+      const oldHash = await hashPassword(cleanOld);
+      let teacherPinHash = teacher.pin_hash;
+      try {
+        const { data: dbT } = await dbAssembly.from('teachers').select('pin_hash').eq('id', teacher.id).maybeSingle();
+        if (dbT && dbT.pin_hash) teacherPinHash = dbT.pin_hash;
+      } catch (e) {}
+
+      const defaultHash = await hashPassword(defaultPin);
+      const isOldMatch = (
+        (teacherPinHash && teacherPinHash === oldHash) ||
+        cleanOld === defaultPin ||
+        oldHash === defaultHash ||
+        (!teacherPinHash && (cleanOld === defaultPin || cleanOld === '12345' || cleanOld === '1234')) ||
+        (teacherPinHash === DEFAULT_PIN_HASH && (cleanOld === '1234' || cleanOld === '12345' || cleanOld === defaultPin))
+      );
+
+      if (!isOldMatch) {
+        setErr(`รหัส PIN เดิมไม่ถูกต้อง (รหัสเริ่มต้นของห้องนี้คือ ${defaultPin})`);
+        setLoading(false);
+        return;
+      }
+
+      // 2. Hash รหัสผ่านใหม่และบันทึกลง Supabase (อัปเดตทุกห้องที่ครูท่านนี้ดูแล)
+      const newHash = await hashPassword(cleanNew);
+      try {
+        const targetNorm = normalizeTeacherName(teacher.name);
+        const { data: allTeachers } = await dbAssembly.from('teachers').select('id, name');
+        const siblingIds = (allTeachers || [])
+          .filter(t => normalizeTeacherName(t.name) === targetNorm)
+          .map(t => t.id);
+
+        if (siblingIds.length > 0) {
+          await dbAssembly.from('teachers').update({ pin_hash: newHash }).in('id', siblingIds);
+        } else {
+          await dbAssembly.from('teachers').update({ pin_hash: newHash }).eq('id', teacher.id);
+        }
+      } catch (updErr) {
+        console.warn('Direct update error, fallback single room:', updErr);
+        await dbAssembly.from('teachers').update({ pin_hash: newHash }).eq('id', teacher.id);
+      }
+
+      onSuccess(newHash);
+    } catch (e) {
+      setErr('เกิดข้อผิดพลาดในการเปลี่ยนรหัส: ' + e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return /*#__PURE__*/_jsx("div", {
+    className: "fixed inset-0 z-60 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4",
+    onClick: onClose,
+    children: /*#__PURE__*/_jsxs("div", {
+      className: "bg-white border border-slate-200 rounded-2xl sm:rounded-3xl p-4 sm:p-6 max-w-sm w-full shadow-2xl space-y-3.5 sm:space-y-4",
+      onClick: e => e.stopPropagation(),
+      children: [
+        /*#__PURE__*/_jsxs("div", {
+          className: "flex justify-between items-center pb-2.5 sm:pb-3 border-b border-slate-100",
+          children: [
+            /*#__PURE__*/_jsxs("div", {
+              children: [
+                /*#__PURE__*/_jsx("h4", {
+                  className: "text-base sm:text-lg font-black text-slate-900",
+                  children: "เปลี่ยนรหัส PIN ประจำห้อง (5 หลัก)"
+                }),
+                /*#__PURE__*/_jsxs("p", {
+                  className: "text-xs text-slate-500 font-medium",
+                  children: [teacher.name, " (ห้อง ", teacher.class_level, ")"]
+                })
+              ]
+            }),
+            /*#__PURE__*/_jsx("button", {
+              type: "button",
+              onClick: onClose,
+              className: "w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 cursor-pointer transition-colors",
+              children: /*#__PURE__*/_jsx(Icon.Close, { className: "w-3.5 h-3.5 sm:w-4 sm:h-4" })
+            })
+          ]
+        }),
+
+        err && /*#__PURE__*/_jsx("div", {
+          className: "text-xs text-rose-600 font-bold bg-rose-50 p-2.5 rounded-xl border border-rose-200",
+          children: err
+        }),
+
+        /*#__PURE__*/_jsxs("div", {
+          className: "space-y-2.5 sm:space-y-3",
+          children: [
+            /*#__PURE__*/_jsxs("div", {
+              children: [
+                /*#__PURE__*/_jsxs("div", {
+                  className: "flex justify-between items-center mb-1",
+                  children: [
+                    /*#__PURE__*/_jsx("label", {
+                      className: "text-xs font-bold text-slate-700",
+                      children: "รหัส PIN เดิม"
+                    }),
+                    /*#__PURE__*/_jsxs("span", {
+                      className: "text-[11px] text-slate-400 font-medium",
+                      children: ["รหัสเริ่มต้น: ", defaultPin]
+                    })
+                  ]
+                }),
+                /*#__PURE__*/_jsx("input", {
+                  type: "password",
+                  maxLength: 5,
+                  value: oldPin,
+                  onChange: e => setOldPin(e.target.value.replace(/\D/g, '')),
+                  placeholder: `เช่น ${defaultPin}`,
+                  className: "w-full px-3 py-1.5 sm:py-2 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none font-mono text-center tracking-widest text-base sm:text-lg font-bold"
+                })
+              ]
+            }),
+            /*#__PURE__*/_jsxs("div", {
+              children: [
+                /*#__PURE__*/_jsx("label", {
+                  className: "block text-xs font-bold text-slate-700 mb-1",
+                  children: "รหัส PIN ใหม่ (ตัวเลข 5 หลัก)"
+                }),
+                /*#__PURE__*/_jsx("input", {
+                  type: "password",
+                  maxLength: 5,
+                  value: newPin,
+                  onChange: e => setNewPin(e.target.value.replace(/\D/g, '')),
+                  placeholder: "ตัวเลข 5 หลัก",
+                  className: "w-full px-3 py-1.5 sm:py-2 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none font-mono text-center tracking-widest text-base sm:text-lg font-bold"
+                })
+              ]
+            }),
+            /*#__PURE__*/_jsxs("div", {
+              children: [
+                /*#__PURE__*/_jsx("label", {
+                  className: "block text-xs font-bold text-slate-700 mb-1",
+                  children: "ยืนยันรหัส PIN ใหม่"
+                }),
+                /*#__PURE__*/_jsx("input", {
+                  type: "password",
+                  maxLength: 5,
+                  value: confirmPin,
+                  onChange: e => setConfirmPin(e.target.value.replace(/\D/g, '')),
+                  placeholder: "พิมพ์ซ้ำอีกครั้ง",
+                  className: "w-full px-3 py-1.5 sm:py-2 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none font-mono text-center tracking-widest text-base sm:text-lg font-bold"
+                })
+              ]
+            })
+          ]
+        }),
+
+        /*#__PURE__*/_jsxs("div", {
+          className: "pt-1 sm:pt-2 flex gap-2",
+          children: [
+            /*#__PURE__*/_jsx("button", {
+              type: "button",
+              onClick: onClose,
+              className: "flex-1 py-2 sm:py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs sm:text-sm cursor-pointer transition-colors",
+              children: "ยกเลิก"
+            }),
+            /*#__PURE__*/_jsx("button", {
+              type: "button",
+              onClick: handleSavePin,
+              disabled: loading,
+              className: "flex-1 py-2 sm:py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm cursor-pointer shadow-md disabled:opacity-50 transition-colors flex items-center justify-center gap-1",
+              children: loading ? [/*#__PURE__*/_jsx(Icon.Spin, { className: "w-4 h-4 inline mr-1" }), "กำลังบันทึก..."] : "บันทึกรหัสใหม่"
+            })
+          ]
+        })
       ]
     })
   });
