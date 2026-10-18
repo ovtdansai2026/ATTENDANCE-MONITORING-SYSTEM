@@ -7834,15 +7834,6 @@ function AdminPanelModal({
           return alert('รหัสประจำห้องต้องเป็นตัวเลข 5 หลักเท่านั้น (เช่น 10101)');
         }
         pinHash = await hashPassword(cleanPin);
-        const { data: dup } = await dbAssembly.from('teachers').select('id, name, department, class_level').eq('pin_hash', pinHash);
-        if (dup && dup.length > 0) {
-          const currentClean = normalizeTeacherName(newTeacherName);
-          const isDifferentPerson = dup.some(d => normalizeTeacherName(d.name) !== currentClean);
-          if (isDifferentPerson) {
-            setSavingTeacher(false);
-            return alert(`รหัส "${cleanPin}" นี้ซ้ำกับ ${dup[0].name} (${dup[0].class_level} แผนก${dup[0].department})\nกรุณาใช้รหัสอื่นที่ไม่ซ้ำกัน`);
-          }
-        }
       }
       const newRec = {
         name: newTeacherName.trim(),
@@ -7870,7 +7861,7 @@ function AdminPanelModal({
   };
 
   const handleSetTeacherPin = async (teacherId, teacherName, currentDept, currentLevel) => {
-    const inputPin = prompt(`กรุณาระบุรหัสประจำห้อง 5 หลักสำหรับ "${teacherName}"\n(${currentLevel} แผนก${currentDept}):\n\n(ระบุเป็นตัวเลข 5 หลัก เช่น 10101, 10201 ห้ามซ้ำกับครูท่านอื่น)`);
+    const inputPin = prompt(`กรุณาระบุรหัสประจำห้อง 5 หลักสำหรับ "${teacherName}"\n(${currentLevel} แผนก${currentDept}):\n\n(ระบุเป็นตัวเลข 5 หลัก เช่น 10101, 30105 หรือรหัสที่ต้องการ สามารถใช้รหัสซ้ำกันได้)`);
     if (inputPin === null) return;
     const cleanPin = inputPin.trim();
     if (!cleanPin || cleanPin.length !== 5 || !/^\d{5}$/.test(cleanPin)) {
@@ -7879,18 +7870,6 @@ function AdminPanelModal({
     }
     try {
       const newHash = await hashPassword(cleanPin);
-      const { data: duplicate } = await dbAssembly.from('teachers')
-        .select('id, name, department, class_level')
-        .eq('pin_hash', newHash)
-        .neq('id', teacherId);
-      if (duplicate && duplicate.length > 0) {
-        const currentClean = normalizeTeacherName(teacherName);
-        const isDifferentPerson = duplicate.some(d => normalizeTeacherName(d.name) !== currentClean);
-        if (isDifferentPerson) {
-          alert(`รหัส "${cleanPin}" นี้ซ้ำกับ ${duplicate[0].name} (${duplicate[0].class_level} แผนก${duplicate[0].department})\nกรุณาใช้รหัสอื่นที่ไม่ซ้ำกัน`);
-          return;
-        }
-      }
 
       // Sync PIN to all rooms managed by the same teacher
       const currentClean = normalizeTeacherName(teacherName);
