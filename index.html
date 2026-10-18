@@ -333,10 +333,13 @@ function calculateSchoolDaysStats(startDateStr, endDateStr, specialHolidays = []
     cur.setDate(cur.getDate() + 1);
   }
 
+  const isNotStarted = today < start;
+
   return {
-    elapsedDays: Math.max(1, elapsed),
+    elapsedDays: isNotStarted ? 0 : Math.max(1, elapsed),
     totalTermDays: Math.max(1, totalTerm),
     isAuto: true,
+    isNotStarted,
     todayStr
   };
 }
@@ -669,10 +672,11 @@ function App() {
       const mapped = termStudents.map(s => {
         const rawPresent = parseInt(s.present_days, 10) || 0;
         const rawTotal = parseInt(s.total_days, 10) || 0;
-        const total = effectiveDays;
-        const present = Math.min(total, rawPresent);
+        const isTermNotStarted = Boolean(daysStats.isNotStarted) || (rawTotal === 0 && rawPresent === 0 && String(activeSem) === '2');
+        const total = isTermNotStarted ? 0 : effectiveDays;
+        const present = isTermNotStarted ? 0 : Math.min(total, rawPresent);
         const isGraduated = s.pure_level === 'สำเร็จการศึกษา';
-        const pct = isGraduated ? 100 : (total > 0 ? Math.min(100, Math.round((present / total) * 100)) : 0);
+        const pct = (isGraduated || isTermNotStarted) ? 100 : (total > 0 ? Math.min(100, Math.round((present / total) * 100)) : 100);
         return {
           id: s.id,
           student_id: s.student_id,
@@ -687,6 +691,7 @@ function App() {
           rawTotal,
           percent: pct,
           isGraduated,
+          isNotStarted: isTermNotStarted,
           _inherited: s._inherited || false
         };
       });
@@ -1487,23 +1492,29 @@ function App() {
               /*#__PURE__*/_jsx("div", {
                 className: "md:hidden space-y-2.5",
                 children: filteredStudents.map((s, idx) => {
-                  const isRisk = !s.isGraduated && s.percent < 80;
+                  const isRisk = !s.isGraduated && !s.isNotStarted && s.percent < 80;
                   const badgeColor = s.isGraduated 
                     ? 'text-indigo-700 bg-indigo-50 border-indigo-200' 
+                    : s.isNotStarted
+                    ? 'text-sky-700 bg-sky-50 border-sky-200'
                     : isRisk 
                     ? 'text-rose-700 bg-rose-50 border-rose-200' 
                     : 'text-emerald-700 bg-emerald-50 border-emerald-200';
                   const barColor = s.isGraduated 
                     ? 'bg-indigo-400' 
+                    : s.isNotStarted
+                    ? 'bg-sky-400'
                     : isRisk 
                     ? 'bg-rose-500' 
                     : 'bg-emerald-500';
                   const statText = s.isGraduated 
                     ? 'สำเร็จการศึกษา' 
+                    : s.isNotStarted
+                    ? 'รอเปิดภาคเรียน'
                     : isAssembly 
                     ? `${s.present}/${s.total} วัน` 
                     : `${s.present}/${s.total} งาน`;
-                  const badgeLabel = s.isGraduated ? 'จบแล้ว' : `${s.percent}%`;
+                  const badgeLabel = s.isGraduated ? 'จบแล้ว' : s.isNotStarted ? 'รอเริ่มเรียน' : `${s.percent}%`;
                   return /*#__PURE__*/_jsxs("div", {
                     className: "bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3",
                     children: [
@@ -1615,23 +1626,29 @@ function App() {
                     /*#__PURE__*/_jsx("tbody", {
                       className: "divide-y divide-slate-100",
                       children: filteredStudents.map((s, idx) => {
-                        const isRisk = !s.isGraduated && s.percent < 80;
+                        const isRisk = !s.isGraduated && !s.isNotStarted && s.percent < 80;
                         const badgeColor = s.isGraduated 
                           ? 'text-indigo-700 bg-indigo-50 border-indigo-200' 
+                          : s.isNotStarted
+                          ? 'text-sky-700 bg-sky-50 border-sky-200'
                           : isRisk 
                           ? 'text-rose-700 bg-rose-50 border-rose-200' 
                           : 'text-emerald-700 bg-emerald-50 border-emerald-200';
                         const barColor = s.isGraduated 
                           ? 'bg-indigo-400' 
+                          : s.isNotStarted
+                          ? 'bg-sky-400'
                           : isRisk 
                           ? 'bg-rose-500' 
                           : 'bg-emerald-500';
                         const statText = s.isGraduated 
                           ? 'สำเร็จการศึกษา' 
+                          : s.isNotStarted
+                          ? 'รอเปิดภาคเรียน'
                           : isAssembly 
                           ? `${s.present}/${s.total} วัน` 
                           : `${s.present}/${s.total} งาน`;
-                        const badgeLabel = s.isGraduated ? 'จบแล้ว' : `${s.percent}%`;
+                        const badgeLabel = s.isGraduated ? 'จบแล้ว' : s.isNotStarted ? 'รอเริ่มเรียน' : `${s.percent}%`;
                         return /*#__PURE__*/_jsxs("tr", {
                           className: "hover:bg-slate-50/80 transition-colors",
                           children: [
@@ -1680,17 +1697,23 @@ function App() {
                               children: isAssembly ? /*#__PURE__*/_jsxs("div", {
                                 children: [
                                   /*#__PURE__*/_jsx("div", { className: "truncate max-w-[200px] mx-auto font-medium text-slate-700", children: s.teacher || '-' }),
-                                  isAdminLoggedIn && (s.rawTotal >= 65 ? /*#__PURE__*/_jsxs("div", {
+                                  isAdminLoggedIn && (s.rawTotal === 0 ? /*#__PURE__*/_jsx("div", {
+                                    className: "mt-0.5",
+                                    children: /*#__PURE__*/_jsx("span", {
+                                      className: "inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-medium bg-slate-100 text-slate-500 border border-slate-200",
+                                      children: "ยังไม่มีการเช็คชื่อ"
+                                    })
+                                  }) : s.rawTotal >= (s.totalTermDays || 65) ? /*#__PURE__*/_jsxs("div", {
                                     className: "mt-0.5",
                                     children: /*#__PURE__*/_jsxs("span", {
                                       className: "inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200",
-                                      children: [/*#__PURE__*/_jsx(Icon.CheckSimple, { className: "w-3 h-3 inline mr-0.5 text-emerald-600" }), "ครูเช็คครบ (", s.rawTotal, "/65 วัน)"]
+                                      children: [/*#__PURE__*/_jsx(Icon.CheckSimple, { className: "w-3 h-3 inline mr-0.5 text-emerald-600" }), "ครูเช็คครบ (", s.rawTotal, "/", (s.totalTermDays || 65), " วัน)"]
                                     })
                                   }) : /*#__PURE__*/_jsx("div", {
                                     className: "mt-0.5",
                                     children: /*#__PURE__*/_jsxs("span", {
                                       className: "inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200",
-                                      children: ["⏳ ครูเช็คถึง ", s.rawTotal, "/65 วัน"]
+                                      children: ["⏳ ครูเช็คถึง ", s.rawTotal, "/", (s.totalTermDays || 65), " วัน"]
                                     })
                                   }))
                                 ]
@@ -4245,7 +4268,7 @@ function AdminPanelModal({
             department: newStudentDept,
             teacher_email: newStudentTeacher.trim() || '-',
             present_days: 0,
-            total_days: days || 65,
+            total_days: 0,
             percent: newStudentLevel === 'สำเร็จการศึกษา' ? 100 : 0,
             academic_year: adminYear,
             semester: adminSem
@@ -4270,7 +4293,7 @@ function AdminPanelModal({
           department: newStudentDept,
           teacher_email: newStudentTeacher.trim() || '-',
           present_days: 0,
-          total_days: days || 65,
+          total_days: 0,
           percent: newStudentLevel === 'สำเร็จการศึกษา' ? 100 : 0,
           academic_year: adminYear,
           semester: adminSem
@@ -4680,7 +4703,7 @@ function AdminPanelModal({
         department: overrideDept || s.department,
         teacher_email: '-',
         present_days: 0,
-        total_days: days || 65,
+        total_days: 0,
         percent: 0,
         academic_year: adminYear,
         semester: adminSem
