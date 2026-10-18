@@ -5183,24 +5183,25 @@ function TeacherCheckinModal({
       onClick: e => e.stopPropagation(),
       children: [
         /*#__PURE__*/_jsxs("div", {
-          className: "p-4 sm:p-5 bg-gradient-to-r from-emerald-600 to-teal-700 text-white flex justify-between items-center",
+          className: "px-3.5 py-3 sm:px-5 sm:py-4 bg-gradient-to-r from-emerald-600 to-teal-700 text-white flex justify-between items-center shadow-xs",
           children: [
             /*#__PURE__*/_jsxs("div", {
-              className: "flex items-center gap-3",
+              className: "flex items-center gap-2.5 sm:gap-3 min-w-0",
               children: [
                 /*#__PURE__*/_jsx("img", {
                   src: "logo.png",
                   alt: "ตราวิทยาลัย",
-                  className: "w-11 h-11 object-contain flex-shrink-0 drop-shadow-md"
+                  className: "w-8 h-8 sm:w-11 sm:h-11 object-contain flex-shrink-0 drop-shadow-md"
                 }),
                 /*#__PURE__*/_jsxs("div", {
+                  className: "min-w-0",
                   children: [
                     /*#__PURE__*/_jsx("h2", {
-                      className: "text-lg sm:text-xl font-bold tracking-tight",
+                      className: "text-base sm:text-xl font-bold tracking-tight truncate",
                       children: "ระบบเช็คชื่อเข้าแถว (ครูที่ปรึกษา)"
                     }),
                     /*#__PURE__*/_jsx("p", {
-                      className: "text-xs text-emerald-100 font-medium",
+                      className: "text-[11px] sm:text-xs text-emerald-100 font-medium truncate",
                       children: selectedTeacher ? `${selectedTeacher.name} • ${selectedTeacher.class_level} แผนก${selectedTeacher.department}` : 'ระบุรหัสประจำห้อง 5 หลักเพื่อเริ่มเช็คชื่อ'
                     })
                   ]
@@ -5208,7 +5209,7 @@ function TeacherCheckinModal({
               ]
             }),
             /*#__PURE__*/_jsxs("div", {
-              className: "flex items-center gap-2",
+              className: "flex items-center gap-2 flex-shrink-0",
               children: [
                 /*#__PURE__*/_jsxs("div", {
                   className: `hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${timeStatus.allowed ? 'bg-black/20 text-white border border-white/20' : 'bg-rose-950/40 text-rose-200 border border-rose-300/30'}`,
@@ -5220,8 +5221,8 @@ function TeacherCheckinModal({
                 }),
                 /*#__PURE__*/_jsx("button", {
                   onClick: onClose,
-                  className: "w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white text-lg cursor-pointer transition-colors",
-                  children: /*#__PURE__*/_jsx(Icon.Close, { className: "w-5 h-5 text-white" })
+                  className: "w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white text-lg cursor-pointer transition-colors",
+                  children: /*#__PURE__*/_jsx(Icon.Close, { className: "w-4 h-4 sm:w-5 sm:h-5 text-white" })
                 })
               ]
             })
@@ -5230,72 +5231,72 @@ function TeacherCheckinModal({
 
         // Direct 5-Digit Room PIN Entry (Keypad + Auto-Detect)
         step === 'enter_pin' && /*#__PURE__*/_jsxs("div", {
-          className: "p-6 sm:p-10 overflow-y-auto custom-scroll flex-1 flex flex-col items-center justify-center space-y-6 text-center max-w-md mx-auto w-full",
+          className: "p-4 sm:p-8 overflow-y-auto custom-scroll flex-1 flex flex-col items-center justify-center space-y-4 sm:space-y-6 text-center max-w-md mx-auto w-full",
           children: [
             /*#__PURE__*/_jsxs("div", {
-              className: "space-y-2",
+              className: "space-y-1 sm:space-y-2",
               children: [
                 /*#__PURE__*/_jsx("div", {
-                  className: "w-16 h-16 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto mb-2 shadow-inner",
-                  children: /*#__PURE__*/_jsx(Icon.Key, { className: "w-8 h-8 text-emerald-700" })
+                  className: "w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto mb-1.5 sm:mb-2 shadow-inner",
+                  children: /*#__PURE__*/_jsx(Icon.Key, { className: "w-6 h-6 sm:w-8 sm:h-8 text-emerald-700" })
                 }),
                 /*#__PURE__*/_jsx("h3", {
-                  className: "text-2xl sm:text-3xl font-black text-slate-900 tracking-tight",
+                  className: "text-xl sm:text-3xl font-black text-slate-900 tracking-tight",
                   children: "ระบุรหัสประจำห้อง 5 หลัก"
                 }),
                 /*#__PURE__*/_jsx("p", {
-                  className: "text-sm sm:text-base text-slate-500 font-medium",
+                  className: "text-xs sm:text-base text-slate-500 font-medium",
                   children: "กดรหัสตัวเลข 5 หลักประจำแผนกและชั้นปีเพื่อเข้าสู่ระบบเช็คชื่อ"
                 })
               ]
             }),
 
             /*#__PURE__*/_jsx("div", {
-              className: "flex justify-center gap-2.5 sm:gap-3.5 my-1",
+              className: "flex justify-center gap-2 sm:gap-3.5 my-0.5 sm:my-1",
               children: [0, 1, 2, 3, 4].map(i => /*#__PURE__*/_jsx("div", {
-                className: `w-12 h-16 sm:w-14 sm:h-18 rounded-2xl border-2 flex items-center justify-center text-3xl font-black transition-all ${pinInput.length > i ? 'bg-emerald-50 border-emerald-500 text-emerald-800 shadow-sm' : pinInput.length === i ? 'bg-white border-emerald-400 ring-2 ring-emerald-200 text-slate-400' : 'bg-slate-50 border-slate-300 text-slate-300'}`,
+                className: `w-11 h-14 sm:w-14 sm:h-18 rounded-xl sm:rounded-2xl border-2 flex items-center justify-center text-2xl sm:text-3xl font-black transition-all ${pinInput.length > i ? 'bg-emerald-50 border-emerald-500 text-emerald-800 shadow-sm' : pinInput.length === i ? 'bg-white border-emerald-400 ring-2 ring-emerald-200 text-slate-400' : 'bg-slate-50 border-slate-300 text-slate-300'}`,
                 children: pinInput[i] || '—'
               }, i))
             }),
 
             /*#__PURE__*/_jsx("p", {
-              className: "text-xs text-slate-400 font-medium",
+              className: "text-[11px] sm:text-xs text-slate-400 font-medium",
               children: "กดตัวเลข 5 หลักบนหน้าจอ หรือพิมพ์จากแป้นพิมพ์ (ค้นหาห้องเรียนอัตโนมัติ)"
             }),
 
             pinError && /*#__PURE__*/_jsx("div", {
-              className: "text-xs sm:text-sm text-rose-600 font-bold bg-rose-50 px-4 py-2 rounded-xl border border-rose-200 w-full",
+              className: "text-xs sm:text-sm text-rose-600 font-bold bg-rose-50 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl border border-rose-200 w-full",
               children: pinError
             }),
 
             /*#__PURE__*/_jsx("div", {
-              className: "w-full max-w-[280px] grid grid-cols-3 gap-3 pt-1",
+              className: "w-full max-w-[280px] grid grid-cols-3 gap-2 sm:gap-3 pt-0.5 sm:pt-1",
               children: [1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => /*#__PURE__*/_jsx("button", {
                 onClick: () => handleKeypadPress(String(num)),
                 disabled: isVerifying,
-                className: "h-16 bg-slate-100 hover:bg-slate-200 active:bg-emerald-100 text-slate-900 text-2xl font-bold rounded-2xl cursor-pointer shadow-xs active:scale-95 transition-all flex items-center justify-center disabled:opacity-50 select-none",
+                className: "h-13 sm:h-16 bg-slate-100 hover:bg-slate-200 active:bg-emerald-100 text-slate-900 text-xl sm:text-2xl font-bold rounded-xl sm:rounded-2xl cursor-pointer shadow-xs active:scale-95 transition-all flex items-center justify-center disabled:opacity-50 select-none",
                 children: num
               }, num)).concat([
                 /*#__PURE__*/_jsx("button", {
                   key: "del",
                   onClick: handleKeypadDelete,
                   disabled: isVerifying,
-                  className: "h-16 bg-rose-50 hover:bg-rose-100 text-rose-700 text-base font-bold rounded-2xl cursor-pointer shadow-xs active:scale-95 transition-all flex items-center justify-center disabled:opacity-50 select-none",
+                  className: "h-13 sm:h-16 bg-rose-50 hover:bg-rose-100 text-rose-700 text-sm sm:text-base font-bold rounded-xl sm:rounded-2xl cursor-pointer shadow-xs active:scale-95 transition-all flex items-center justify-center disabled:opacity-50 select-none",
                   children: "⌫ ลบ"
                 }),
                 /*#__PURE__*/_jsx("button", {
                   key: "0",
                   onClick: () => handleKeypadPress('0'),
                   disabled: isVerifying,
-                  className: "h-16 bg-slate-100 hover:bg-slate-200 text-slate-900 text-2xl font-bold rounded-2xl cursor-pointer shadow-xs active:scale-95 transition-all flex items-center justify-center disabled:opacity-50 select-none",
+                  className: "h-13 sm:h-16 bg-slate-100 hover:bg-slate-200 text-slate-900 text-xl sm:text-2xl font-bold rounded-xl sm:rounded-2xl cursor-pointer shadow-xs active:scale-95 transition-all flex items-center justify-center disabled:opacity-50 select-none",
                   children: "0"
                 }),
                 /*#__PURE__*/_jsx("button", {
                   key: "ok",
                   onClick: () => handleVerifyPin(),
                   disabled: isVerifying,
-                  className: "h-16 bg-emerald-600 hover:bg-emerald-700 text-white text-base font-bold rounded-2xl cursor-pointer shadow-xs active:scale-95 transition-all flex items-center justify-center disabled:opacity-50 select-none",
-                  children: isVerifying ? /*#__PURE__*/_jsx(Icon.Spin, { className: "w-6 h-6 text-white" }) : "ตกลง"
+                  className: "h-13 sm:h-16 bg-emerald-600 hover:bg-emerald-700 text-white text-sm sm:text-base font-bold rounded-xl sm:rounded-2xl cursor-pointer shadow-xs active:scale-95 transition-all flex items-center justify-center disabled:opacity-50 select-none",
+                  children: isVerifying ? /*#__PURE__*/_jsx(Icon.Spin, { className: "w-5 h-5 text-white" }) : "ตกลง"
                 })
               ])
             })
@@ -5307,22 +5308,22 @@ function TeacherCheckinModal({
           className: "flex-1 overflow-y-auto custom-scroll flex flex-col",
           children: [
             /*#__PURE__*/_jsxs("div", {
-              className: "p-4 sm:p-5 bg-slate-50 border-b border-slate-200 space-y-4",
+              className: "p-3 sm:p-4 bg-slate-50 border-b border-slate-200 space-y-2.5 sm:space-y-3.5",
               children: [
-                // Prominent Room Header Banner
+                // Prominent Room Header Banner (Balanced for Mobile)
                 /*#__PURE__*/_jsxs("div", {
-                  className: "p-4 sm:p-5 bg-gradient-to-r from-emerald-700 to-teal-800 text-white rounded-2xl shadow-sm flex flex-col gap-3.5",
+                  className: "p-3 sm:p-4 bg-gradient-to-r from-emerald-700 to-teal-800 text-white rounded-xl sm:rounded-2xl shadow-sm flex flex-col gap-2.5 sm:gap-3",
                   children: [
                     /*#__PURE__*/_jsxs("div", {
-                      className: "flex flex-col sm:flex-row sm:items-center justify-between gap-4",
+                      className: "flex flex-col sm:flex-row sm:items-center justify-between gap-3",
                       children: [
                         /*#__PURE__*/_jsxs("div", {
-                          className: "flex items-center gap-3.5 min-w-0",
+                          className: "flex items-center gap-2.5 sm:gap-3.5 min-w-0",
                           children: [
                             /*#__PURE__*/_jsxs("div", {
                               onClick: () => onOpenTeacherPhoto && selectedTeacher && onOpenTeacherPhoto(selectedTeacher),
                               title: "คลิกเพื่อเปลี่ยนรูปถ่ายครู",
-                              className: "relative w-14 h-14 rounded-2xl bg-white/20 border-2 border-white/40 flex items-center justify-center overflow-hidden flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-white transition-all shadow-md group select-none",
+                              className: "relative w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-white/20 border-2 border-white/40 flex items-center justify-center overflow-hidden flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-white transition-all shadow-md group select-none",
                               children: [
                                 (selectedTeacher?.photo_url || teacherPhotosMap?.[selectedTeacher?.id] || teacherPhotosMap?.[selectedTeacher?.name]) ? (
                                   /*#__PURE__*/_jsx("img", {
@@ -5331,11 +5332,11 @@ function TeacherCheckinModal({
                                     className: "w-full h-full object-cover"
                                   })
                                 ) : (
-                                  /*#__PURE__*/_jsx(Icon.Users, { className: "w-7 h-7 text-white" })
+                                  /*#__PURE__*/_jsx(Icon.Users, { className: "w-6 h-6 sm:w-7 sm:h-7 text-white" })
                                 ),
                                 /*#__PURE__*/_jsx("div", {
                                   className: "absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity",
-                                  children: /*#__PURE__*/_jsx(Icon.Camera, { className: "w-5 h-5 text-white drop-shadow" })
+                                  children: /*#__PURE__*/_jsx(Icon.Camera, { className: "w-4 h-4 sm:w-5 sm:h-5 text-white drop-shadow" })
                                 })
                               ]
                             }),
@@ -5343,17 +5344,17 @@ function TeacherCheckinModal({
                               className: "min-w-0",
                               children: [
                                 /*#__PURE__*/_jsxs("div", {
-                                  className: "text-2xl sm:text-3xl font-black tracking-tight text-white truncate",
+                                  className: "text-lg sm:text-2xl font-black tracking-tight text-white truncate",
                                   children: ["ห้อง ", selectedTeacher?.class_level, " ", formatDeptDisplay(selectedTeacher?.department)]
                                 }),
                                 /*#__PURE__*/_jsxs("div", {
-                                  className: "text-sm sm:text-base font-semibold text-emerald-100 mt-1 flex items-center gap-2 flex-wrap",
+                                  className: "text-xs sm:text-sm font-semibold text-emerald-100 mt-0.5 sm:mt-1 flex items-center gap-1.5 flex-wrap",
                                   children: [
-                                    /*#__PURE__*/_jsxs("span", { children: ["ครูที่ปรึกษา: ", selectedTeacher?.name] }),
+                                    /*#__PURE__*/_jsxs("span", { className: "truncate", children: ["ครูที่ปรึกษา: ", selectedTeacher?.name] }),
                                     onOpenTeacherPhoto && /*#__PURE__*/_jsxs("button", {
                                       type: "button",
                                       onClick: () => onOpenTeacherPhoto(selectedTeacher),
-                                      className: "px-2 py-0.5 rounded-lg bg-white/20 hover:bg-white/30 text-white text-xs font-bold transition-colors cursor-pointer border border-white/30 flex items-center gap-1",
+                                      className: "px-2 py-0.5 rounded-lg bg-white/20 hover:bg-white/30 text-white text-[10px] sm:text-xs font-bold transition-colors cursor-pointer border border-white/30 flex items-center gap-1 flex-shrink-0",
                                       children: [/*#__PURE__*/_jsx(Icon.Camera, { className: "w-3 h-3" }), "เปลี่ยนรูปครู"]
                                     })
                                   ]
@@ -5363,7 +5364,7 @@ function TeacherCheckinModal({
                           ]
                         }),
                         /*#__PURE__*/_jsx("div", {
-                          className: "flex items-center gap-2 flex-shrink-0",
+                          className: "flex items-center gap-2 flex-shrink-0 self-end sm:self-auto",
                           children: [
                             /*#__PURE__*/_jsxs("button", {
                               onClick: () => {
@@ -5372,7 +5373,7 @@ function TeacherCheckinModal({
                                 setPinError('');
                                 setSelectedTeacher(null);
                               },
-                              className: "px-3.5 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs sm:text-sm font-bold border border-white/25 cursor-pointer shadow-xs transition-colors",
+                              className: "px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs sm:text-sm font-bold border border-white/25 cursor-pointer shadow-xs transition-colors",
                               children: [/*#__PURE__*/_jsx(Icon.Refresh, { className: "w-3.5 h-3.5 inline mr-1" }), "เปลี่ยนรหัสห้อง"]
                             })
                           ]
@@ -5382,10 +5383,10 @@ function TeacherCheckinModal({
 
                     // Multi-room Switch Tabs (When teacher manages 2+ rooms) - Compact & Elegant
                     teacherRooms.length > 1 && /*#__PURE__*/_jsxs("div", {
-                      className: "pt-2.5 border-t border-white/20 flex flex-wrap items-center gap-1.5",
+                      className: "pt-2 border-t border-white/20 flex flex-wrap items-center gap-1.5",
                       children: [
                         /*#__PURE__*/_jsxs("span", {
-                          className: "text-xs font-bold text-emerald-100 flex items-center gap-1 mr-1",
+                          className: "text-[11px] sm:text-xs font-bold text-emerald-100 flex items-center gap-1 mr-1",
                           children: [
                             /*#__PURE__*/_jsx(Icon.Users, { className: "w-3.5 h-3.5 text-emerald-200" }),
                             `สลับห้อง (${teacherRooms.length} ห้อง):`
@@ -5397,7 +5398,7 @@ function TeacherCheckinModal({
                             key: rm.id,
                             type: "button",
                             onClick: () => handleSwitchRoom(rm),
-                            className: `px-3 py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs ${
+                            className: `px-2.5 py-1 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs ${
                               isCurrent
                                 ? "bg-white text-emerald-950 shadow-md ring-2 ring-emerald-300 font-black"
                                 : "bg-black/20 hover:bg-black/30 text-white border border-white/30 hover:border-white/50"
@@ -5421,14 +5422,14 @@ function TeacherCheckinModal({
 
                 // Date Picker & Camera Evidence
                 /*#__PURE__*/_jsxs("div", {
-                  className: "flex flex-col sm:flex-row sm:items-center justify-between gap-3",
+                  className: "flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3",
                   children: [
                     /*#__PURE__*/_jsxs("div", {
-                      className: "flex items-center flex-wrap gap-2.5",
+                      className: "flex items-center flex-wrap gap-2",
                       children: [
                         /*#__PURE__*/_jsx("label", {
-                          className: "text-sm font-black text-slate-800 whitespace-nowrap",
-                          children: [/*#__PURE__*/_jsx(Icon.Calendar, { className: "w-4 h-4 inline mr-1 text-slate-500" }), "วันที่เช็คชื่อ:"]
+                          className: "text-xs sm:text-sm font-bold text-slate-700 whitespace-nowrap flex items-center gap-1",
+                          children: [/*#__PURE__*/_jsx(Icon.Calendar, { className: "w-3.5 h-3.5 text-slate-500" }), "วันที่:"]
                         }),
                         /*#__PURE__*/_jsx("input", {
                           type: "date",
@@ -5447,7 +5448,7 @@ function TeacherCheckinModal({
                               loadRoomStudents(selectedTeacher, newDate);
                             }
                           },
-                          className: `border-2 rounded-xl px-3.5 py-2 text-sm sm:text-base font-bold shadow-xs focus:outline-none ${
+                          className: `border rounded-xl px-2.5 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm font-bold shadow-xs focus:outline-none ${
                             !isAdminLoggedIn
                               ? 'bg-slate-100 border-slate-200 text-slate-600 cursor-not-allowed'
                               : 'bg-white border-slate-300 text-slate-800 cursor-pointer focus:border-emerald-500'
@@ -5455,20 +5456,20 @@ function TeacherCheckinModal({
                           title: !isAdminLoggedIn ? 'เฉพาะผู้ดูแลระบบ (Admin) จึงจะเปลี่ยนวันที่เช็คชื่อย้อนหลังได้' : 'เลือกวันที่เช็คชื่อ'
                         }),
                         checkDate < formatLocalDate(new Date()) && /*#__PURE__*/_jsxs("span", {
-                          className: `text-xs font-bold px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-xs border ${
+                          className: `text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-md flex items-center gap-1 shadow-xs border ${
                             isAdminLoggedIn
                               ? 'bg-amber-100 text-amber-900 border-amber-300'
                               : 'bg-rose-100 text-rose-900 border-rose-300'
                           }`,
                           children: [
                             /*#__PURE__*/_jsx(Icon.Clock, { className: `w-3 h-3 ${isAdminLoggedIn ? 'text-amber-700' : 'text-rose-700'}` }),
-                            isAdminLoggedIn ? "โหมดบันทึกย้อนหลัง (Admin)" : "โหมดบันทึกย้อนหลัง (ต้องใช้สิทธิ์ Admin)"
+                            isAdminLoggedIn ? "ย้อนหลัง (Admin)" : "ย้อนหลัง (Admin เท่านั้น)"
                           ]
                         })
                       ]
                     }),
                     /*#__PURE__*/_jsxs("div", {
-                      className: "flex items-center gap-3",
+                      className: "flex items-center",
                       children: [
                         /*#__PURE__*/_jsx("input", {
                           ref: fileInputRef,
@@ -5481,18 +5482,18 @@ function TeacherCheckinModal({
                         /*#__PURE__*/_jsxs("button", {
                           type: "button",
                           onClick: () => fileInputRef.current && fileInputRef.current.click(),
-                          className: `px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm cursor-pointer shadow-xs transition-all flex items-center gap-2 ${
+                          className: `w-full sm:w-auto px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl font-bold text-xs sm:text-sm cursor-pointer shadow-xs transition-all flex items-center justify-center gap-1.5 ${
                             photoDataUrl
-                              ? 'bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100 shadow-2xs'
-                              : 'bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-700 hover:to-amber-700 text-white animate-pulse ring-2 ring-rose-400 shadow-md'
+                              ? 'bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100'
+                              : 'bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-700 hover:to-amber-700 text-white animate-pulse ring-2 ring-rose-400'
                           }`,
                           children: [
                             photoDataUrl ? /*#__PURE__*/_jsx("img", {
                               src: photoDataUrl,
                               alt: "หลักฐาน",
-                              className: "w-6 h-6 rounded-lg object-cover ring-1 ring-emerald-400"
-                            }) : /*#__PURE__*/_jsx(Icon.Camera, { className: "w-4 h-4 mr-1 text-white" }),
-                            photoDataUrl ? "✓ ถ่ายรูปหลักฐานแล้ว (กดเพื่อเปลี่ยนรูป)" : "📸 ถ่ายรูปหลักฐานการเข้าแถว (จำเป็น)"
+                              className: "w-5 h-5 rounded-md object-cover ring-1 ring-emerald-400"
+                            }) : /*#__PURE__*/_jsx(Icon.Camera, { className: "w-4 h-4 text-white" }),
+                            photoDataUrl ? "✓ มีรูปหลักฐานแล้ว (กดเปลี่ยน)" : "📸 ถ่ายรูปหลักฐานเข้าแถว (จำเป็น)"
                           ]
                         })
                       ]
@@ -5502,67 +5503,67 @@ function TeacherCheckinModal({
 
                 // SHORTCUT ACTION BUTTONS: มาครบทุกคน & รีเซ็ตเป็นขาดทุกคน
                 /*#__PURE__*/_jsxs("div", {
-                  className: "grid grid-cols-1 sm:grid-cols-3 gap-2.5",
+                  className: "grid grid-cols-3 gap-2",
                   children: [
                     /*#__PURE__*/_jsxs("button", {
                       type: "button",
                       onClick: handleMarkAllPresent,
-                      className: "sm:col-span-2 py-3.5 sm:py-4 px-5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-2xl font-black text-base sm:text-lg flex items-center justify-center gap-2.5 shadow-md cursor-pointer transition-all active:scale-[0.99] border-2 border-emerald-500",
+                      className: "col-span-2 py-2 sm:py-2.5 px-3 sm:px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl sm:rounded-2xl font-black text-xs sm:text-base flex items-center justify-center gap-1.5 shadow-sm cursor-pointer transition-all active:scale-[0.99] border border-emerald-500",
                       children: [
-                        /*#__PURE__*/_jsx(Icon.Bolt, { className: "w-5 h-5 sm:w-6 sm:h-6 text-white" }),
-                        /*#__PURE__*/_jsx("span", { children: "วันนี้มาครบทุกคน (กดทีเดียวจบ)" })
+                        /*#__PURE__*/_jsx(Icon.Bolt, { className: "w-4 h-4 sm:w-5 sm:h-5 text-white" }),
+                        /*#__PURE__*/_jsx("span", { children: "วันนี้มาครบทุกคน" })
                       ]
                     }),
                     /*#__PURE__*/_jsxs("button", {
                       type: "button",
                       onClick: handleMarkAllAbsent,
-                      className: "py-3.5 sm:py-4 px-4 bg-slate-100 hover:bg-rose-50 hover:text-rose-700 text-slate-700 rounded-2xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 border border-slate-300 cursor-pointer transition-all active:scale-95 shadow-xs",
+                      className: "col-span-1 py-2 sm:py-2.5 px-2 sm:px-3 bg-slate-100 hover:bg-rose-50 hover:text-rose-700 text-slate-700 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1 border border-slate-300 cursor-pointer transition-all active:scale-95 shadow-2xs",
                       title: "รีเซ็ตสถานะเป็นขาดทุกคน",
                       children: [
-                        /*#__PURE__*/_jsx(Icon.Refresh, { className: "w-4 h-4 text-slate-500 mr-1" }),
-                        /*#__PURE__*/_jsx("span", { children: "รีเซ็ตเป็นขาดทุกคน" })
+                        /*#__PURE__*/_jsx(Icon.Refresh, { className: "w-3.5 h-3.5 text-slate-500" }),
+                        /*#__PURE__*/_jsx("span", { className: "truncate", children: "รีเซ็ตขาด" })
                       ]
                     })
                   ]
                 }),
 
-                // Summary Counters
+                // Summary Counters (Compact, Elegant)
                 /*#__PURE__*/_jsxs("div", {
-                  className: "grid grid-cols-4 gap-2.5 text-center",
+                  className: "grid grid-cols-4 gap-1.5 sm:gap-2.5 text-center",
                   children: [
                     /*#__PURE__*/_jsxs("div", {
-                      className: "bg-white p-3 rounded-2xl border-2 border-slate-200 shadow-xs",
+                      className: "bg-white p-1.5 sm:p-2.5 rounded-xl sm:rounded-2xl border border-slate-200 shadow-2xs",
                       children: [
-                        /*#__PURE__*/_jsx("div", { className: "text-xs text-slate-500 font-bold", children: "ทั้งหมด" }),
-                        /*#__PURE__*/_jsxs("div", { className: "text-xl sm:text-2xl font-black font-mono text-slate-800 mt-0.5", children: [roomStudents.length, " คน"] })
+                        /*#__PURE__*/_jsx("div", { className: "text-[11px] sm:text-xs text-slate-500 font-bold", children: "ทั้งหมด" }),
+                        /*#__PURE__*/_jsxs("div", { className: "text-base sm:text-xl font-black font-mono text-slate-800 mt-0.5", children: [roomStudents.length, /*#__PURE__*/_jsx("span", { className: "text-[10px] sm:text-xs font-normal text-slate-500 ml-0.5", children: "คน" })] })
                       ]
                     }),
                     /*#__PURE__*/_jsxs("div", {
-                      className: "bg-emerald-50 p-3 rounded-2xl border-2 border-emerald-300 shadow-xs",
+                      className: "bg-emerald-50 p-1.5 sm:p-2.5 rounded-xl sm:rounded-2xl border border-emerald-300 shadow-2xs",
                       children: [
-                        /*#__PURE__*/_jsx("div", { className: "text-xs text-emerald-800 font-bold", children: "มา" }),
-                        /*#__PURE__*/_jsxs("div", { className: "text-xl sm:text-2xl font-black font-mono text-emerald-800 mt-0.5", children: [presentTotal, " คน"] })
+                        /*#__PURE__*/_jsx("div", { className: "text-[11px] sm:text-xs text-emerald-800 font-bold", children: "มา" }),
+                        /*#__PURE__*/_jsxs("div", { className: "text-base sm:text-xl font-black font-mono text-emerald-800 mt-0.5", children: [presentTotal, /*#__PURE__*/_jsx("span", { className: "text-[10px] sm:text-xs font-normal text-emerald-600 ml-0.5", children: "คน" })] })
                       ]
                     }),
                     /*#__PURE__*/_jsxs("div", {
-                      className: "bg-rose-50 p-3 rounded-2xl border-2 border-rose-300 shadow-xs",
+                      className: "bg-rose-50 p-1.5 sm:p-2.5 rounded-xl sm:rounded-2xl border border-rose-300 shadow-2xs",
                       children: [
-                        /*#__PURE__*/_jsx("div", { className: "text-xs text-rose-800 font-bold", children: "ขาด" }),
-                        /*#__PURE__*/_jsxs("div", { className: "text-xl sm:text-2xl font-black font-mono text-rose-800 mt-0.5", children: [absentTotal, " คน"] })
+                        /*#__PURE__*/_jsx("div", { className: "text-[11px] sm:text-xs text-rose-800 font-bold", children: "ขาด" }),
+                        /*#__PURE__*/_jsxs("div", { className: "text-base sm:text-xl font-black font-mono text-rose-800 mt-0.5", children: [absentTotal, /*#__PURE__*/_jsx("span", { className: "text-[10px] sm:text-xs font-normal text-rose-600 ml-0.5", children: "คน" })] })
                       ]
                     }),
                     /*#__PURE__*/_jsxs("div", {
-                      className: "bg-amber-50 p-3 rounded-2xl border-2 border-amber-300 shadow-xs",
+                      className: "bg-amber-50 p-1.5 sm:p-2.5 rounded-xl sm:rounded-2xl border border-amber-300 shadow-2xs",
                       children: [
-                        /*#__PURE__*/_jsx("div", { className: "text-xs text-amber-800 font-bold", children: "ลา" }),
-                        /*#__PURE__*/_jsxs("div", { className: "text-xl sm:text-2xl font-black font-mono text-amber-800 mt-0.5", children: [leaveTotal, " คน"] })
+                        /*#__PURE__*/_jsx("div", { className: "text-[11px] sm:text-xs text-amber-800 font-bold", children: "ลา" }),
+                        /*#__PURE__*/_jsxs("div", { className: "text-base sm:text-xl font-black font-mono text-amber-800 mt-0.5", children: [leaveTotal, /*#__PURE__*/_jsx("span", { className: "text-[10px] sm:text-xs font-normal text-amber-600 ml-0.5", children: "คน" })] })
                       ]
                     })
                   ]
                 }),
 
                 saveSuccessMsg && /*#__PURE__*/_jsxs("div", {
-                  className: "p-4 bg-emerald-100 border-2 border-emerald-400 rounded-2xl text-emerald-950 text-sm font-black text-center shadow-xs space-y-3",
+                  className: "p-3 sm:p-4 bg-emerald-100 border-2 border-emerald-400 rounded-xl sm:rounded-2xl text-emerald-950 text-xs sm:text-sm font-black text-center shadow-xs space-y-2.5",
                   children: [
                     /*#__PURE__*/_jsx("div", { children: saveSuccessMsg }),
                     teacherRooms.length > 1 && teacherRooms.some(r => r.id !== selectedTeacher?.id) && /*#__PURE__*/_jsxs("div", {
@@ -5576,9 +5577,9 @@ function TeacherCheckinModal({
                           key: nextR.id,
                           type: "button",
                           onClick: () => handleSwitchRoom(nextR),
-                          className: "px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md cursor-pointer flex items-center gap-1.5 transition-all animate-pulse hover:animate-none",
+                          className: "px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow-md cursor-pointer flex items-center gap-1.5 transition-all animate-pulse hover:animate-none",
                           children: [
-                            /*#__PURE__*/_jsx(Icon.ArrowRight, { className: "w-4 h-4 text-white" }),
+                            /*#__PURE__*/_jsx(Icon.ArrowRight, { className: "w-3.5 h-3.5 text-white" }),
                             `ไปเช็คห้อง ${nextR.class_level} ${formatDeptDisplay(nextR.department)} ทันที`
                           ]
                         }, nextR.id))
@@ -5589,66 +5590,84 @@ function TeacherCheckinModal({
               ]
             }),
 
-            // Student Roster (1 Student per Row, Large Touch Targets)
+            // Student Roster (Comfortable Mobile Touch Targets, Balanced Proportion)
             /*#__PURE__*/_jsx("div", {
-              className: "p-4 sm:p-5 space-y-3 flex-1",
+              className: "p-2.5 sm:p-4 space-y-2 sm:space-y-2.5 flex-1",
               children: isLoadingStudents ? /*#__PURE__*/_jsx("div", {
-                className: "py-16 text-center text-slate-400 text-base font-bold",
+                className: "py-12 text-center text-slate-400 text-sm font-bold",
                 children: "⏳ กำลังโหลดรายชื่อนักเรียน..."
               }) : roomStudents.map((s, idx) => {
                 const currentStatus = attendanceMap[s.student_id] || 'absent';
                 return /*#__PURE__*/_jsxs("div", {
-                  className: `p-4 sm:p-5 rounded-2xl border-2 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3.5 transition-all ${
+                  className: `p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl border shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-2 sm:gap-3 transition-all ${
                     currentStatus === 'present'
-                      ? 'bg-emerald-50/50 border-emerald-400 ring-2 ring-emerald-200/50'
+                      ? 'bg-emerald-50/60 border-emerald-400 ring-1 ring-emerald-300/60'
                       : (currentStatus === 'leave'
-                        ? 'bg-amber-50/50 border-amber-400'
+                        ? 'bg-amber-50/60 border-amber-400 ring-1 ring-amber-300/60'
                         : 'bg-white border-slate-200 hover:border-slate-300')
                   }`,
                   children: [
                     /*#__PURE__*/_jsxs("div", {
-                      className: "flex items-center gap-3.5 min-w-0",
+                      className: "flex items-center justify-between md:justify-start gap-2.5 min-w-0",
                       children: [
-                        /*#__PURE__*/_jsx("span", {
-                          className: "w-10 h-10 rounded-xl bg-slate-100 text-slate-800 text-base font-black font-mono flex items-center justify-center flex-shrink-0 border border-slate-300",
-                          children: idx + 1
+                        /*#__PURE__*/_jsxs("div", {
+                          className: "flex items-center gap-2 sm:gap-2.5 min-w-0",
+                          children: [
+                            /*#__PURE__*/_jsx("span", {
+                              className: "w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-slate-100 text-slate-800 text-xs sm:text-sm font-black font-mono flex items-center justify-center flex-shrink-0 border border-slate-300",
+                              children: idx + 1
+                            }),
+                            /*#__PURE__*/_jsx("h5", {
+                              className: "text-sm sm:text-base font-bold text-slate-900 truncate",
+                              children: s.name
+                            })
+                          ]
                         }),
-                        /*#__PURE__*/_jsx("div", {
-                          className: "min-w-0",
-                          children: /*#__PURE__*/_jsx("h5", {
-                            className: "text-base sm:text-lg font-black text-slate-900 truncate",
-                            children: s.name
-                          })
+                        /*#__PURE__*/_jsx("span", {
+                          className: `md:hidden text-[11px] font-bold px-2 py-0.5 rounded-md flex-shrink-0 ${
+                            currentStatus === 'present'
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : currentStatus === 'leave'
+                              ? 'bg-amber-100 text-amber-800'
+                              : 'bg-rose-100 text-rose-800'
+                          }`,
+                          children: currentStatus === 'present' ? '✓ มา' : currentStatus === 'leave' ? '⏱ ลา' : '✕ ขาด'
                         })
                       ]
                     }),
                     /*#__PURE__*/_jsxs("div", {
-                      className: "grid grid-cols-3 gap-2 md:w-80 flex-shrink-0",
+                      className: "grid grid-cols-3 gap-1.5 md:w-72 flex-shrink-0",
                       children: [
                         /*#__PURE__*/_jsxs("button", {
                           type: "button",
                           onClick: () => handleSetStudentStatus(s.student_id, 'present'),
-                          className: `py-3 sm:py-3.5 rounded-xl text-sm sm:text-base font-black cursor-pointer transition-all active:scale-95 flex items-center justify-center gap-1.5 ${currentStatus === 'present' ? 'bg-emerald-600 text-white shadow-md ring-4 ring-emerald-200' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`,
+                          className: `py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold cursor-pointer transition-all active:scale-95 flex items-center justify-center gap-1 ${
+                            currentStatus === 'present' ? 'bg-emerald-600 text-white shadow-xs font-black ring-2 ring-emerald-200' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                          }`,
                           children: [
-                            /*#__PURE__*/_jsx(Icon.CheckSimple, { className: "w-4 h-4 mr-1" }),
+                            /*#__PURE__*/_jsx(Icon.CheckSimple, { className: "w-3.5 h-3.5" }),
                             "มา"
                           ]
                         }),
                         /*#__PURE__*/_jsxs("button", {
                           type: "button",
                           onClick: () => handleSetStudentStatus(s.student_id, 'absent'),
-                          className: `py-3 sm:py-3.5 rounded-xl text-sm sm:text-base font-black cursor-pointer transition-all active:scale-95 flex items-center justify-center gap-1.5 ${currentStatus === 'absent' ? 'bg-rose-600 text-white shadow-md ring-4 ring-rose-200' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`,
+                          className: `py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold cursor-pointer transition-all active:scale-95 flex items-center justify-center gap-1 ${
+                            currentStatus === 'absent' ? 'bg-rose-600 text-white shadow-xs font-black ring-2 ring-rose-200' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                          }`,
                           children: [
-                            /*#__PURE__*/_jsx(Icon.Close, { className: "w-4 h-4 mr-1" }),
+                            /*#__PURE__*/_jsx(Icon.Close, { className: "w-3.5 h-3.5" }),
                             "ขาด"
                           ]
                         }),
                         /*#__PURE__*/_jsxs("button", {
                           type: "button",
                           onClick: () => handleSetStudentStatus(s.student_id, 'leave'),
-                          className: `py-3 sm:py-3.5 rounded-xl text-sm sm:text-base font-black cursor-pointer transition-all active:scale-95 flex items-center justify-center gap-1.5 ${currentStatus === 'leave' ? 'bg-amber-500 text-white shadow-md ring-4 ring-amber-200' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`,
+                          className: `py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold cursor-pointer transition-all active:scale-95 flex items-center justify-center gap-1 ${
+                            currentStatus === 'leave' ? 'bg-amber-500 text-white shadow-xs font-black ring-2 ring-amber-200' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                          }`,
                           children: [
-                            /*#__PURE__*/_jsx(Icon.Calendar, { className: "w-4 h-4 mr-1" }),
+                            /*#__PURE__*/_jsx(Icon.Calendar, { className: "w-3.5 h-3.5" }),
                             "ลา"
                           ]
                         })
@@ -5660,38 +5679,38 @@ function TeacherCheckinModal({
             }),
 
             /*#__PURE__*/_jsxs("div", {
-              className: "p-4 bg-slate-50 border-t border-slate-200 flex flex-col gap-2.5 sticky bottom-0 z-10",
+              className: "p-2.5 sm:p-4 bg-slate-50 border-t border-slate-200 flex flex-col gap-2 sticky bottom-0 z-10 shadow-lg",
               children: [
                 !photoDataUrl && /*#__PURE__*/_jsxs("div", {
-                  className: "text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 shadow-2xs",
+                  className: "text-[11px] sm:text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 py-1.5 px-2.5 rounded-xl flex items-center justify-center gap-1.5 shadow-2xs text-center",
                   children: [
-                    /*#__PURE__*/_jsx(Icon.Alert, { className: "w-4 h-4 text-rose-600 flex-shrink-0" }),
-                    "ระบบบังคับถ่ายรูปหรือแนบหลักฐานการเข้าแถวก่อนบันทึก (กรุณากดปุ่มถ่ายรูปด้านบนเพื่อปลดล็อคปุ่มบันทึก)"
+                    /*#__PURE__*/_jsx(Icon.Alert, { className: "w-3.5 h-3.5 text-rose-600 flex-shrink-0" }),
+                    "📸 ต้องถ่ายรูปหลักฐานการเข้าแถวด้านบนก่อนจึงจะกดบันทึกได้"
                   ]
                 }),
                 /*#__PURE__*/_jsxs("div", {
-                  className: "flex gap-3",
+                  className: "flex gap-2 sm:gap-3",
                   children: [
                     /*#__PURE__*/_jsx("button", {
                       onClick: onClose,
-                      className: "w-28 py-3.5 rounded-2xl bg-white hover:bg-slate-100 text-slate-700 font-bold text-sm sm:text-base border border-slate-300 cursor-pointer transition-colors shadow-xs",
+                      className: "w-20 sm:w-28 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs sm:text-base border border-slate-300 cursor-pointer transition-colors shadow-2xs",
                       children: "ปิด"
                     }),
                     /*#__PURE__*/_jsx("button", {
                       type: "button",
                       onClick: handleSaveDailyAttendance,
                       disabled: isSaving || !photoDataUrl,
-                      className: `flex-1 py-3.5 rounded-2xl font-black text-base sm:text-lg flex items-center justify-center gap-2 transition-all active:scale-[0.99] ${
+                      className: `flex-1 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl font-black text-xs sm:text-base flex items-center justify-center gap-1.5 transition-all active:scale-[0.99] ${
                         isSaving || !photoDataUrl
                           ? 'bg-slate-200 text-slate-400 border border-slate-300 cursor-not-allowed shadow-none'
-                          : 'bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white cursor-pointer shadow-xl shadow-emerald-700/20'
+                          : 'bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white cursor-pointer shadow-md shadow-emerald-700/20'
                       }`,
                       title: !photoDataUrl ? 'กรุณาถ่ายรูปหรือแนบหลักฐานการเข้าแถวก่อนบันทึก' : '',
                       children: isSaving
-                        ? [/*#__PURE__*/_jsx(Icon.Spin, { className: "w-5 h-5 inline mr-1.5" }), 'กำลังบันทึก...']
+                        ? [/*#__PURE__*/_jsx(Icon.Spin, { className: "w-4 h-4 inline mr-1" }), 'กำลังบันทึก...']
                         : !photoDataUrl
-                        ? [/*#__PURE__*/_jsx(Icon.Lock, { className: "w-5 h-5 inline mr-1.5 text-slate-400" }), 'ต้องถ่ายรูปหลักฐานก่อนบันทึก (ปุ่มถูกล็อค)']
-                        : [/*#__PURE__*/_jsx(Icon.Save, { className: "w-5 h-5 inline mr-1.5" }), 'บันทึกข้อมูลการเข้าแถว']
+                        ? [/*#__PURE__*/_jsx(Icon.Lock, { className: "w-4 h-4 inline mr-1 text-slate-400" }), 'ต้องถ่ายรูปหลักฐานก่อนบันทึก']
+                        : [/*#__PURE__*/_jsx(Icon.Save, { className: "w-4 h-4 inline mr-1" }), 'บันทึกข้อมูลการเข้าแถว']
                     })
                   ]
                 })
