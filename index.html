@@ -510,14 +510,13 @@ function getCheckinTimeStatus(specialHolidays = [], compensatoryDays = [], admin
   };
 }
 
-// Canonical 8 Departments of วก.ด่านซ้าย
+// Canonical 7 Active Departments of วก.ด่านซ้าย (ตัดการตลาดออกตามโครงสร้างวิทยาลัย)
 const CANONICAL_DEPTS = [
   'ช่างยนต์',
   'ช่างไฟฟ้ากำลัง',
   'ช่างอิเล็กทรอนิกส์',
   'ช่างก่อสร้าง',
   'การบัญชี',
-  'การตลาด',
   'เทคโนโลยีธุรกิจดิจิทัล',
   'การโรงแรม'
 ];
@@ -562,7 +561,6 @@ function generateDailyLineReport({
     'ช่างอิเล็กทรอนิกส์': { p: 19, a: 1, l: 0 },
     'ช่างก่อสร้าง': { p: 18, a: 2, l: 0 },
     'การบัญชี': { p: 24, a: 0, l: 1 },
-    'การตลาด': { p: 18, a: 0, l: 0 },
     'เทคโนโลยีธุรกิจดิจิทัล': { p: 20, a: 2, l: 0 },
     'การโรงแรม': { p: 16, a: 2, l: 0 }
   };
@@ -643,7 +641,7 @@ function generateDailyLineReport({
   text += `✅ มาเข้าแถว: ${totalPresent} คน (${overallPercent}%)\n`;
   text += `❌ ขาดแถว: ${totalAbsent} คน | 📝 ลา: ${totalLeave} คน\n`;
   text += `────────────────────\n`;
-  text += `📊 *สรุปยอดรายแผนกวิชา (ส่งยอด ${checkedCount}/8 แผนก):*\n`;
+  text += `📊 *สรุปยอดรายแผนกวิชา (ส่งยอด ${checkedCount}/${CANONICAL_DEPTS.length} แผนก):*\n`;
 
   deptList.forEach(d => {
     if (d.isCheckedIn) {
@@ -827,7 +825,7 @@ function generateDailyLineReport({
           margin: "md",
           contents: [
             { type: "text", text: "📊 ยอดเข้าแถวแยกตามแผนกวิชา", size: "xs", weight: "bold", color: "#1e293b" },
-            { type: "text", text: `ส่งยอด ${checkedCount}/8 แผนก`, size: "xxs", color: isAllChecked ? "#059669" : "#d97706", weight: "bold", align: "end" }
+            { type: "text", text: `ส่งยอด ${checkedCount}/${CANONICAL_DEPTS.length} แผนก`, size: "xxs", color: isAllChecked ? "#059669" : "#d97706", weight: "bold", align: "end" }
           ]
         },
         ...flexDeptContents
@@ -5924,8 +5922,8 @@ function AdminLineSettingsTab({
                                     children: [
                                       /*#__PURE__*/_jsx("span", { className: "text-slate-800", children: "📊 ยอดเข้าแถวแยกแผนก" }),
                                       /*#__PURE__*/_jsxs("span", {
-                                        className: `text-[10px] ${reportData.checkedCount === 8 ? 'text-emerald-600' : 'text-amber-600'}`,
-                                        children: ["ส่ง ", reportData.checkedCount, "/8"]
+                                        className: `text-[10px] ${reportData.checkedCount === reportData.totalDepts ? 'text-emerald-600' : 'text-amber-600'}`,
+                                        children: ["ส่ง ", reportData.checkedCount, "/", reportData.totalDepts]
                                       })
                                     ]
                                   }),
