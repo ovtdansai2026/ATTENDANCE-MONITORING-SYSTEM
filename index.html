@@ -621,7 +621,7 @@ function App() {
 
       // ตรวจสอบว่าเปิดใช้ระบบปฏิทินหรือไม่ (ถ้าปิด ให้ใช้เกณฑ์วันคงที่ทันที ตัดปัญหาเรื่องวันหยุด)
       const isCalActive = settings ? (settings.find(s => s.key === 'enable_calendar_mode')?.value === 'true') : false;
-      if (!isCalActive || (activeTermSched?.useFixedDays && Number(activeTermSched.fixedDays) > 0)) {
+      if (!isCalActive) {
         effectiveDays = (activeTermSched?.fixedDays && Number(activeTermSched.fixedDays) > 0)
           ? Number(activeTermSched.fixedDays)
           : currentDays;
@@ -3961,7 +3961,7 @@ function AdminPanelModal({
     if (String(sem) === '1') {
       return { startDate: `${adYear}-05-18`, endDate: `${adYear}-10-10`, useFixedDays: false, fixedDays: 65 };
     } else {
-      return { startDate: `${adYear}-11-01`, endDate: `${adYear + 1}-03-15`, useFixedDays: false, fixedDays: 65 };
+      return { startDate: `${adYear}-11-01`, endDate: `${adYear + 1}-03-15`, useFixedDays: false, fixedDays: 96 };
     }
   }, [termSchedules, academicYear, semester, termStartDate, termEndDate, baseTotalDays]);
 
@@ -4481,12 +4481,12 @@ function AdminPanelModal({
         [termKey]: {
           startDate: adminStartDate,
           endDate: adminEndDate || '',
-          useFixedDays: !adminEnableCalendar || Boolean(adminUseFixedDays),
+          useFixedDays: !adminEnableCalendar,
           fixedDays: Number(adminFixedDays) || 65
         }
       };
 
-      const finalBaseDays = (!adminEnableCalendar || adminUseFixedDays) ? (Number(adminFixedDays) || 65) : (days || 65);
+      const finalBaseDays = !adminEnableCalendar ? (Number(adminFixedDays) || 65) : (adminLiveStats.totalTermDays || days || 96);
 
       const records = [
         { key: 'current_academic_year', value: adminYear },
