@@ -4787,20 +4787,52 @@ function TeacherCheckinModal({
     return Array.from(depts);
   }, [teachers]);
 
-  // Filtered teachers list for Step 1
-  const filteredTeachers = useMemo(() => {
-    return (teachers || []).filter(t => {
-      if (deptFilter !== 'ALL' && t.department !== deptFilter) return false;
+  // Group teachers by normalized name so teachers managing multiple classes/levels are combined into 1 card
+  const groupedTeachers = useMemo(() => {
+    const map = new Map();
+    (teachers || []).forEach(t => {
+      const norm = normalizeTeacherName(t.name);
+      if (!norm) return;
+      if (!map.has(norm)) {
+        map.set(norm, {
+          normName: norm,
+          name: t.name,
+          photo_url: t.photo_url || teacherPhotosMap?.[t.id] || teacherPhotosMap?.[t.name],
+          primaryRoom: t,
+          rooms: [t]
+        });
+      } else {
+        const item = map.get(norm);
+        if (!item.photo_url && (t.photo_url || teacherPhotosMap?.[t.id] || teacherPhotosMap?.[t.name])) {
+          item.photo_url = t.photo_url || teacherPhotosMap?.[t.id] || teacherPhotosMap?.[t.name];
+        }
+        if (!item.rooms.some(r => r.id === t.id)) {
+          item.rooms.push(t);
+        }
+      }
+    });
+    return Array.from(map.values());
+  }, [teachers, teacherPhotosMap]);
+
+  // Filtered teacher groups for Step 1
+  const filteredTeacherGroups = useMemo(() => {
+    return groupedTeachers.filter(g => {
+      if (deptFilter !== 'ALL') {
+        const hasDept = g.rooms.some(r => r.department === deptFilter);
+        if (!hasDept) return false;
+      }
       if (teacherSearch.trim()) {
         const q = teacherSearch.trim().toLowerCase();
-        const mName = (t.name || '').toLowerCase().includes(q);
-        const mDept = (t.department || '').toLowerCase().includes(q);
-        const mLvl = (t.class_level || '').toLowerCase().includes(q);
-        return mName || mDept || mLvl;
+        const mName = (g.name || '').toLowerCase().includes(q);
+        const mRooms = g.rooms.some(r =>
+          (r.department || '').toLowerCase().includes(q) ||
+          (r.class_level || '').toLowerCase().includes(q)
+        );
+        return mName || mRooms;
       }
       return true;
     });
-  }, [teachers, deptFilter, teacherSearch]);
+  }, [groupedTeachers, deptFilter, teacherSearch]);
 
   // Sibling rooms managed by the same teacher (Multi-room support with whitespace & title normalization)
   const teacherRooms = useMemo(() => {
@@ -4999,51 +5031,66 @@ function TeacherCheckinModal({
       setIsVerifying(true);
       setPinError('');
       const targetHash = await hashPassword(pin);
-      const defaultPin = getDefaultTeacherPin(selectedTeacher, masterStudents);
-      const defaultHash = await hashPassword(defaultPin);
-
-      let teacherPinHash = selectedTeacher.pin_hash;
-      try {
-        const { data: dbTeacher, error: qErr } = await dbAssembly
-          .from('teachers')
-          .select('id, name, department, class_level, phone, academic_year, semester, pin_hash')
-          .eq('id', selectedTeacher.id)
-          .maybeSingle();
-        if (!qErr && dbTeacher && dbTeacher.pin_hash) {
-          teacherPinHash = dbTeacher.pin_hash;
-        }
-      } catch (dbEx) {
-        console.warn('Teacher query by id error:', dbEx);
+      
+      // Determine all sibling rooms for this teacher
+      const targetNorm = normalizeTeacherName(selectedTeacher.name);
+      let siblingRooms = (dbTeacherRooms && dbTeacherRooms.length > 0) ? dbTeacherRooms : [];
+      if (siblingRooms.length === 0 && teachers && teachers.length > 0) {
+        siblingRooms = teachers.filter(t => normalizeTeacherName(t.name) === targetNorm);
+      }
+      if (!siblingRooms.some(r => r.id === selectedTeacher.id)) {
+        siblingRooms.unshift(selectedTeacher);
       }
 
-      // Check if PIN matches:
-      // 1. Matches customized hash in DB
-      // 2. Matches default PIN (or default hash) derived from curriculum code / student ID (e.g. 30105, 20201)
-      // 3. Or DB still had DEFAULT_PIN_HASH ('1234') or empty
-      const isMatch = (
-        (teacherPinHash && teacherPinHash === targetHash) ||
-        pin === defaultPin ||
-        targetHash === defaultHash ||
-        (!teacherPinHash && (pin === defaultPin || pin === '12345')) ||
-        (teacherPinHash === DEFAULT_PIN_HASH && (pin === '1234' || pin === '12345' || pin === defaultPin))
-      );
+      // Check if PIN matches ANY of the rooms managed by this teacher
+      let isMatch = false;
+      for (const rm of siblingRooms) {
+        const rmPinHash = rm.pin_hash;
+        const rmDefPin = getDefaultTeacherPin(rm, masterStudents);
+        const rmDefHash = await hashPassword(rmDefPin);
+        
+        if (
+          (rmPinHash && rmPinHash === targetHash) ||
+          pin === rmDefPin ||
+          targetHash === rmDefHash ||
+          (!rmPinHash && (pin === rmDefPin || pin === '12345')) ||
+          (rmPinHash === DEFAULT_PIN_HASH && (pin === '1234' || pin === '12345' || pin === rmDefPin))
+        ) {
+          isMatch = true;
+          break;
+        }
+      }
+
+      // Also check against DB record if needed
+      if (!isMatch) {
+        try {
+          const { data: dbTeacher } = await dbAssembly
+            .from('teachers')
+            .select('pin_hash')
+            .eq('id', selectedTeacher.id)
+            .maybeSingle();
+          if (dbTeacher && dbTeacher.pin_hash === targetHash) {
+            isMatch = true;
+          }
+        } catch (dbEx) {}
+      }
 
       if (isMatch) {
-        // If DB had empty or old default hash, update to targetHash
-        if (!teacherPinHash || teacherPinHash === DEFAULT_PIN_HASH) {
-          try {
-            await dbAssembly.from('teachers').update({ pin_hash: targetHash }).eq('id', selectedTeacher.id);
-            selectedTeacher.pin_hash = targetHash;
-          } catch(e) {}
-        }
+        // Sync PIN hash to all sibling rooms in DB
+        try {
+          const siblingIds = siblingRooms.map(r => r.id);
+          if (siblingIds.length > 0) {
+            await dbAssembly.from('teachers').update({ pin_hash: targetHash }).in('id', siblingIds);
+          }
+          siblingRooms.forEach(r => { r.pin_hash = targetHash; });
+        } catch(e) {}
 
-        // Query sibling rooms if teacher manages 2+ rooms
+        // Query sibling rooms if not already loaded
         try {
           const { data: allTeachers } = await dbAssembly
             .from('teachers')
             .select('id, name, department, class_level, phone, academic_year, semester, photo_url');
           if (allTeachers && allTeachers.length > 0) {
-            const targetNorm = normalizeTeacherName(selectedTeacher.name);
             const siblings = allTeachers.filter(t => normalizeTeacherName(t.name) === targetNorm);
             if (!siblings.some(r => r.id === selectedTeacher.id)) {
               siblings.unshift(selectedTeacher);
@@ -5059,7 +5106,7 @@ function TeacherCheckinModal({
         setStep('checkin_sheet');
         loadRoomStudents(selectedTeacher, checkDate);
       } else {
-        setPinError(`รหัสประจำห้อง 5 หลักไม่ถูกต้อง (รหัสเริ่มต้นของห้องนี้คือ ${defaultPin})`);
+        setPinError('รหัส PIN 5 หลักไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง');
         setPinInput('');
       }
     } catch (err) {
@@ -5373,7 +5420,7 @@ function TeacherCheckinModal({
 
             /*#__PURE__*/_jsx("div", {
               className: "grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3",
-              children: filteredTeachers.length === 0 ? /*#__PURE__*/_jsxs("div", {
+              children: filteredTeacherGroups.length === 0 ? /*#__PURE__*/_jsxs("div", {
                 className: "col-span-1 sm:col-span-2 p-8 bg-slate-50 rounded-2xl border border-dashed border-slate-300 text-center text-slate-400 space-y-2",
                 children: [
                   /*#__PURE__*/_jsx(Icon.Users, { className: "w-8 h-8 mx-auto text-slate-300" }),
@@ -5385,56 +5432,105 @@ function TeacherCheckinModal({
                     children: "ล้างตัวกรองทั้งหมด"
                   })
                 ]
-              }) : filteredTeachers.map(t => {
-                const photoSrc = t.photo_url || teacherPhotosMap?.[t.id] || teacherPhotosMap?.[t.name];
-                return /*#__PURE__*/_jsxs("button", {
-                  key: t.id,
-                  type: "button",
+              }) : filteredTeacherGroups.map(group => {
+                const photoSrc = group.photo_url;
+                const isMultiRoom = group.rooms.length > 1;
+                return /*#__PURE__*/_jsxs("div", {
+                  key: group.normName,
                   onClick: () => {
-                    setSelectedTeacher(t);
+                    setSelectedTeacher(group.primaryRoom);
+                    setDbTeacherRooms(group.rooms);
                     setPinInput('');
                     setPinError('');
                     setStep('enter_pin');
                   },
-                  className: "p-3 sm:p-4 bg-white hover:bg-emerald-50/80 active:bg-emerald-100 hover:border-emerald-500 border border-slate-200 rounded-xl sm:rounded-2xl text-left transition-all cursor-pointer flex items-center gap-3 group active:scale-[0.99] shadow-xs",
+                  className: "p-3 sm:p-4 bg-white hover:bg-emerald-50/80 active:bg-emerald-100 hover:border-emerald-500 border border-slate-200 rounded-xl sm:rounded-2xl text-left transition-all cursor-pointer flex flex-col justify-between gap-2.5 group active:scale-[0.99] shadow-xs",
                   children: [
-                    /*#__PURE__*/_jsx("div", {
-                      className: "w-11 h-11 sm:w-13 sm:h-13 rounded-xl bg-emerald-100 border border-emerald-200 text-emerald-800 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-xs",
-                      children: photoSrc ? (
-                        /*#__PURE__*/_jsx("img", {
-                          src: photoSrc,
-                          alt: t.name,
-                          className: "w-full h-full object-cover"
-                        })
-                      ) : (
-                        /*#__PURE__*/_jsx(Icon.Users, { className: "w-5 h-5 sm:w-6 sm:h-6 text-emerald-700" })
-                      )
-                    }),
                     /*#__PURE__*/_jsxs("div", {
-                      className: "min-w-0 flex-1",
+                      className: "flex items-center gap-3 min-w-0 w-full",
                       children: [
                         /*#__PURE__*/_jsx("div", {
-                          className: "text-sm sm:text-base font-black text-slate-900 group-hover:text-emerald-950 truncate",
-                          children: t.name
+                          className: "w-11 h-11 sm:w-13 sm:h-13 rounded-xl bg-emerald-100 border border-emerald-200 text-emerald-800 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-xs",
+                          children: photoSrc ? (
+                            /*#__PURE__*/_jsx("img", {
+                              src: photoSrc,
+                              alt: group.name,
+                              className: "w-full h-full object-cover"
+                            })
+                          ) : (
+                            /*#__PURE__*/_jsx(Icon.Users, { className: "w-5 h-5 sm:w-6 sm:h-6 text-emerald-700" })
+                          )
                         }),
                         /*#__PURE__*/_jsxs("div", {
-                          className: "flex items-center gap-1.5 mt-0.5 flex-wrap",
+                          className: "min-w-0 flex-1",
                           children: [
-                            /*#__PURE__*/_jsx("span", {
-                              className: "font-bold bg-emerald-100 text-emerald-800 text-[11px] sm:text-xs px-2 py-0.5 rounded-md border border-emerald-200",
-                              children: t.class_level
+                            /*#__PURE__*/_jsxs("div", {
+                              className: "flex items-center gap-2 flex-wrap",
+                              children: [
+                                /*#__PURE__*/_jsx("span", {
+                                  className: "text-sm sm:text-base font-black text-slate-900 group-hover:text-emerald-950 truncate",
+                                  children: group.name
+                                }),
+                                isMultiRoom && /*#__PURE__*/_jsxs("span", {
+                                  className: "text-[10px] sm:text-[11px] font-black bg-teal-100 text-teal-800 px-2 py-0.5 rounded-full border border-teal-200 flex items-center gap-1 flex-shrink-0",
+                                  children: [/*#__PURE__*/_jsx(Icon.Users, { className: "w-3 h-3" }), `ดูแล ${group.rooms.length} ห้อง`]
+                                })
+                              ]
                             }),
-                            /*#__PURE__*/_jsx("span", {
-                              className: "text-xs font-semibold text-slate-600 truncate",
-                              children: formatDeptDisplay(t.department)
-                            })
+                            !isMultiRoom ? (
+                              /*#__PURE__*/_jsxs("div", {
+                                className: "flex items-center gap-1.5 mt-0.5 flex-wrap",
+                                children: [
+                                  /*#__PURE__*/_jsx("span", {
+                                    className: "font-bold bg-emerald-100 text-emerald-800 text-[11px] sm:text-xs px-2 py-0.5 rounded-md border border-emerald-200",
+                                    children: group.primaryRoom.class_level
+                                  }),
+                                  /*#__PURE__*/_jsx("span", {
+                                    className: "text-xs font-semibold text-slate-600 truncate",
+                                    children: formatDeptDisplay(group.primaryRoom.department)
+                                  })
+                                ]
+                              })
+                            ) : (
+                              /*#__PURE__*/_jsx("div", {
+                                className: "text-[11px] sm:text-xs text-slate-500 font-medium mt-0.5 truncate",
+                                children: group.rooms.map(r => `${r.class_level} ${formatDeptDisplay(r.department)}`).join(' • ')
+                              })
+                            )
                           ]
+                        }),
+                        /*#__PURE__*/_jsx("div", {
+                          className: "text-slate-300 group-hover:text-emerald-600 text-base font-bold pr-1",
+                          children: /*#__PURE__*/_jsx(Icon.ArrowRight, { className: "w-4 h-4 text-slate-300 group-hover:text-emerald-600 transition-transform group-hover:translate-x-1" })
                         })
                       ]
                     }),
-                    /*#__PURE__*/_jsx("div", {
-                      className: "text-slate-300 group-hover:text-emerald-600 text-base font-bold pr-1",
-                      children: /*#__PURE__*/_jsx(Icon.ArrowRight, { className: "w-4 h-4 text-slate-300 group-hover:text-emerald-600 transition-transform group-hover:translate-x-1" })
+                    isMultiRoom && /*#__PURE__*/_jsxs("div", {
+                      className: "pt-2 border-t border-slate-100 flex flex-wrap items-center gap-1.5",
+                      onClick: e => e.stopPropagation(),
+                      children: [
+                        /*#__PURE__*/_jsx("span", {
+                          className: "text-[10px] font-bold text-slate-400 mr-0.5",
+                          children: "เลือกห้อง:"
+                        }),
+                        group.rooms.map(rm => /*#__PURE__*/_jsxs("button", {
+                          key: rm.id,
+                          type: "button",
+                          onClick: (e) => {
+                            e.stopPropagation();
+                            setSelectedTeacher(rm);
+                            setDbTeacherRooms(group.rooms);
+                            setPinInput('');
+                            setPinError('');
+                            setStep('enter_pin');
+                          },
+                          className: "px-2 py-0.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 active:bg-emerald-200 border border-emerald-200 text-emerald-900 text-[11px] sm:text-xs font-bold transition-all flex items-center gap-1 cursor-pointer",
+                          children: [
+                            /*#__PURE__*/_jsx("span", { children: rm.class_level }),
+                            /*#__PURE__*/_jsx("span", { className: "text-emerald-700 font-medium", children: formatDeptDisplay(rm.department) })
+                          ]
+                        }))
+                      ]
                     })
                   ]
                 });
@@ -5474,7 +5570,9 @@ function TeacherCheckinModal({
                         }),
                         /*#__PURE__*/_jsxs("div", {
                           className: "text-xs font-semibold text-emerald-800 truncate mt-0.5",
-                          children: ["ห้อง ", selectedTeacher?.class_level, " แผนก", formatDeptDisplay(selectedTeacher?.department)]
+                          children: teacherRooms.length > 1
+                            ? `ที่ปรึกษา ${teacherRooms.length} ห้อง: ` + teacherRooms.map(r => `${r.class_level} ${formatDeptDisplay(r.department)}`).join(', ')
+                            : ["ห้อง ", selectedTeacher?.class_level, " แผนก", formatDeptDisplay(selectedTeacher?.department)]
                         })
                       ]
                     })
@@ -5499,17 +5597,11 @@ function TeacherCheckinModal({
               children: [
                 /*#__PURE__*/_jsx("h3", {
                   className: "text-lg sm:text-2xl font-black text-slate-900 tracking-tight",
-                  children: "ระบุรหัสประจำห้อง 5 หลัก"
+                  children: "ระบุรหัสประจำตัว 5 หลัก"
                 }),
-                /*#__PURE__*/_jsxs("p", {
-                  className: "text-xs sm:text-sm text-slate-600 font-medium",
-                  children: [
-                    "รหัสเริ่มต้นคือรหัสหลักสูตรประจำห้อง เช่น ",
-                    /*#__PURE__*/_jsx("span", {
-                      className: "font-black text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-md",
-                      children: selectedTeacher ? getDefaultTeacherPin(selectedTeacher, masterStudents) : '30105'
-                    })
-                  ]
+                /*#__PURE__*/_jsx("p", {
+                  className: "text-xs sm:text-sm text-slate-500 font-medium",
+                  children: "กรุณากรอกรหัส PIN 5 หลักเพื่อเข้าสู่ระบบเช็คชื่อ"
                 })
               ]
             }),
@@ -6037,7 +6129,7 @@ function ChangePinModal({ teacher, defaultPin, onClose, onSuccess }) {
     const cleanOld = String(oldPin).trim();
 
     if (!cleanOld) {
-      setErr(`กรุณากรอกรหัส PIN เดิม (รหัสเริ่มต้นของห้องนี้คือ ${defaultPin})`);
+      setErr('กรุณากรอกรหัส PIN เดิม');
       return;
     }
     if (!/^\d{5}$/.test(cleanNew)) {
@@ -6051,25 +6143,39 @@ function ChangePinModal({ teacher, defaultPin, onClose, onSuccess }) {
 
     setLoading(true);
     try {
-      // 1. ตรวจสอบรหัส PIN เดิม
+      // 1. ตรวจสอบรหัส PIN เดิม (เทียบกับทุกห้องที่ครูท่านนี้ดูแล)
       const oldHash = await hashPassword(cleanOld);
-      let teacherPinHash = teacher.pin_hash;
+      let isOldMatch = false;
+
+      let siblingRooms = [];
       try {
-        const { data: dbT } = await dbAssembly.from('teachers').select('pin_hash').eq('id', teacher.id).maybeSingle();
-        if (dbT && dbT.pin_hash) teacherPinHash = dbT.pin_hash;
+        const targetNorm = normalizeTeacherName(teacher.name);
+        const { data: allTeachers } = await dbAssembly.from('teachers').select('id, name, department, class_level, pin_hash');
+        if (allTeachers && allTeachers.length > 0) {
+          siblingRooms = allTeachers.filter(t => normalizeTeacherName(t.name) === targetNorm);
+        }
       } catch (e) {}
 
-      const defaultHash = await hashPassword(defaultPin);
-      const isOldMatch = (
-        (teacherPinHash && teacherPinHash === oldHash) ||
-        cleanOld === defaultPin ||
-        oldHash === defaultHash ||
-        (!teacherPinHash && (cleanOld === defaultPin || cleanOld === '12345' || cleanOld === '1234')) ||
-        (teacherPinHash === DEFAULT_PIN_HASH && (cleanOld === '1234' || cleanOld === '12345' || cleanOld === defaultPin))
-      );
+      if (siblingRooms.length === 0) siblingRooms = [teacher];
+
+      for (const rm of siblingRooms) {
+        const rmDefPin = getDefaultTeacherPin(rm, masterStudents);
+        const rmDefHash = await hashPassword(rmDefPin);
+        const rmHash = rm.pin_hash;
+        if (
+          (rmHash && rmHash === oldHash) ||
+          cleanOld === rmDefPin ||
+          oldHash === rmDefHash ||
+          (!rmHash && (cleanOld === rmDefPin || cleanOld === '12345' || cleanOld === '1234')) ||
+          (rmHash === DEFAULT_PIN_HASH && (cleanOld === '1234' || cleanOld === '12345' || cleanOld === rmDefPin))
+        ) {
+          isOldMatch = true;
+          break;
+        }
+      }
 
       if (!isOldMatch) {
-        setErr(`รหัส PIN เดิมไม่ถูกต้อง (รหัสเริ่มต้นของห้องนี้คือ ${defaultPin})`);
+        setErr('รหัส PIN เดิมไม่ถูกต้อง');
         setLoading(false);
         return;
       }
@@ -6077,12 +6183,7 @@ function ChangePinModal({ teacher, defaultPin, onClose, onSuccess }) {
       // 2. Hash รหัสผ่านใหม่และบันทึกลง Supabase (อัปเดตทุกห้องที่ครูท่านนี้ดูแล)
       const newHash = await hashPassword(cleanNew);
       try {
-        const targetNorm = normalizeTeacherName(teacher.name);
-        const { data: allTeachers } = await dbAssembly.from('teachers').select('id, name');
-        const siblingIds = (allTeachers || [])
-          .filter(t => normalizeTeacherName(t.name) === targetNorm)
-          .map(t => t.id);
-
+        const siblingIds = siblingRooms.map(t => t.id);
         if (siblingIds.length > 0) {
           await dbAssembly.from('teachers').update({ pin_hash: newHash }).in('id', siblingIds);
         } else {
@@ -6115,7 +6216,7 @@ function ChangePinModal({ teacher, defaultPin, onClose, onSuccess }) {
               children: [
                 /*#__PURE__*/_jsx("h4", {
                   className: "text-base sm:text-lg font-black text-slate-900",
-                  children: "เปลี่ยนรหัส PIN ประจำห้อง (5 หลัก)"
+                  children: "เปลี่ยนรหัส PIN (5 หลัก)"
                 }),
                 /*#__PURE__*/_jsxs("p", {
                   className: "text-xs text-slate-500 font-medium",
@@ -6142,25 +6243,16 @@ function ChangePinModal({ teacher, defaultPin, onClose, onSuccess }) {
           children: [
             /*#__PURE__*/_jsxs("div", {
               children: [
-                /*#__PURE__*/_jsxs("div", {
-                  className: "flex justify-between items-center mb-1",
-                  children: [
-                    /*#__PURE__*/_jsx("label", {
-                      className: "text-xs font-bold text-slate-700",
-                      children: "รหัส PIN เดิม"
-                    }),
-                    /*#__PURE__*/_jsxs("span", {
-                      className: "text-[11px] text-slate-400 font-medium",
-                      children: ["รหัสเริ่มต้น: ", defaultPin]
-                    })
-                  ]
+                /*#__PURE__*/_jsx("label", {
+                  className: "block text-xs font-bold text-slate-700 mb-1",
+                  children: "รหัส PIN เดิม (5 หลัก)"
                 }),
                 /*#__PURE__*/_jsx("input", {
                   type: "password",
                   maxLength: 5,
                   value: oldPin,
                   onChange: e => setOldPin(e.target.value.replace(/\D/g, '')),
-                  placeholder: `เช่น ${defaultPin}`,
+                  placeholder: "•••••",
                   className: "w-full px-3 py-1.5 sm:py-2 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none font-mono text-center tracking-widest text-base sm:text-lg font-bold"
                 })
               ]
