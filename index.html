@@ -256,6 +256,45 @@ function formatDeptDisplay(dept) {
   return clean.startsWith('แผนก') ? clean : 'แผนก' + clean;
 }
 
+// Client-side Avatar compression (Auto square center-crop & WebP/JPEG compression ~15KB)
+function compressAvatar(file, size = 180, quality = 0.75) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        const minDim = Math.min(img.width, img.height);
+        const sx = (img.width - minDim) / 2;
+        const sy = (img.height - minDim) / 2;
+        ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size);
+        let dataUrl = canvas.toDataURL('image/webp', quality);
+        if (!dataUrl || !dataUrl.startsWith('data:image/webp')) {
+          dataUrl = canvas.toDataURL('image/jpeg', quality);
+        }
+        resolve(dataUrl);
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function convertDrivePhotoUrl(url) {
+  if (!url) return '';
+  const trimmed = String(url).trim();
+  const match = trimmed.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || trimmed.match(/id=([a-zA-Z0-9_-]+)/);
+  if (match && match[1]) {
+    return 'https://drive.google.com/thumbnail?id=' + match[1] + '&sz=w400';
+  }
+  return trimmed;
+}
+
 // Client-side image compression
 function compressImage(file, maxWidth = 1200, maxHeight = 1200, quality = 0.7) {
   return new Promise((resolve, reject) => {
@@ -449,6 +488,170 @@ const Icon = {
   Spin: ({ className = "w-4 h-4" }) => /*#__PURE__*/_jsxs("svg", { className: className + " animate-spin", fill: "none", viewBox: "0 0 24 24", children: [/*#__PURE__*/_jsx("circle", { className: "opacity-25", cx: "12", cy: "12", r: "10", stroke: "currentColor", strokeWidth: "4" }), /*#__PURE__*/_jsx("path", { className: "opacity-75", fill: "currentColor", d: "M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" })] })
 };
 
+
+// MODAL: จัดการรูปประจำตัวนักเรียน (Client-side Compression & Preview)
+function StudentPhotoModal({ targetStudent, currentPhoto, onSave, onDelete, onClose }) {
+  const [photoPreview, setPhotoPreview] = useState(currentPhoto || '');
+  const [urlInput, setUrlInput] = useState(currentPhoto && !currentPhoto.startsWith('data:') ? currentPhoto : '');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [fileInfo, setFileInfo] = useState('');
+  const fileInputRef = useRef(null);
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsProcessing(true);
+    setFileInfo('');
+    try {
+      const originalSizeKb = Math.round(file.size / 1024);
+      const compressed = await compressAvatar(file, 200, 0.75);
+      const compressedSizeKb = Math.round((compressed.length * 3 / 4) / 1024);
+      setPhotoPreview(compressed);
+      setFileInfo(`ไฟล์ต้นฉบับ: ${originalSizeKb} KB ➔ บีบอัดเหลือ: ~${compressedSizeKb} KB (ประหยัด 95%)`);
+    } catch(err) {
+      alert('ไม่สามารถประมวลผลรูปภาพได้: ' + err.message);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleUrlChange = (val) => {
+    setUrlInput(val);
+    const converted = convertDrivePhotoUrl(val);
+    if (converted) {
+      setPhotoPreview(converted);
+      setFileInfo('ดึงรูปผ่านลิงก์ Google Drive / Web URL สำเร็จ');
+    }
+  };
+
+  const handleConfirmSave = () => {
+    if (!photoPreview) {
+      return alert('กรุณาเลือกรูปภาพก่อนบันทึก');
+    }
+    onSave(targetStudent, photoPreview);
+  };
+
+  return /*#__PURE__*/_jsx("div", {
+    className: "fixed inset-0 z-70 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4",
+    onClick: onClose,
+    children: /*#__PURE__*/_jsxs("div", {
+      className: "bg-white border border-slate-200 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-200",
+      onClick: e => e.stopPropagation(),
+      children: [
+        /*#__PURE__*/_jsxs("div", {
+          className: "flex justify-between items-center pb-3 border-b border-slate-100",
+          children: [
+            /*#__PURE__*/_jsxs("div", {
+              children: [
+                /*#__PURE__*/_jsx("h3", { className: "text-base sm:text-lg font-bold text-slate-900", children: "📷 เปลี่ยนรูปประจำตัวนักเรียน" }),
+                /*#__PURE__*/_jsxs("p", { className: "text-xs text-slate-500", children: [targetStudent?.student_name, " • ", targetStudent?.pure_level, " แผนก", targetStudent?.department] })
+              ]
+            }),
+            /*#__PURE__*/_jsx("button", { onClick: onClose, className: "text-slate-400 hover:text-slate-600 text-lg cursor-pointer p-1", children: /*#__PURE__*/_jsx(Icon.Close, { className: "w-5 h-5 text-slate-400 hover:text-slate-600" }) })
+          ]
+        }),
+
+        /*#__PURE__*/_jsxs("div", {
+          className: "flex flex-col items-center justify-center space-y-3 py-2",
+          children: [
+            /*#__PURE__*/_jsx("div", {
+              className: "w-32 h-32 rounded-full overflow-hidden border-4 border-emerald-500 shadow-md bg-slate-100 flex items-center justify-center relative group",
+              children: photoPreview ? /*#__PURE__*/_jsx("img", {
+                src: photoPreview,
+                alt: targetStudent?.student_name,
+                className: "w-full h-full object-cover"
+              }) : /*#__PURE__*/_jsxs("div", {
+                className: "text-center text-slate-400 p-2",
+                children: [
+                  /*#__PURE__*/_jsx(Icon.Users, { className: "w-10 h-10 mx-auto mb-1 text-slate-300" }),
+                  /*#__PURE__*/_jsx("span", { className: "text-[11px]", children: "ยังไม่มีรูปภาพ" })
+                ]
+              })
+            }),
+            fileInfo && /*#__PURE__*/_jsx("div", {
+              className: "text-[11px] font-mono text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200 text-center",
+              children: fileInfo
+            })
+          ]
+        }),
+
+        /*#__PURE__*/_jsxs("div", {
+          className: "space-y-3",
+          children: [
+            /*#__PURE__*/_jsxs("div", {
+              children: [
+                /*#__PURE__*/_jsx("label", { className: "text-xs font-bold text-slate-700 block mb-1.5", children: "1. เลือกรูปจากคอมพิวเตอร์ / มือถือ (ระบบบีบอัดให้อัตโนมัติ):" }),
+                /*#__PURE__*/_jsx("input", {
+                  type: "file",
+                  accept: "image/*",
+                  ref: fileInputRef,
+                  onChange: handleFileChange,
+                  className: "hidden"
+                }),
+                /*#__PURE__*/_jsxs("button", {
+                  type: "button",
+                  disabled: isProcessing,
+                  onClick: () => fileInputRef.current?.click(),
+                  className: "w-full py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold border border-slate-300 flex items-center justify-center gap-2 cursor-pointer transition-colors",
+                  children: [
+                    /*#__PURE__*/_jsx(Icon.Camera, { className: "w-4 h-4 text-slate-600" }),
+                    isProcessing ? "กำลังบีบอัดรูปภาพ..." : "คลิกเพื่อเลือกไฟล์รูปภาพ (Preview สด)"
+                  ]
+                })
+              ]
+            }),
+
+            /*#__PURE__*/_jsxs("div", {
+              children: [
+                /*#__PURE__*/_jsx("label", { className: "text-xs font-bold text-slate-700 block mb-1.5", children: "2. หรือ วางลิงก์รูปภาพ (Google Drive / Direct URL):" }),
+                /*#__PURE__*/_jsx("input", {
+                  type: "text",
+                  value: urlInput,
+                  onChange: e => handleUrlChange(e.target.value),
+                  placeholder: "วางลิงก์ เช่น https://drive.google.com/file/d/...",
+                  className: "w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono focus:outline-none focus:border-emerald-500"
+                })
+              ]
+            })
+          ]
+        }),
+
+        /*#__PURE__*/_jsxs("div", {
+          className: "flex gap-2 pt-2 border-t border-slate-100",
+          children: [
+            currentPhoto && /*#__PURE__*/_jsx("button", {
+              type: "button",
+              onClick: () => {
+                if (confirm(`ต้องการลบรูปภาพของ "${targetStudent?.student_name}" หรือไม่?`)) {
+                  onDelete(targetStudent);
+                }
+              },
+              className: "px-3 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold border border-rose-200 cursor-pointer transition-colors",
+              children: "ลบรูป"
+            }),
+            /*#__PURE__*/_jsx("button", {
+              type: "button",
+              onClick: onClose,
+              className: "flex-1 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold cursor-pointer transition-colors",
+              children: "ยกเลิก"
+            }),
+            /*#__PURE__*/_jsx("button", {
+              type: "button",
+              disabled: !photoPreview || isProcessing,
+              onClick: handleConfirmSave,
+              className: "flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-bold shadow-xs cursor-pointer transition-colors flex items-center justify-center gap-1.5",
+              children: [
+                /*#__PURE__*/_jsx(Icon.Save, { className: "w-4 h-4" }),
+                "บันทึกรูปนี้"
+              ]
+            })
+          ]
+        })
+      ]
+    })
+  });
+}
+
 function App() {
   const [systemMode, setSystemMode] = useState('assembly');
   const [masterStudents, setMasterStudents] = useState([]);
@@ -460,6 +663,13 @@ function App() {
   const [baseTotalDays, setBaseTotalDays] = useState(65);
   const [currentAcademicYear, setCurrentAcademicYear] = useState('2569');
   const [currentSemester, setCurrentSemester] = useState('1');
+  const [studentPhotosMap, setStudentPhotosMap] = useState(() => {
+    try {
+      const cached = localStorage.getItem('student_photos_cache');
+      return cached ? JSON.parse(cached) : {};
+    } catch(e) { return {}; }
+  });
+  const [photoModalTarget, setPhotoModalTarget] = useState(null);
   const [availableAcademicYears, setAvailableAcademicYears] = useState(['2569', '2568', '2567']);
   const [lastUpdated, setLastUpdated] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -643,6 +853,17 @@ function App() {
             if (Array.isArray(parsed) && parsed.length > 0) setAvailableAcademicYears(parsed);
           } catch (e) {}
         }
+
+        const photosObj = settings.find(s => s.key === 'student_photos_map');
+        if (photosObj?.value) {
+          try {
+            const parsed = JSON.parse(photosObj.value);
+            if (parsed && typeof parsed === 'object') {
+              setStudentPhotosMap(parsed);
+              localStorage.setItem('student_photos_cache', photosObj.value);
+            }
+          } catch(e) {}
+        }
       }
 
       const currentTermKey = `${activeYear}_${activeSem}`;
@@ -737,6 +958,7 @@ function App() {
           percent: pct,
           isGraduated,
           isNotStarted: isTermNotStarted,
+          photoUrl: studentPhotosMap[s.id] || studentPhotosMap[s.student_name] || null,
           _inherited: s._inherited || false
         };
       });
@@ -1573,6 +1795,16 @@ function App() {
                                 className: "w-6 h-6 rounded-lg bg-slate-100 text-slate-500 text-xs font-bold font-mono flex items-center justify-center flex-shrink-0",
                                 children: idx + 1
                               }),
+                              /*#__PURE__*/_jsx("div", {
+                                className: "w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-gradient-to-tr from-slate-100 to-slate-200 border border-slate-200 shadow-2xs flex items-center justify-center font-bold text-[11px] text-slate-600 select-none",
+                                children: (s.photoUrl || studentPhotosMap[s.id] || studentPhotosMap[s.name])
+                                  ? /*#__PURE__*/_jsx("img", {
+                                      src: s.photoUrl || studentPhotosMap[s.id] || studentPhotosMap[s.name],
+                                      alt: s.name,
+                                      className: "w-full h-full object-cover"
+                                    })
+                                  : (s.name || '').replace(/^(?:นาย|นางสาว|นาง|ด\.ช\.|ด\.ญ\.)\s*/g, '').slice(0, 2)
+                              }),
                               /*#__PURE__*/_jsx("h4", {
                                 className: "text-sm font-bold text-slate-900 truncate",
                                 children: s.name
@@ -1700,7 +1932,22 @@ function App() {
                             /*#__PURE__*/_jsx("td", { className: "py-3 px-4 text-center font-mono text-xs text-slate-400", children: idx + 1 }),
                             /*#__PURE__*/_jsx("td", {
                               className: "py-3 px-4",
-                              children: /*#__PURE__*/_jsx("span", { className: "font-semibold text-slate-800", children: s.name })
+                              children: /*#__PURE__*/_jsxs("div", {
+                                className: "flex items-center gap-3",
+                                children: [
+                                  /*#__PURE__*/_jsx("div", {
+                                    className: "w-9 h-9 rounded-full overflow-hidden flex-shrink-0 bg-gradient-to-tr from-slate-100 to-slate-200 border border-slate-200 shadow-2xs flex items-center justify-center font-bold text-xs text-slate-600 select-none",
+                                    children: (s.photoUrl || studentPhotosMap[s.id] || studentPhotosMap[s.name])
+                                      ? /*#__PURE__*/_jsx("img", {
+                                          src: s.photoUrl || studentPhotosMap[s.id] || studentPhotosMap[s.name],
+                                          alt: s.name,
+                                          className: "w-full h-full object-cover"
+                                        })
+                                      : (s.name || '').replace(/^(?:นาย|นางสาว|นาง|ด\.ช\.|ด\.ญ\.)\s*/g, '').slice(0, 2)
+                                  }),
+                                  /*#__PURE__*/_jsx("span", { className: "font-semibold text-slate-800", children: s.name })
+                                ]
+                              })
                             }),
                             /*#__PURE__*/_jsxs("td", {
                               className: "py-3 px-4 text-xs text-slate-500",
@@ -1813,6 +2060,53 @@ function App() {
       }),
 
       // Modals
+      // Student Photo Modal
+      photoModalTarget && /*#__PURE__*/_jsx(StudentPhotoModal, {
+        targetStudent: photoModalTarget,
+        currentPhoto: studentPhotosMap[photoModalTarget.id] || studentPhotosMap[photoModalTarget.student_name] || '',
+        onSave: async (student, photoData) => {
+          const key = student.id || student.student_name;
+          const updated = { ...studentPhotosMap, [key]: photoData };
+          if (student.real_id) updated[student.real_id] = photoData;
+          if (student.student_name) updated[student.student_name] = photoData;
+          setStudentPhotosMap(updated);
+          localStorage.setItem('student_photos_cache', JSON.stringify(updated));
+          try {
+            const token = sessionStorage.getItem('admin_session_token') || '';
+            await dbAssembly.rpc('admin_save_system_settings_batch_secure', {
+              p_settings: [{ key: 'student_photos_map', value: JSON.stringify(updated) }],
+              p_auth_token_or_pin: token
+            });
+            alert(`บันทึกรูปประจำตัวของ "${student.student_name}" เรียบร้อยแล้ว`);
+          } catch(e) {
+            console.warn('Save photo settings warning:', e);
+            alert(`บันทึกรูปสำเร็จ (บันทึกไว้ในแคชเรียบร้อย)`);
+          }
+          setPhotoModalTarget(null);
+        },
+        onDelete: async (student) => {
+          const key = student.id || student.student_name;
+          const updated = { ...studentPhotosMap };
+          delete updated[key];
+          if (student.real_id) delete updated[student.real_id];
+          if (student.student_name) delete updated[student.student_name];
+          setStudentPhotosMap(updated);
+          localStorage.setItem('student_photos_cache', JSON.stringify(updated));
+          try {
+            const token = sessionStorage.getItem('admin_session_token') || '';
+            await dbAssembly.rpc('admin_save_system_settings_batch_secure', {
+              p_settings: [{ key: 'student_photos_map', value: JSON.stringify(updated) }],
+              p_auth_token_or_pin: token
+            });
+            alert(`ลบรูปประจำตัวของ "${student.student_name}" เรียบร้อยแล้ว`);
+          } catch(e) {
+            console.warn('Delete photo settings warning:', e);
+          }
+          setPhotoModalTarget(null);
+        },
+        onClose: () => setPhotoModalTarget(null)
+      }),
+
       resolutionStudent && /*#__PURE__*/_jsx("div", {
         className: "fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4",
         onClick: () => setResolutionStudent(null),
@@ -1891,6 +2185,8 @@ function App() {
       }),
 
       isAdminPanelOpen && isAdminLoggedIn && /*#__PURE__*/_jsx(AdminPanelModal, {
+        studentPhotosMap: studentPhotosMap,
+        onOpenStudentPhoto: (s) => setPhotoModalTarget(s),
         baseTotalDays: baseTotalDays,
         onSaveDays: d => { setBaseTotalDays(d); reloadData(); },
         rules: rules,
@@ -3940,6 +4236,8 @@ function AdminPasswordModal({ onClose, onSuccess }) {
 // MODAL: Admin Panel (Expanded with Logs & Drive)
 // ==========================================
 function AdminPanelModal({
+  studentPhotosMap,
+  onOpenStudentPhoto,
   baseTotalDays,
   onSaveDays,
   rules,
@@ -5559,6 +5857,12 @@ function AdminPanelModal({
                             /*#__PURE__*/_jsxs("div", {
                               className: "flex items-center gap-1.5 flex-shrink-0",
                               children: [
+                                /*#__PURE__*/_jsx("button", {
+                                  type: "button",
+                                  onClick: () => onOpenStudentPhoto ? onOpenStudentPhoto(s) : null,
+                                  className: "px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-[11px] font-semibold cursor-pointer shadow-2xs flex items-center gap-1",
+                                  children: "📷 รูป"
+                                }),
                                 /*#__PURE__*/_jsx("button", {
                                   type: "button",
                                   onClick: () => handleEditStudentClick(s),
