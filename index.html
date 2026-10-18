@@ -4936,6 +4936,16 @@ function TeacherCheckinModal({
         return;
       }
     }
+
+    // บังคับถ่ายรูปหลักฐานการเข้าแถวก่อนบันทึกเสมอ
+    if (!photoDataUrl) {
+      alert('⚠️ ระบบบังคับถ่ายรูปหลักฐาน:\nกรุณากดถ่ายรูปหรือแนบภาพถ่ายการเข้าแถวก่อนกดบันทึกข้อมูล');
+      if (fileInputRef.current) {
+        fileInputRef.current.click();
+      }
+      return;
+    }
+
     setIsSaving(true);
     setSaveSuccessMsg('');
     try {
@@ -5323,14 +5333,18 @@ function TeacherCheckinModal({
                         /*#__PURE__*/_jsxs("button", {
                           type: "button",
                           onClick: () => fileInputRef.current && fileInputRef.current.click(),
-                          className: `px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm cursor-pointer shadow-xs transition-all flex items-center gap-2 ${photoDataUrl ? 'bg-emerald-50 text-emerald-800 border border-emerald-300' : 'bg-sky-600 hover:bg-sky-700 text-white animate-pulse'}`,
+                          className: `px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm cursor-pointer shadow-xs transition-all flex items-center gap-2 ${
+                            photoDataUrl
+                              ? 'bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100 shadow-2xs'
+                              : 'bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-700 hover:to-amber-700 text-white animate-pulse ring-2 ring-rose-400 shadow-md'
+                          }`,
                           children: [
                             photoDataUrl ? /*#__PURE__*/_jsx("img", {
                               src: photoDataUrl,
                               alt: "หลักฐาน",
-                              className: "w-6 h-6 rounded-lg object-cover"
+                              className: "w-6 h-6 rounded-lg object-cover ring-1 ring-emerald-400"
                             }) : /*#__PURE__*/_jsx(Icon.Camera, { className: "w-4 h-4 mr-1 text-white" }),
-                            photoDataUrl ? "ถ่ายรูปหลักฐานใหม่" : "ถ่ายรูปหลักฐานการเข้าแถว"
+                            photoDataUrl ? "✓ ถ่ายรูปหลักฐานแล้ว (กดเพื่อเปลี่ยนรูป)" : "📸 ถ่ายรูปหลักฐานการเข้าแถว (จำเป็น)"
                           ]
                         })
                       ]
@@ -5501,18 +5515,40 @@ function TeacherCheckinModal({
             }),
 
             /*#__PURE__*/_jsxs("div", {
-              className: "p-4 bg-slate-50 border-t border-slate-200 flex gap-3 sticky bottom-0 z-10",
+              className: "p-4 bg-slate-50 border-t border-slate-200 flex flex-col gap-2.5 sticky bottom-0 z-10",
               children: [
-                /*#__PURE__*/_jsx("button", {
-                  onClick: onClose,
-                  className: "w-28 py-3.5 rounded-2xl bg-white hover:bg-slate-100 text-slate-700 font-bold text-sm sm:text-base border border-slate-300 cursor-pointer transition-colors shadow-xs",
-                  children: "ปิด"
+                !photoDataUrl && /*#__PURE__*/_jsxs("div", {
+                  className: "text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 shadow-2xs",
+                  children: [
+                    /*#__PURE__*/_jsx(Icon.Alert, { className: "w-4 h-4 text-rose-600 flex-shrink-0" }),
+                    "ระบบบังคับถ่ายรูปหรือแนบหลักฐานการเข้าแถวก่อนบันทึก (กรุณากดปุ่มถ่ายรูปด้านบนเพื่อปลดล็อคปุ่มบันทึก)"
+                  ]
                 }),
-                /*#__PURE__*/_jsx("button", {
-                  onClick: handleSaveDailyAttendance,
-                  disabled: isSaving,
-                  className: "flex-1 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-black text-base sm:text-lg shadow-xl cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2 transition-transform active:scale-[0.99]",
-                  children: isSaving ? [/*#__PURE__*/_jsx(Icon.Spin, { className: "w-5 h-5 inline mr-1.5" }), 'กำลังบันทึก...'] : [/*#__PURE__*/_jsx(Icon.Save, { className: "w-5 h-5 inline mr-1.5" }), 'บันทึกข้อมูลการเข้าแถว']
+                /*#__PURE__*/_jsxs("div", {
+                  className: "flex gap-3",
+                  children: [
+                    /*#__PURE__*/_jsx("button", {
+                      onClick: onClose,
+                      className: "w-28 py-3.5 rounded-2xl bg-white hover:bg-slate-100 text-slate-700 font-bold text-sm sm:text-base border border-slate-300 cursor-pointer transition-colors shadow-xs",
+                      children: "ปิด"
+                    }),
+                    /*#__PURE__*/_jsx("button", {
+                      type: "button",
+                      onClick: handleSaveDailyAttendance,
+                      disabled: isSaving || !photoDataUrl,
+                      className: `flex-1 py-3.5 rounded-2xl font-black text-base sm:text-lg flex items-center justify-center gap-2 transition-all active:scale-[0.99] ${
+                        isSaving || !photoDataUrl
+                          ? 'bg-slate-200 text-slate-400 border border-slate-300 cursor-not-allowed shadow-none'
+                          : 'bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white cursor-pointer shadow-xl shadow-emerald-700/20'
+                      }`,
+                      title: !photoDataUrl ? 'กรุณาถ่ายรูปหรือแนบหลักฐานการเข้าแถวก่อนบันทึก' : '',
+                      children: isSaving
+                        ? [/*#__PURE__*/_jsx(Icon.Spin, { className: "w-5 h-5 inline mr-1.5" }), 'กำลังบันทึก...']
+                        : !photoDataUrl
+                        ? [/*#__PURE__*/_jsx(Icon.Lock, { className: "w-5 h-5 inline mr-1.5 text-slate-400" }), 'ต้องถ่ายรูปหลักฐานก่อนบันทึก (ปุ่มถูกล็อค)']
+                        : [/*#__PURE__*/_jsx(Icon.Save, { className: "w-5 h-5 inline mr-1.5" }), 'บันทึกข้อมูลการเข้าแถว']
+                    })
+                  ]
                 })
               ]
             })
