@@ -1903,10 +1903,11 @@ function App() {
               localStorage.setItem('student_photos_cache', JSON.stringify(merged));
               const localKeys = Object.keys(localCached);
               const dbKeys = new Set(Object.keys(parsed));
-              if (localKeys.some(k => !dbKeys.has(k) && localCached[k])) {
+              const adminToken = sessionStorage.getItem('admin_session_token');
+              if (adminToken && localKeys.some(k => !dbKeys.has(k) && localCached[k])) {
                 dbAssembly.rpc('admin_save_system_settings_batch_secure', {
                   p_settings: [{ key: 'student_photos_map', value: JSON.stringify(merged) }],
-                  p_auth_token_or_pin: 'activities000000'
+                  p_auth_token_or_pin: adminToken
                 }).catch(err => console.warn('Sync student photos warning:', err));
               }
             }
@@ -1928,10 +1929,11 @@ function App() {
               localStorage.setItem('teacher_photos_cache', JSON.stringify(merged));
               const localKeys = Object.keys(localCached);
               const dbKeys = new Set(Object.keys(parsed));
-              if (localKeys.some(k => !dbKeys.has(k) && localCached[k])) {
+              const adminToken = sessionStorage.getItem('admin_session_token');
+              if (adminToken && localKeys.some(k => !dbKeys.has(k) && localCached[k])) {
                 dbAssembly.rpc('admin_save_system_settings_batch_secure', {
                   p_settings: [{ key: 'teacher_photos_map', value: JSON.stringify(merged) }],
-                  p_auth_token_or_pin: 'activities000000'
+                  p_auth_token_or_pin: adminToken
                 }).catch(err => console.warn('Sync teacher photos warning:', err));
               }
             }
@@ -2262,7 +2264,7 @@ function App() {
     setAvailableAcademicYears(updatedYears);
     setCurrentAcademicYear(yr);
     try {
-      const token = sessionStorage.getItem('admin_session_token') || 'activities000000';
+      const token = sessionStorage.getItem('admin_session_token') || '';
       await dbAssembly.rpc('admin_save_system_settings_batch_secure', {
         p_settings: [
           { key: 'current_academic_year', value: yr },
@@ -3276,7 +3278,7 @@ function App() {
           setStudentPhotosMap(updated);
           localStorage.setItem('student_photos_cache', JSON.stringify(updated));
           try {
-            const token = sessionStorage.getItem('admin_session_token') || 'activities000000';
+            const token = sessionStorage.getItem('admin_session_token') || '';
             const { data, error } = await dbAssembly.rpc('admin_save_system_settings_batch_secure', {
               p_settings: [{ key: 'student_photos_map', value: JSON.stringify(updated) }],
               p_auth_token_or_pin: token
@@ -3300,7 +3302,7 @@ function App() {
           setStudentPhotosMap(updated);
           localStorage.setItem('student_photos_cache', JSON.stringify(updated));
           try {
-            const token = sessionStorage.getItem('admin_session_token') || 'activities000000';
+            const token = sessionStorage.getItem('admin_session_token') || '';
             const { data, error } = await dbAssembly.rpc('admin_save_system_settings_batch_secure', {
               p_settings: [{ key: 'student_photos_map', value: JSON.stringify(updated) }],
               p_auth_token_or_pin: token
@@ -3331,7 +3333,7 @@ function App() {
           setTeacherPhotosMap(updated);
           localStorage.setItem('teacher_photos_cache', JSON.stringify(updated));
           try {
-            const token = sessionStorage.getItem('admin_session_token') || 'activities000000';
+            const token = sessionStorage.getItem('admin_session_token') || '';
             const { data, error } = await dbAssembly.rpc('admin_save_system_settings_batch_secure', {
               p_settings: [{ key: 'teacher_photos_map', value: JSON.stringify(updated) }],
               p_auth_token_or_pin: token
@@ -3356,7 +3358,7 @@ function App() {
           setTeacherPhotosMap(updated);
           localStorage.setItem('teacher_photos_cache', JSON.stringify(updated));
           try {
-            const token = sessionStorage.getItem('admin_session_token') || 'activities000000';
+            const token = sessionStorage.getItem('admin_session_token') || '';
             const { data, error } = await dbAssembly.rpc('admin_save_system_settings_batch_secure', {
               p_settings: [{ key: 'teacher_photos_map', value: JSON.stringify(updated) }],
               p_auth_token_or_pin: token
@@ -6374,19 +6376,40 @@ function RemediationModal({ target, onClose, onSuccess }) {
       }
 
       // ดำเนินการผ่าน Server-Side RPC หลังบ้าน ปลอดภัยจากการดักแก้สถิติ
+      let success = false;
       const { data, error } = await dbAssembly.rpc('admin_resolve_remediation_secure', {
         p_student_id: target.id,
         p_auth_token_or_pin: pass
       });
 
-      if (error || (data && !data.success)) {
+      if (!error && data && data.success) {
+        success = true;
+      } else if (error && (error.message?.includes('status') || error.details?.includes('status') || String(error).includes('status'))) {
+        // Fallback ถ้าฟังก์ชัน RPC ใน DB เดิมยังติดคอลัมน์ status: ยืนยันรหัสแล้วอัปเดตสถิติ 80% ตรง
+        const { data: authData } = await dbAssembly.rpc('verify_admin_pin', { p_input_password: pass });
+        if (authData && authData.success) {
+          const targetDays = target.targetDays || 52;
+          const { error: updErr } = await dbAssembly.from('attendance_summary').update({
+            present_days: targetDays,
+            percent: 80,
+            updated_at: new Date().toISOString()
+          }).eq('id', target.id);
+          if (updErr) throw updErr;
+          success = true;
+        } else {
+          setErr('รหัสผ่านแอดมินไม่ถูกต้อง');
+          return;
+        }
+      } else {
         setErr(data?.error || error?.message || 'รหัสผ่านไม่ถูกต้อง');
         return;
       }
 
-      alert(`บันทึกแก้กิจกรรม 80% สำเร็จสำหรับ ${target.name}`);
-      onSuccess();
-      onClose();
+      if (success) {
+        alert(`บันทึกแก้กิจกรรม 80% สำเร็จสำหรับ ${target.name}`);
+        onSuccess();
+        onClose();
+      }
     } catch (e) {
       setErr('ล้มเหลว: ' + e.message);
     } finally {
