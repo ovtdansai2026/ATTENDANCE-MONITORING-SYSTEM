@@ -3053,24 +3053,24 @@ const [adminTab, setAdminTab] = useState('term'); // 'term', 'students', 'logs',
     return '';
   }, [studentCodesMap]);
 
-  // Dynamic department counts and filter options for student roster
+  // Dynamic department counts and filter options for student roster (Real data only, NO presets with 0 students)
   const termDepartmentCounts = useMemo(() => {
     const counts = {};
     (termStudentsList || []).forEach(s => {
-      const d = (s.department || '').trim() || 'ไม่ระบุแผนก';
-      counts[d] = (counts[d] || 0) + 1;
+      const rawDept = s.department || s.dept || '';
+      const cleanDept = normalizeDepartmentName(rawDept);
+      if (cleanDept && cleanDept !== 'ทั่วไป') {
+        counts[cleanDept] = (counts[cleanDept] || 0) + 1;
+      }
     });
     return counts;
   }, [termStudentsList]);
 
   const departmentFilterOptions = useMemo(() => {
-    const set = new Set();
-    Object.keys(termDepartmentCounts).forEach(d => set.add(d));
-    (availableDepartments || []).forEach(d => {
-      if (d && d !== 'ทั่วไป') set.add(d);
-    });
-    return Array.from(set).sort((a, b) => a.localeCompare(b, 'th'));
-  }, [termDepartmentCounts, availableDepartments]);
+    // Only real departments that have actual students in this term (counts > 0)
+    // No presets with (0), no dummy entries
+    return Object.keys(termDepartmentCounts).sort((a, b) => a.localeCompare(b, 'th'));
+  }, [termDepartmentCounts]);
 
   // Initialize newStudentDept from availableDepartments
   useEffect(() => {
@@ -3150,11 +3150,11 @@ const [adminTab, setAdminTab] = useState('term'); // 'term', 'students', 'logs',
   const filteredTermStudents = useMemo(() => {
     return termStudentsList.filter(s => {
       if (studentLevelFilter !== 'ALL' && s.pure_level !== studentLevelFilter) return false;
-      if (studentDeptFilter !== 'ALL' && (s.department || '').trim() !== studentDeptFilter) return false;
+      if (studentDeptFilter !== 'ALL' && normalizeDepartmentName(s.department || s.dept || '') !== studentDeptFilter) return false;
       if (studentSearch.trim()) {
         const q = studentSearch.trim().toLowerCase();
         const matchName = (s.student_name || '').toLowerCase().includes(q);
-        const matchDept = (s.department || '').toLowerCase().includes(q);
+        const matchDept = (s.department || '').toLowerCase().includes(q) || normalizeDepartmentName(s.department || '').toLowerCase().includes(q);
         const sCode = getStudentCode(s);
         const matchCode = sCode.toLowerCase().includes(q);
         if (!matchName && !matchDept && !matchCode) return false;
@@ -4630,7 +4630,7 @@ const [adminTab, setAdminTab] = useState('term'); // 'term', 'students', 'logs',
                               title: "เลือกระดับชั้นปีเพื่อกรองรายชื่อ",
                               children: [
                                 /*#__PURE__*/_jsx("option", { value: "ALL", children: `🎓 ทุกชั้นปี (${termStudentsList.length})` }),
-                                ['ปวช.1', 'ปวช.2', 'ปวช.3', 'ปวส.1', 'ปวส.2', 'สำเร็จการศึกษา'].map(lvl => {
+                                ['ปวช.1', 'ปวช.2', 'ปวช.3', 'ปวส.1', 'ปวส.2'].map(lvl => {
                                   const count = termStudentsList.filter(s => s.pure_level === lvl).length;
                                   return /*#__PURE__*/_jsx("option", { value: lvl, children: `${lvl} (${count})` }, lvl);
                                 })
