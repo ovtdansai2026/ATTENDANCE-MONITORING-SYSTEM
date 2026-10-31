@@ -699,6 +699,21 @@ function calculateSchoolDaysStats(startDateStr, endDateStr, specialHolidays = []
   };
 }
 
+// Helper to determine initial calendar date clamped within the relevant term
+function getInitialCalendarDate(startDateStr, endDateStr) {
+  const now = new Date();
+  const todayStr = formatLocalDate(now);
+  if (startDateStr && todayStr < startDateStr) {
+    const parts = startDateStr.split('-').map(Number);
+    if (parts.length === 3 && parts[0] > 2000) return new Date(parts[0], parts[1] - 1, 1);
+  }
+  if (endDateStr && todayStr > endDateStr) {
+    const parts = endDateStr.split('-').map(Number);
+    if (parts.length === 3 && parts[0] > 2000) return new Date(parts[0], parts[1] - 1, 1);
+  }
+  return now;
+}
+
 // Thai Date Formatter (e.g. "วันจันทร์ที่ 18 ตุลาคม 2569")
 function formatThaiDateLong(date = new Date()) {
   const days = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
@@ -2926,9 +2941,21 @@ useEffect(() => {
         assemblyAttsRes,
         sessionsRes
       ] = await Promise.all([
-        dbAssembly.from('system_settings').select('*').catch(() => ({ data: null })),
+        (async () => {
+          try {
+            return await dbAssembly.from('system_settings').select('*');
+          } catch (_) {
+            return { data: null };
+          }
+        })(),
         fetchAllRows(dbAssembly, 'attendance_summary', '*').catch(() => []),
-        dbAssembly.from('system_rules').select('*').order('min_percent', { ascending: false }),
+        (async () => {
+          try {
+            return await dbAssembly.from('system_rules').select('*').order('min_percent', { ascending: false });
+          } catch (_) {
+            return { data: null };
+          }
+        })(),
         fetchAllRows(dbAssembly, 'activities', '*').catch(() => []),
         fetchAllRows(dbReCheckFallback, 'students', '*').catch(() => []),
         fetchAllRows(dbReCheckFallback, 'attendances', '*').catch(() => []),
@@ -6143,8 +6170,14 @@ function DashboardInlineCalendar({
   onSaveHolidayReason,
   onOpenFullCalendar
 }) {
-  const [currentDate, setCurrentDate] = useState(() => new Date());
+  const [currentDate, setCurrentDate] = useState(() => getInitialCalendarDate(termStartDate, termEndDate));
   const [selectedDateStr, setSelectedDateStr] = useState(() => formatLocalDate(new Date()));
+
+  useEffect(() => {
+    if (termStartDate || termEndDate) {
+      setCurrentDate(getInitialCalendarDate(termStartDate, termEndDate));
+    }
+  }, [termStartDate, termEndDate]);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [editingHolidayReasonDate, setEditingHolidayReasonDate] = useState(null);
   const [holidayReasonInput, setHolidayReasonInput] = useState('');
@@ -6562,9 +6595,15 @@ function AttendanceCalendarModal({
   onSelectClassForCheckin,
   onClose
 }) {
-  const [currentDate, setCurrentDate] = useState(() => new Date());
+  const [currentDate, setCurrentDate] = useState(() => getInitialCalendarDate(termStartDate, termEndDate));
   const [selectedDateStr, setSelectedDateStr] = useState(() => formatLocalDate(new Date()));
   const [viewingPhotoUrl, setViewingPhotoUrl] = useState(null);
+
+  useEffect(() => {
+    if (termStartDate || termEndDate) {
+      setCurrentDate(getInitialCalendarDate(termStartDate, termEndDate));
+    }
+  }, [termStartDate, termEndDate]);
 
   // Calendar Management State
   const [localStartDate, setLocalStartDate] = useState(termStartDate || '2026-11-02');
