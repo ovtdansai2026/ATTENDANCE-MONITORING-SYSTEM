@@ -2401,8 +2401,12 @@ function App() {
     { min_percent: 0, max_percent: 69, remedy_text: 'เข้าพบหัวหน้างานพัฒนากิจกรรมฯ' }
   ]);
   const [baseTotalDays, setBaseTotalDays] = useState(65);
-  const [currentAcademicYear, setCurrentAcademicYear] = useState('2569');
-  const [currentSemester, setCurrentSemester] = useState('1');
+  const [currentAcademicYear, setCurrentAcademicYear] = useState(() => {
+    return localStorage.getItem('app_academic_year') || '2569';
+  });
+  const [currentSemester, setCurrentSemester] = useState(() => {
+    return localStorage.getItem('app_semester') || '2';
+  });
   const [studentPhotosMap, setStudentPhotosMap] = useState(() => {
     try {
       const cached = localStorage.getItem('student_photos_cache');
@@ -2424,7 +2428,12 @@ function App() {
   });
   const [photoModalTeacher, setPhotoModalTeacher] = useState(null);
   const [availableAcademicYears, setAvailableAcademicYears] = useState(['2569', '2568', '2567']);
-  const [hiddenClassLevels, setHiddenClassLevels] = useState([]);
+  const [hiddenClassLevels, setHiddenClassLevels] = useState(() => {
+    try {
+      const s = localStorage.getItem('app_hidden_class_levels');
+      return s ? JSON.parse(s) : ['ปวส.2'];
+    } catch(_) { return ['ปวส.2']; }
+  });
   const [lastUpdated, setLastUpdated] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(() => Boolean(sessionStorage.getItem('admin_session_token')));
@@ -2518,12 +2527,36 @@ function App() {
   const [checkinSessions, setCheckinSessions] = useState([]);
 
   // Academic Calendar & Dynamic School Days State
-  const [termStartDate, setTermStartDate] = useState('2026-05-18');
-  const [termEndDate, setTermEndDate] = useState('2026-10-10');
-  const [termSchedules, setTermSchedules] = useState({});
-  const [specialHolidays, setSpecialHolidays] = useState([]);
-  const [holidayReasons, setHolidayReasons] = useState({});
-  const [compensatoryDays, setCompensatoryDays] = useState([]);
+  const [termStartDate, setTermStartDate] = useState(() => {
+    return localStorage.getItem('app_term_start_date') || '2026-11-02';
+  });
+  const [termEndDate, setTermEndDate] = useState(() => {
+    return localStorage.getItem('app_term_end_date') || '2027-03-05';
+  });
+  const [termSchedules, setTermSchedules] = useState(() => {
+    try {
+      const s = localStorage.getItem('app_term_schedules');
+      return s ? JSON.parse(s) : {};
+    } catch(_) { return {}; }
+  });
+  const [specialHolidays, setSpecialHolidays] = useState(() => {
+    try {
+      const s = localStorage.getItem('app_special_holidays');
+      return s ? JSON.parse(s) : [];
+    } catch(_) { return []; }
+  });
+  const [holidayReasons, setHolidayReasons] = useState(() => {
+    try {
+      const s = localStorage.getItem('app_holiday_reasons');
+      return s ? JSON.parse(s) : {};
+    } catch(_) { return {}; }
+  });
+  const [compensatoryDays, setCompensatoryDays] = useState(() => {
+    try {
+      const s = localStorage.getItem('app_compensatory_days');
+      return s ? JSON.parse(s) : [];
+    } catch(_) { return []; }
+  });
   const [calendarStats, setCalendarStats] = useState({ elapsedDays: 65, totalTermDays: 65, isAuto: false });
   const [isCalendarEnabled, setIsCalendarEnabled] = useState(false);
 
@@ -2884,6 +2917,7 @@ useEffect(() => {
     setIsLoading(true);
     try {
       const [
+        settingsRes,
         studentsRaw,
         rulesRes,
         centralActsRes,
@@ -2892,6 +2926,7 @@ useEffect(() => {
         assemblyAttsRes,
         sessionsRes
       ] = await Promise.all([
+        dbAssembly.from('system_settings').select('*').catch(() => ({ data: null })),
         fetchAllRows(dbAssembly, 'attendance_summary', '*').catch(() => []),
         dbAssembly.from('system_rules').select('*').order('min_percent', { ascending: false }),
         fetchAllRows(dbAssembly, 'activities', '*').catch(() => []),
@@ -2909,10 +2944,10 @@ useEffect(() => {
       let curHols = specialHolidays;
       let curComp = compensatoryDays;
       let activeYear = currentAcademicYear || '2569';
-      let activeSem = currentSemester || '1';
+      let activeSem = currentSemester || '2';
       let loadedSchedules = {};
 
-      const { data: settings } = await dbAssembly.from('system_settings').select('*');
+      const settings = settingsRes?.data;
       if (settings) {
         const updatedObj = settings.find(s => s.key === 'last_updated');
         const totalDaysObj = settings.find(s => s.key === 'base_total_days');
@@ -2928,10 +2963,12 @@ useEffect(() => {
         else setLastUpdated('เชื่อมต่อ Supabase สำเร็จ');
         if (yearObj?.value) {
           activeYear = yearObj.value;
+          localStorage.setItem('app_academic_year', yearObj.value);
           setCurrentAcademicYear(prev => prev === yearObj.value ? prev : yearObj.value);
         }
         if (semObj?.value) {
           activeSem = semObj.value;
+          localStorage.setItem('app_semester', semObj.value);
           setCurrentSemester(prev => prev === semObj.value ? prev : semObj.value);
         }
 
@@ -2948,10 +2985,12 @@ useEffect(() => {
 
         if (startObj?.value) {
           curStart = startObj.value;
+          localStorage.setItem('app_term_start_date', startObj.value);
           setTermStartDate(prev => prev === startObj.value ? prev : startObj.value);
         }
         if (endObj?.value) {
           curEnd = endObj.value;
+          localStorage.setItem('app_term_end_date', endObj.value);
           setTermEndDate(prev => prev === endObj.value ? prev : endObj.value);
         }
         if (holObj?.value) {
@@ -4627,6 +4666,7 @@ useEffect(() => {
             sessions: checkinSessions,
             teachers: teachersList,
             isAdminLoggedIn: isAdminLoggedIn,
+            isLoading: isLoading,
             onSaveCalendarSettings: handleCalendarSettingsUpdated,
             onSaveHolidayReason: handleSaveHolidayReason,
             onOpenFullCalendar: () => setIsCalendarModalOpen(true)
@@ -5906,6 +5946,7 @@ useEffect(() => {
         academicYear: currentAcademicYear,
         semester: currentSemester,
         isAdminLoggedIn: isAdminLoggedIn,
+        isLoading: isLoading,
         termStartDate: termStartDate,
         termEndDate: termEndDate,
         specialHolidays: specialHolidays,
@@ -6097,6 +6138,7 @@ function DashboardInlineCalendar({
   sessions = [],
   teachers = [],
   isAdminLoggedIn = false,
+  isLoading = false,
   onSaveCalendarSettings,
   onSaveHolidayReason,
   onOpenFullCalendar
@@ -6180,13 +6222,18 @@ function DashboardInlineCalendar({
                         className: "text-xs sm:text-sm font-black tracking-tight text-white",
                         children: "ปฏิทินการเข้าแถว & วันเรียน"
                       }),
-                      /*#__PURE__*/_jsxs("span", {
+                      isLoading ? /*#__PURE__*/_jsx("span", {
+                        className: "text-[10px] px-2 py-0.5 rounded-full bg-white/20 text-amber-200 border border-white/20 font-mono font-bold animate-pulse",
+                        children: "กำลังโหลดข้อมูล..."
+                      }) : /*#__PURE__*/_jsxs("span", {
                         className: "text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-amber-200 border border-white/20 font-mono font-bold",
                         children: ["เทอม ", semester, "/", academicYear]
                       })
                     ]
                   }),
-                  /*#__PURE__*/_jsxs("p", {
+                  isLoading ? /*#__PURE__*/_jsx("div", {
+                    className: "h-3 w-40 bg-white/20 rounded mt-1.5 animate-pulse"
+                  }) : /*#__PURE__*/_jsxs("p", {
                     className: "text-[11px] text-slate-300 mt-0.5",
                     children: [
                       "เรียนแล้ว ",
@@ -6253,8 +6300,20 @@ function DashboardInlineCalendar({
 
       /* Body: Compact Calendar Grid & Date Strip */
       !isCollapsed && /*#__PURE__*/_jsxs("div", {
-        className: "p-3 sm:p-4 space-y-3",
+        className: "p-3 sm:p-4 space-y-3 relative",
         children: [
+          isLoading && /*#__PURE__*/_jsxs("div", {
+            className: "absolute inset-0 bg-white/85 backdrop-blur-2xs rounded-xl flex flex-col items-center justify-center gap-2 z-20 transition-all",
+            children: [
+              /*#__PURE__*/_jsx("div", {
+                className: "w-8 h-8 rounded-full border-3 border-amber-500 border-t-transparent animate-spin"
+              }),
+              /*#__PURE__*/_jsx("span", {
+                className: "text-xs font-bold text-slate-700 animate-pulse",
+                children: "กำลังเชื่อมต่อข้อมูลปฏิทินและวันหยุดล่าสุดจากฐานข้อมูล..."
+              })
+            ]
+          }),
           /* Days Grid Box */
           /*#__PURE__*/_jsxs("div", {
             className: "border border-slate-200 rounded-xl overflow-hidden shadow-2xs",
@@ -6491,6 +6550,7 @@ function AttendanceCalendarModal({
   academicYear,
   semester,
   isAdminLoggedIn,
+  isLoading = false,
   termStartDate,
   termEndDate,
   specialHolidays,
@@ -6507,8 +6567,8 @@ function AttendanceCalendarModal({
   const [viewingPhotoUrl, setViewingPhotoUrl] = useState(null);
 
   // Calendar Management State
-  const [localStartDate, setLocalStartDate] = useState(termStartDate || '2026-05-18');
-  const [localEndDate, setLocalEndDate] = useState(termEndDate || '2026-10-10');
+  const [localStartDate, setLocalStartDate] = useState(termStartDate || '2026-11-02');
+  const [localEndDate, setLocalEndDate] = useState(termEndDate || '2027-03-05');
   const [localHolidays, setLocalHolidays] = useState(specialHolidays || []);
   const [localCompensatory, setLocalCompensatory] = useState(compensatoryDays || []);
   const [isSavingSchedule, setIsSavingSchedule] = useState(false);
@@ -6696,9 +6756,9 @@ function AttendanceCalendarModal({
                       className: "text-xs sm:text-sm font-bold tracking-tight text-white",
                       children: "ปฏิทินการเช็คชื่อเข้าแถว & วันเปิด-ปิดภาคเรียน"
                     }),
-                    /*#__PURE__*/_jsxs("p", {
+                    /*#__PURE__*/_jsx("p", {
                       className: "text-[10px] sm:text-[11px] text-amber-100",
-                      children: ["ภาคเรียนที่ ", semester, "/", academicYear, " • วก.ด่านซ้าย"]
+                      children: isLoading ? "กำลังโหลดข้อมูลภาคเรียนล่าสุด..." : `ภาคเรียนที่ ${semester}/${academicYear} • วก.ด่านซ้าย`
                     })
                   ]
                 })
@@ -6713,8 +6773,20 @@ function AttendanceCalendarModal({
         }),
 
         /*#__PURE__*/_jsxs("div", {
-          className: "p-2.5 sm:p-3 overflow-y-auto custom-scroll flex-1 space-y-2 sm:space-y-2.5",
+          className: "p-2.5 sm:p-3 overflow-y-auto custom-scroll flex-1 space-y-2 sm:space-y-2.5 relative",
           children: [
+            isLoading && /*#__PURE__*/_jsxs("div", {
+              className: "absolute inset-0 bg-white/85 backdrop-blur-2xs flex flex-col items-center justify-center gap-3 z-30 transition-all",
+              children: [
+                /*#__PURE__*/_jsx("div", {
+                  className: "w-10 h-10 rounded-full border-3 border-amber-500 border-t-transparent animate-spin"
+                }),
+                /*#__PURE__*/_jsx("span", {
+                  className: "text-xs sm:text-sm font-bold text-slate-800 animate-pulse",
+                  children: "กำลังเชื่อมต่อข้อมูลปฏิทินและวันเปิด-ปิดภาคเรียน..."
+                })
+              ]
+            }),
             // Admin Term Dates Banner (Compact Single Row Card)
             isAdminLoggedIn ? (
               /*#__PURE__*/_jsxs("div", {
