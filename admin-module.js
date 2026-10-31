@@ -3012,6 +3012,7 @@ const [adminTab, setAdminTab] = useState('term'); // 'term', 'students', 'logs',
   const [studentSearch, setStudentSearch] = useState('');
   const [studentSearchInput, setStudentSearchInput] = useState('');
   const [studentLevelFilter, setStudentLevelFilter] = useState('ALL');
+  const [studentDeptFilter, setStudentDeptFilter] = useState('ALL');
   const [adminStudentPage, setAdminStudentPage] = useState(1);
   const adminStudentPageSize = 35;
 
@@ -3022,16 +3023,54 @@ const [adminTab, setAdminTab] = useState('term'); // 'term', 'students', 'logs',
 
   useEffect(() => {
     setAdminStudentPage(1);
-  }, [studentSearch, studentLevelFilter, adminSem, adminYear]);
+  }, [studentSearch, studentLevelFilter, studentDeptFilter, adminSem, adminYear]);
 
   // Add / Edit Form State
   const [newStudentName, setNewStudentName] = useState('');
+  const [newStudentCode, setNewStudentCode] = useState('');
   const [newStudentPhoto, setNewStudentPhoto] = useState('');
   const [newStudentDept, setNewStudentDept] = useState('ช่างยนต์');
   const [newStudentLevel, setNewStudentLevel] = useState('ปวช.1');
   const [newStudentTeacher, setNewStudentTeacher] = useState('');
   const [editingStudentId, setEditingStudentId] = useState(null);
   const [savingStudent, setSavingStudent] = useState(false);
+
+  // Helper to extract student code safely from studentCodesMap
+  const getStudentCode = useCallback((st) => {
+    if (!st) return '';
+    const safeCodes = (studentCodesMap && typeof studentCodesMap === 'object') ? studentCodesMap : {};
+    const id = String(st.id || st.student_id || st.real_id || '');
+    if (id && safeCodes[id]) return String(safeCodes[id]);
+    const name = String(st.student_name || st.name || '').trim();
+    if (name && safeCodes[name]) return String(safeCodes[name]);
+    const cleanName = name.replace(/\s+/g, ' ');
+    if (cleanName && safeCodes[cleanName]) return String(safeCodes[cleanName]);
+    const tightName = name.replace(/\s+/g, '');
+    if (tightName) {
+      const found = Object.entries(safeCodes).find(([k]) => k.replace(/\s+/g, '') === tightName);
+      if (found && found[1]) return String(found[1]);
+    }
+    return '';
+  }, [studentCodesMap]);
+
+  // Dynamic department counts and filter options for student roster
+  const termDepartmentCounts = useMemo(() => {
+    const counts = {};
+    (termStudentsList || []).forEach(s => {
+      const d = (s.department || '').trim() || 'ไม่ระบุแผนก';
+      counts[d] = (counts[d] || 0) + 1;
+    });
+    return counts;
+  }, [termStudentsList]);
+
+  const departmentFilterOptions = useMemo(() => {
+    const set = new Set();
+    Object.keys(termDepartmentCounts).forEach(d => set.add(d));
+    (availableDepartments || []).forEach(d => {
+      if (d && d !== 'ทั่วไป') set.add(d);
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b, 'th'));
+  }, [termDepartmentCounts, availableDepartments]);
 
   // Initialize newStudentDept from availableDepartments
   useEffect(() => {
@@ -3111,15 +3150,18 @@ const [adminTab, setAdminTab] = useState('term'); // 'term', 'students', 'logs',
   const filteredTermStudents = useMemo(() => {
     return termStudentsList.filter(s => {
       if (studentLevelFilter !== 'ALL' && s.pure_level !== studentLevelFilter) return false;
+      if (studentDeptFilter !== 'ALL' && (s.department || '').trim() !== studentDeptFilter) return false;
       if (studentSearch.trim()) {
         const q = studentSearch.trim().toLowerCase();
         const matchName = (s.student_name || '').toLowerCase().includes(q);
         const matchDept = (s.department || '').toLowerCase().includes(q);
-        if (!matchName && !matchDept) return false;
+        const sCode = getStudentCode(s);
+        const matchCode = sCode.toLowerCase().includes(q);
+        if (!matchName && !matchDept && !matchCode) return false;
       }
       return true;
     });
-  }, [termStudentsList, studentLevelFilter, studentSearch]);
+  }, [termStudentsList, studentLevelFilter, studentDeptFilter, studentSearch, getStudentCode]);
 
   const adminTotalStudentPages = Math.max(1, Math.ceil(filteredTermStudents.length / adminStudentPageSize));
   const paginatedTermStudents = useMemo(() => {
@@ -3134,10 +3176,11 @@ const [adminTab, setAdminTab] = useState('term'); // 'term', 'students', 'logs',
     if (!cleanDept || cleanDept === 'ทั่วไป') return alert('กรุณาระบุหรือเลือกแผนกวิชา');
     setSavingStudent(true);
     try {
+      let savedStudent = null;
       if (editingStudentId) {
         const isInherited = String(editingStudentId).startsWith('inherited_');
         if (isInherited) {
-          const { error } = await dbAssembly.from('attendance_summary').insert([{
+          const { data: insData, error } = await dbAssembly.from('attendance_summary').insert([{
             student_name: newStudentName.trim(),
             pure_level: newStudentLevel,
             department: cleanDept,
@@ -3147,21 +3190,31 @@ const [adminTab, setAdminTab] = useState('term'); // 'term', 'students', 'logs',
             percent: newStudentLevel === 'สำเร็จการศึกษา' ? 100 : 0,
             academic_year: adminYear,
             semester: adminSem
-          }]);
+          }]).select();
           if (error) throw error;
+          savedStudent = insData?.[0] || { id: editingStudentId, student_name: newStudentName.trim() };
         } else {
-          const { error } = await dbAssembly.from('attendance_summary').update({
+          const { data: updData, error } = await dbAssembly.from('attendance_summary').update({
             student_name: newStudentName.trim(),
             pure_level: newStudentLevel,
             department: cleanDept,
             teacher_email: newStudentTeacher.trim() || '-',
             academic_year: adminYear,
             semester: adminSem
-          }).eq('id', editingStudentId);
+          }).eq('id', editingStudentId).select();
           if (error) throw error;
+          savedStudent = updData?.[0] || { id: editingStudentId, student_name: newStudentName.trim() };
         }
         if (onSaveStudentPhoto && newStudentPhoto !== undefined) {
-          await onSaveStudentPhoto({ id: editingStudentId, name: newStudentName.trim(), student_name: newStudentName.trim() }, newStudentPhoto);
+          await onSaveStudentPhoto({ id: savedStudent.id, name: newStudentName.trim(), student_name: newStudentName.trim() }, newStudentPhoto);
+        }
+        if (onSaveStudentCode) {
+          await onSaveStudentCode({
+            id: savedStudent.id,
+            real_id: savedStudent.id,
+            name: newStudentName.trim(),
+            student_name: newStudentName.trim()
+          }, newStudentCode.trim());
         }
         alert('บันทึกข้อมูลนักเรียนเรียบร้อยแล้ว');
       } else {
@@ -3177,12 +3230,22 @@ const [adminTab, setAdminTab] = useState('term'); // 'term', 'students', 'logs',
           semester: adminSem
         }]).select();
         if (error) throw error;
+        savedStudent = insData?.[0] || { student_name: newStudentName.trim() };
         if (newStudentPhoto && onSaveStudentPhoto) {
-          await onSaveStudentPhoto({ id: insData?.[0]?.id, name: newStudentName.trim(), student_name: newStudentName.trim() }, newStudentPhoto);
+          await onSaveStudentPhoto({ id: savedStudent?.id, name: newStudentName.trim(), student_name: newStudentName.trim() }, newStudentPhoto);
+        }
+        if (onSaveStudentCode) {
+          await onSaveStudentCode({
+            id: savedStudent?.id,
+            real_id: savedStudent?.id,
+            name: newStudentName.trim(),
+            student_name: newStudentName.trim()
+          }, newStudentCode.trim());
         }
         alert(`เพิ่มข้อมูลนักเรียน "${newStudentName.trim()}" (${newStudentLevel}) เรียบร้อยแล้ว`);
       }
       setNewStudentName('');
+      setNewStudentCode('');
       setNewStudentPhoto('');
       setNewStudentTeacher('');
       setIsCustomStudentDept(false);
@@ -3200,6 +3263,7 @@ const [adminTab, setAdminTab] = useState('term'); // 'term', 'students', 'logs',
   const handleEditStudentClick = (student) => {
     setEditingStudentId(student.id);
     setNewStudentName(student.student_name || '');
+    setNewStudentCode(getStudentCode(student));
     const cleanD = normalizeDepartmentName(student.department || '');
     setNewStudentDept(cleanD || 'ช่างยนต์');
     setIsCustomStudentDept(Boolean(cleanD && !availableDepartments.includes(cleanD)));
@@ -3213,6 +3277,7 @@ const [adminTab, setAdminTab] = useState('term'); // 'term', 'students', 'logs',
   const handleCancelEdit = () => {
     setEditingStudentId(null);
     setNewStudentName('');
+    setNewStudentCode('');
     setNewStudentPhoto('');
     setNewStudentTeacher('');
     setNewStudentLevel('ปวช.1');
@@ -3259,7 +3324,7 @@ const [adminTab, setAdminTab] = useState('term'); // 'term', 'students', 'logs',
           : 'เสี่ยงตก (ต่ำกว่า 80%)';
         return {
           'ลำดับ': idx + 1,
-          'รหัสประจำตัว': s.student_id || s.id || '-',
+          'รหัสประจำตัว': getStudentCode(s) || s.student_id || s.id || '-',
           'ชื่อ - นามสกุล': s.student_name || s.name || '-',
           'ระดับชั้น': s.pure_level || s.level || '-',
           'แผนกวิชา': formatDeptDisplay(s.department || s.dept || '-'),
@@ -4529,50 +4594,73 @@ const [adminTab, setAdminTab] = useState('term'); // 'term', 'students', 'logs',
                   className: "space-y-3",
                   children: [
                     /*#__PURE__*/_jsxs("div", {
-                      className: "flex flex-col sm:flex-row gap-2 justify-between sm:items-center",
+                      className: "flex flex-col md:flex-row gap-2 justify-between items-stretch md:items-center bg-slate-50/70 p-2 rounded-2xl border border-slate-200",
                       children: [
+                        /* Left: Search & Filter dropdowns */
                         /*#__PURE__*/_jsxs("div", {
-                          className: "flex items-center gap-2 w-full sm:w-auto",
+                          className: "flex flex-wrap items-center gap-2 flex-1",
                           children: [
+                            /* Search input */
                             /*#__PURE__*/_jsx("input", {
                               type: "text",
                               value: studentSearchInput,
                               onChange: e => setStudentSearchInput(e.target.value),
-                              placeholder: "ค้นหาชื่อ หรือ แผนกวิชา...",
-                              className: "bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-400 w-full sm:w-64"
+                              placeholder: "ค้นหาชื่อ, รหัส หรือ แผนก...",
+                              className: "bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-400 w-full sm:w-56"
                             }),
-                            /*#__PURE__*/_jsxs("button", {
-                              type: "button",
-                              onClick: handleExportStudentsExcel,
-                              className: "px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-xs whitespace-nowrap flex-shrink-0",
-                              title: "ส่งออกข้อมูลนักเรียนของภาคเรียนนี้เป็นไฟล์ Excel (.xlsx)",
+                            /* Dropdown 1: แผนกวิชา */
+                            /*#__PURE__*/_jsxs("select", {
+                              value: studentDeptFilter,
+                              onChange: e => setStudentDeptFilter(e.target.value),
+                              className: "bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:border-indigo-400 cursor-pointer shadow-2xs flex-1 sm:flex-initial",
+                              title: "เลือกแผนกวิชาเพื่อกรองรายชื่อ",
                               children: [
-                                /*#__PURE__*/_jsx(Icon.Document, { className: "w-3.5 h-3.5 text-emerald-200" }),
-                                "ส่งออก Excel"
+                                /*#__PURE__*/_jsx("option", { value: "ALL", children: `📁 ทุกแผนก (${termStudentsList.length})` }),
+                                departmentFilterOptions.map(dept => {
+                                  const count = termDepartmentCounts[dept] || 0;
+                                  return /*#__PURE__*/_jsx("option", { value: dept, children: `${dept} (${count})` }, dept);
+                                })
                               ]
+                            }),
+                            /* Dropdown 2: ชั้นปี */
+                            /*#__PURE__*/_jsxs("select", {
+                              value: studentLevelFilter,
+                              onChange: e => setStudentLevelFilter(e.target.value),
+                              className: "bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:border-indigo-400 cursor-pointer shadow-2xs flex-1 sm:flex-initial",
+                              title: "เลือกระดับชั้นปีเพื่อกรองรายชื่อ",
+                              children: [
+                                /*#__PURE__*/_jsx("option", { value: "ALL", children: `🎓 ทุกชั้นปี (${termStudentsList.length})` }),
+                                ['ปวช.1', 'ปวช.2', 'ปวช.3', 'ปวส.1', 'ปวส.2', 'สำเร็จการศึกษา'].map(lvl => {
+                                  const count = termStudentsList.filter(s => s.pure_level === lvl).length;
+                                  return /*#__PURE__*/_jsx("option", { value: lvl, children: `${lvl} (${count})` }, lvl);
+                                })
+                              ]
+                            }),
+                            /* Clear filter button if active */
+                            (studentLevelFilter !== 'ALL' || studentDeptFilter !== 'ALL' || studentSearchInput.trim()) && /*#__PURE__*/_jsx("button", {
+                              type: "button",
+                              onClick: () => {
+                                setStudentLevelFilter('ALL');
+                                setStudentDeptFilter('ALL');
+                                setStudentSearchInput('');
+                                setStudentSearch('');
+                              },
+                              className: "px-2.5 py-1 text-[11px] font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-xl transition-colors cursor-pointer whitespace-nowrap",
+                              title: "ล้างตัวกรองทั้งหมด",
+                              children: "✕ ล้างตัวกรอง"
                             })
                           ]
                         }),
-                        /*#__PURE__*/_jsxs("div", {
-                          className: "flex flex-wrap gap-1 text-[11px]",
+                        /* Right: Excel Export button */
+                        /*#__PURE__*/_jsxs("button", {
+                          type: "button",
+                          onClick: handleExportStudentsExcel,
+                          className: "px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-xs whitespace-nowrap flex-shrink-0 self-end md:self-auto",
+                          title: "ส่งออกข้อมูลนักเรียนของภาคเรียนนี้เป็นไฟล์ Excel (.xlsx)",
                           children: [
-                            ['ALL', `ทั้งหมด (${termStudentsList.length})`],
-                            ['ปวช.1', 'ปวช.1'],
-                            ['ปวช.2', 'ปวช.2'],
-                            ['ปวช.3', 'ปวช.3'],
-                            ['ปวส.1', 'ปวส.1'],
-                            ['ปวส.2', 'ปวส.2'],
-                            ['สำเร็จการศึกษา', 'สำเร็จการศึกษา']
-                          ].map(([lvl, lbl]) => {
-                            const count = lvl === 'ALL' ? termStudentsList.length : termStudentsList.filter(s => s.pure_level === lvl).length;
-                            return /*#__PURE__*/_jsxs("button", {
-                              key: lvl,
-                              type: "button",
-                              onClick: () => setStudentLevelFilter(lvl),
-                              className: `px-2 py-1 rounded-lg font-semibold cursor-pointer transition-colors ${studentLevelFilter === lvl ? 'bg-indigo-600 text-white shadow-2xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`,
-                              children: [lvl === 'ALL' ? lbl : `${lbl} (${count})`]
-                            });
-                          })
+                            /*#__PURE__*/_jsx(Icon.Document, { className: "w-3.5 h-3.5 text-emerald-200" }),
+                            "ส่งออก Excel"
+                          ]
                         })
                       ]
                     }),
@@ -4635,7 +4723,21 @@ const [adminTab, setAdminTab] = useState('term'); // 'term', 'students', 'logs',
                                     /*#__PURE__*/_jsxs("div", {
                                       className: "min-w-0",
                                       children: [
-                                        /*#__PURE__*/_jsx("div", { className: "font-bold text-slate-900 truncate", children: s.student_name }),
+                                        /*#__PURE__*/_jsxs("div", {
+                                          className: "flex items-center gap-1.5 flex-wrap",
+                                          children: [
+                                            /*#__PURE__*/_jsx("span", { className: "font-bold text-slate-900 truncate", children: s.student_name }),
+                                            (() => {
+                                              const sCode = getStudentCode(s);
+                                              if (!sCode) return null;
+                                              return /*#__PURE__*/_jsx("span", {
+                                                className: "font-mono text-[10px] text-indigo-700 bg-indigo-50 border border-indigo-200/80 px-1.5 py-0.5 rounded font-semibold",
+                                                title: `รหัสนักศึกษา: ${sCode}`,
+                                                children: sCode
+                                              });
+                                            })()
+                                          ]
+                                        }),
                                         /*#__PURE__*/_jsxs("div", {
                                           className: "text-[11px] text-slate-500 flex items-center gap-1.5",
                                           children: [
@@ -4747,15 +4849,48 @@ const [adminTab, setAdminTab] = useState('term'); // 'term', 'students', 'logs',
                           label: editingStudentId ? "แก้ไขรูปประจำตัวนักเรียน" : "รูปประจำตัวนักเรียนใหม่"
                         }),
 
+                        /* Student Code & Student Name */
                         /*#__PURE__*/_jsxs("div", {
+                          className: "grid grid-cols-1 sm:grid-cols-2 gap-3",
                           children: [
-                            /*#__PURE__*/_jsx("label", { className: "text-xs font-bold text-slate-700 block mb-1", children: "ชื่อ - นามสกุล:" }),
-                            /*#__PURE__*/_jsx("input", {
-                              type: "text",
-                              value: newStudentName,
-                              onChange: e => setNewStudentName(e.target.value),
-                              placeholder: "ชื่อ-นามสกุลนักเรียน...",
-                              className: "w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-medium focus:outline-none focus:border-indigo-500 shadow-2xs"
+                            /* Student Code */
+                            /*#__PURE__*/_jsxs("div", {
+                              children: [
+                                /*#__PURE__*/_jsxs("label", {
+                                  className: "text-xs font-bold text-slate-700 block mb-1 flex items-center justify-between",
+                                  children: [
+                                    /*#__PURE__*/_jsx("span", { children: "รหัสนักศึกษา (เลขประจำตัว):" }),
+                                    /*#__PURE__*/_jsx("span", { className: "text-[10px] text-slate-400 font-normal", children: "10-11 หลัก" })
+                                  ]
+                                }),
+                                /*#__PURE__*/_jsx("input", {
+                                  type: "text",
+                                  value: newStudentCode,
+                                  onChange: e => setNewStudentCode(e.target.value),
+                                  placeholder: "เช่น 67201010001 (ถ้ามี)",
+                                  maxLength: 15,
+                                  className: "w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono font-medium focus:outline-none focus:border-indigo-500 shadow-2xs"
+                                })
+                              ]
+                            }),
+                            /* Student Name */
+                            /*#__PURE__*/_jsxs("div", {
+                              children: [
+                                /*#__PURE__*/_jsxs("label", {
+                                  className: "text-xs font-bold text-slate-700 block mb-1 flex items-center justify-between",
+                                  children: [
+                                    /*#__PURE__*/_jsx("span", { children: "ชื่อ - นามสกุล:" }),
+                                    /*#__PURE__*/_jsx("span", { className: "text-[10px] text-rose-500 font-bold", children: "* จำเป็น" })
+                                  ]
+                                }),
+                                /*#__PURE__*/_jsx("input", {
+                                  type: "text",
+                                  value: newStudentName,
+                                  onChange: e => setNewStudentName(e.target.value),
+                                  placeholder: "ชื่อ-นามสกุลนักเรียน...",
+                                  className: "w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-medium focus:outline-none focus:border-indigo-500 shadow-2xs"
+                                })
+                              ]
                             })
                           ]
                         }),
