@@ -616,36 +616,12 @@ function formatLocalDate(d) {
   return y + '-' + m + '-' + day;
 }
 
-// Known Thai National Holidays Dictionary (MM-DD)
-const KNOWN_THAI_HOLIDAYS = {
-  '01-01': 'วันขึ้นปีใหม่',
-  '01-02': 'ชดเชยวันสิ้นปี/วันขึ้นปีใหม่',
-  '02-26': 'วันมาฆบูชา',
-  '04-06': 'วันจักรี',
-  '04-13': 'วันสงกรานต์',
-  '04-14': 'วันสงกรานต์',
-  '04-15': 'วันสงกรานต์',
-  '05-01': 'วันแรงงานแห่งชาติ',
-  '05-04': 'วันฉัตรมงคล',
-  '05-22': 'วันวิสาขบูชา',
-  '06-03': 'วันเฉลิมฯ พระบรมราชินี',
-  '07-20': 'วันอาสาฬหบูชา',
-  '07-21': 'วันเข้าพรรษา',
-  '07-28': 'วันเฉลิมฯ ร.10',
-  '08-12': 'วันแม่แห่งชาติ',
-  '10-13': 'วันนวมินทรมหาราช',
-  '10-23': 'วันปิยมหาราช',
-  '12-05': 'วันพ่อแห่งชาติ',
-  '12-10': 'วันรัฐธรรมนูญ',
-  '12-31': 'วันสิ้นปี'
-};
-
 function getHolidayLabel(dateStr, customReasons = {}) {
-  if (!dateStr) return 'วันหยุด';
-  if (customReasons && customReasons[dateStr]) return String(customReasons[dateStr]).trim();
-  const mmdd = String(dateStr).slice(5);
-  if (KNOWN_THAI_HOLIDAYS[mmdd]) return KNOWN_THAI_HOLIDAYS[mmdd];
-  return 'วันหยุดพิเศษ';
+  if (!dateStr) return "วันหยุด";
+  if (customReasons && customReasons[dateStr] && String(customReasons[dateStr]).trim()) {
+    return String(customReasons[dateStr]).trim();
+  }
+  return "วันหยุด";
 }
 
 function formatThaiDateFull(dateStr) {
@@ -6166,7 +6142,7 @@ function DashboardInlineCalendar({
                         type: "button",
                         onClick: () => {
                           setEditingHolidayReasonDate(selectedDateStr);
-                          setHolidayReasonInput(holidayReasons[selectedDateStr] || getHolidayLabel(selectedDateStr, holidayReasons));
+                          setHolidayReasonInput(holidayReasons[selectedDateStr] || "");
                         },
                         className: "px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-[11px] font-bold cursor-pointer shadow-2xs flex items-center gap-1",
                         title: "ระบุหรือแก้ไขชื่อเหตุผลวันหยุด",
@@ -6180,10 +6156,10 @@ function DashboardInlineCalendar({
                               await handleToggleHoliday(selectedDateStr);
                             }
                           } else {
-                            const defReason = getHolidayLabel(selectedDateStr, holidayReasons);
-                            const customR = prompt(`ตั้งค่าวันที่ ${selectedDateStr} เป็นวันหยุดพิเศษ\nกรุณาระบุเหตุผลวันหยุด:`, defReason);
+                            const existingR = holidayReasons[selectedDateStr] || "";
+                            const customR = prompt(`ตั้งค่าวันที่ ${selectedDateStr} เป็นวันหยุด\nระบุเหตุผล (ถ้ามี):`, existingR);
                             if (customR !== null) {
-                              await handleToggleHoliday(selectedDateStr, customR.trim() || defReason);
+                              await handleToggleHoliday(selectedDateStr, customR.trim());
                             }
                           }
                         },
