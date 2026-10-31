@@ -2691,6 +2691,8 @@ function AdminPanelModal({
   allowOffHoursCheckin = false,
   onToggleOffHoursCheckin,
   masterStudents = [],
+  hiddenClassLevels = [],
+  onSaveHiddenClassLevels,
   activities = [],
   openCentralActivityIds = [],
   onUpdateOpenCentralActivities,
@@ -2714,6 +2716,32 @@ function AdminPanelModal({
 const [adminTab, setAdminTab] = useState('term'); // 'term', 'students', 'logs', 'teachers', 'general', 'storage', 'line'
   const [days, setDays] = useState(baseTotalDays);
   const [ruleList, setRuleList] = useState(rules);
+  const [localHiddenLevels, setLocalHiddenLevels] = useState(hiddenClassLevels || []);
+  const [savingHiddenLevels, setSavingHiddenLevels] = useState(false);
+
+  useEffect(() => {
+    setLocalHiddenLevels(hiddenClassLevels || []);
+  }, [hiddenClassLevels]);
+
+  const handleToggleHideLevel = async (levelName) => {
+    const isCurrentlyHidden = localHiddenLevels.includes(levelName);
+    const updated = isCurrentlyHidden 
+      ? localHiddenLevels.filter(lvl => lvl !== levelName)
+      : [...localHiddenLevels, levelName];
+    setLocalHiddenLevels(updated);
+    setSavingHiddenLevels(true);
+    try {
+      if (onSaveHiddenClassLevels) {
+        await onSaveHiddenClassLevels(updated);
+      }
+    } catch(err) {
+      console.error('Failed to toggle hidden level:', err);
+      alert('บันทึกการซ่อนชั้นปีไม่สำเร็จ: ' + (err.message || err));
+      setLocalHiddenLevels(localHiddenLevels);
+    } finally {
+      setSavingHiddenLevels(false);
+    }
+  };
   const [localAllowOffHours, setLocalAllowOffHours] = useState(Boolean(allowOffHoursCheckin));
   const [savingOffHours, setSavingOffHours] = useState(false);
 
@@ -4455,6 +4483,73 @@ const [adminTab, setAdminTab] = useState('term'); // 'term', 'students', 'logs',
                   ]
                 }),
 
+                /* Card: จัดการการแสดงผลระดับชั้นปี (เปิด / ซ่อน) */
+                /*#__PURE__*/_jsxs("div", {
+                  className: "p-5 bg-white rounded-2xl border border-slate-200 shadow-xs space-y-3",
+                  children: [
+                    /*#__PURE__*/_jsxs("div", {
+                      className: "flex items-center justify-between",
+                      children: [
+                        /*#__PURE__*/_jsxs("h3", {
+                          className: "text-sm font-bold text-slate-900 flex items-center gap-1.5",
+                          children: [
+                            /*#__PURE__*/_jsx(Icon.Users, { className: "w-4 h-4 text-indigo-600" }),
+                            "เปิด / ซ่อนระดับชั้นปีในระบบ"
+                          ]
+                        }),
+                        /*#__PURE__*/_jsx(InfoTooltip, {
+                          title: "เปิด/ซ่อนระดับชั้นปี",
+                          text: "กำหนดระดับชั้นปีที่ต้องการให้แสดงผลหรือซ่อนจากแดชบอร์ดหลัก (เช่น กรณี ปวส.2 ออกฝึกงานภายนอก) โดยข้อมูลนักเรียนในฐานข้อมูลจะไม่สูญหาย"
+                        })
+                      ]
+                    }),
+                    /*#__PURE__*/_jsx("p", {
+                      className: "text-[11px] text-slate-500 leading-relaxed",
+                      children: "ชั้นปีที่ถูก 'ซ่อน' จะไม่ถูกนำไปคิดสถิติการมาแถว, KPI รวม, การ์ดแผนก และตารางรายชื่อในหน้าแรก เพื่อความถูกต้องของข้อมูลในแต่ละภาคเรียน"
+                    }),
+                    /*#__PURE__*/_jsx("div", {
+                      className: "grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1",
+                      children: ['ปวช.1', 'ปวช.2', 'ปวช.3', 'ปวส.1', 'ปวส.2'].map(lvl => {
+                        const count = (termStudentsList || []).filter(s => s.pure_level === lvl).length;
+                        const isHidden = localHiddenLevels.includes(lvl);
+                        return /*#__PURE__*/_jsxs("div", {
+                          key: lvl,
+                          className: `p-3 rounded-xl border flex items-center justify-between transition-all ${isHidden ? 'bg-rose-50/80 border-rose-200 shadow-2xs' : 'bg-slate-50/70 border-slate-200 hover:border-slate-300'}`,
+                          children: [
+                            /*#__PURE__*/_jsxs("div", {
+                              className: "flex items-center gap-2.5",
+                              children: [
+                                /*#__PURE__*/_jsx("span", {
+                                  className: `w-2.5 h-2.5 rounded-full ${isHidden ? 'bg-rose-500' : 'bg-emerald-500'}`,
+                                }),
+                                /*#__PURE__*/_jsxs("div", {
+                                  children: [
+                                    /*#__PURE__*/_jsx("div", {
+                                      className: `text-xs font-bold ${isHidden ? 'text-rose-950 line-through' : 'text-slate-800'}`,
+                                      children: lvl
+                                    }),
+                                    /*#__PURE__*/_jsxs("div", {
+                                      className: "text-[10px] text-slate-500",
+                                      children: [count, " คนในเทอมนี้"]
+                                    })
+                                  ]
+                                })
+                              ]
+                            }),
+                            /*#__PURE__*/_jsx("button", {
+                              type: "button",
+                              onClick: () => handleToggleHideLevel(lvl),
+                              disabled: savingHiddenLevels,
+                              className: `px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${isHidden ? 'bg-rose-600 text-white hover:bg-rose-700 shadow-xs' : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100'}`,
+                              children: isHidden ? "🚫 ซ่อนอยู่ (คลิกเพื่อแสดง)" : "👁️ แสดงอยู่ (คลิกเพื่อซ่อน)"
+                            })
+                          ]
+                        });
+                      })
+                    })
+                  ]
+                }),
+
                 // Promotion for New Academic Year
                 /*#__PURE__*/_jsxs("div", {
                   className: "p-4 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl border border-indigo-200 space-y-3",
@@ -4640,7 +4735,8 @@ const [adminTab, setAdminTab] = useState('term'); // 'term', 'students', 'logs',
                                 /*#__PURE__*/_jsx("option", { value: "ALL", children: `🎓 ทุกชั้นปี (${termStudentsList.length})` }),
                                 ['ปวช.1', 'ปวช.2', 'ปวช.3', 'ปวส.1', 'ปวส.2'].map(lvl => {
                                   const count = termStudentsList.filter(s => s.pure_level === lvl).length;
-                                  return /*#__PURE__*/_jsx("option", { value: lvl, children: `${lvl} (${count})` }, lvl);
+                                  const isHidden = localHiddenLevels && localHiddenLevels.includes(lvl);
+                                  return /*#__PURE__*/_jsx("option", { value: lvl, children: `${lvl} (${count})${isHidden ? ' [ซ่อนอยู่]' : ''}` }, lvl);
                                 })
                               ]
                             }),

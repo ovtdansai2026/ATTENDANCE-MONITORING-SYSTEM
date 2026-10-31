@@ -2424,6 +2424,7 @@ function App() {
   });
   const [photoModalTeacher, setPhotoModalTeacher] = useState(null);
   const [availableAcademicYears, setAvailableAcademicYears] = useState(['2569', '2568', '2567']);
+  const [hiddenClassLevels, setHiddenClassLevels] = useState([]);
   const [lastUpdated, setLastUpdated] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(() => Boolean(sessionStorage.getItem('admin_session_token')));
@@ -2990,6 +2991,16 @@ useEffect(() => {
         const calModeObj = settings.find(s => s.key === 'enable_calendar_mode');
         const calEnabled = calModeObj ? calModeObj.value === 'true' : false;
         setIsCalendarEnabled(calEnabled);
+
+        const hiddenLevelsObj = settings.find(s => s.key === 'hidden_class_levels');
+        if (hiddenLevelsObj?.value) {
+          try {
+            const p = JSON.parse(hiddenLevelsObj.value);
+            if (Array.isArray(p)) {
+              setHiddenClassLevels(prev => JSON.stringify(prev) === JSON.stringify(p) ? prev : p);
+            }
+          } catch(e){}
+        }
 
         const availYearsObj = settings.find(s => s.key === 'available_academic_years');
         if (availYearsObj?.value) {
@@ -3636,6 +3647,22 @@ useEffect(() => {
     return yr;
   };
 
+  const handleSaveHiddenClassLevels = useCallback(async (levelsList) => {
+    const list = Array.isArray(levelsList) ? levelsList : [];
+    setHiddenClassLevels(list);
+    try {
+      const token = sessionStorage.getItem('admin_session_token') || 'admin2026';
+      await dbAssembly.rpc('admin_save_system_setting_secure', {
+        p_key: 'hidden_class_levels',
+        p_value: JSON.stringify(list),
+        p_auth_token_or_pin: token
+      });
+      await fetchAssemblyData();
+    } catch (e) {
+      console.warn('Save hidden class levels warning:', e);
+    }
+  }, [fetchAssemblyData]);
+
   const isAssembly = systemMode === 'assembly';
   const isActivities = systemMode === 'activities';
   const isClub = systemMode === 'club';
@@ -3667,26 +3694,35 @@ useEffect(() => {
     }).length;
   }, [loggedInTeacher, masterStudents]);
 
+  // Active Master Students (Excludes hidden class levels like internship groups)
+  const activeMasterStudents = useMemo(() => {
+    if (!hiddenClassLevels || hiddenClassLevels.length === 0) return masterStudents;
+    return (masterStudents || []).filter(s => {
+      const lvl = String(s.level || s.class_level || s.pure_level || '').trim();
+      return !hiddenClassLevels.includes(lvl);
+    });
+  }, [masterStudents, hiddenClassLevels]);
+
   // Filters and Computations
   const departments = useMemo(() => {
     const s = new Set();
-    masterStudents.forEach(st => st.dept && s.add(normalizeDepartmentName(st.dept)));
+    activeMasterStudents.forEach(st => st.dept && s.add(normalizeDepartmentName(st.dept)));
     (teachersList || []).forEach(t => t.department && s.add(normalizeDepartmentName(t.department)));
     return Array.from(s).filter(d => d && d !== 'ทั่วไป').sort((a, b) => a.localeCompare(b, 'th'));
-  }, [masterStudents, teachersList]);
+  }, [activeMasterStudents, teachersList]);
 
   const levels = useMemo(() => {
     const s = new Set();
-    masterStudents.forEach(st => {
+    activeMasterStudents.forEach(st => {
       if (selectedDept === 'ALL' || st.dept === selectedDept) {
         if (st.level) s.add(st.level);
       }
     });
     return Array.from(s).sort();
-  }, [masterStudents, selectedDept]);
+  }, [activeMasterStudents, selectedDept]);
 
   const filteredStudents = useMemo(() => {
-    return masterStudents.filter(s => {
+    return activeMasterStudents.filter(s => {
       if (selectedDept !== 'ALL' && s.dept !== selectedDept) return false;
       if (selectedLevel !== 'ALL' && s.level !== selectedLevel) return false;
       if (currentTab === 'RISK' && (s.isGraduated || s.isNotStarted || (s.passCount !== undefined ? s.passCount === 3 : s.percent >= 80))) return false;
@@ -3710,7 +3746,7 @@ useEffect(() => {
       if (a.present !== b.present) return a.present - b.present;
       return (a.name || '').localeCompare(b.name || '', 'th');
     });
-  }, [masterStudents, selectedDept, selectedLevel, currentTab, search]);
+  }, [activeMasterStudents, selectedDept, selectedLevel, currentTab, search]);
 
   const totalPages = Math.max(1, Math.ceil(filteredStudents.length / (pageSize === -1 ? (filteredStudents.length || 1) : pageSize)));
 
@@ -3720,19 +3756,19 @@ useEffect(() => {
     return filteredStudents.slice(start, start + pageSize);
   }, [filteredStudents, currentPage, pageSize]);
 
-  const totalCount = masterStudents.length;
-  const riskCount = masterStudents.filter(s => !s.isGraduated && !s.isNotStarted && (s.passCount !== undefined ? s.passCount < 3 : s.percent < 80)).length;
-  const passCount = masterStudents.filter(s => s.isGraduated || (!s.isNotStarted && (s.passCount !== undefined ? s.passCount === 3 : s.percent >= 80))).length;
+  const totalCount = activeMasterStudents.length;
+  const riskCount = activeMasterStudents.filter(s => !s.isGraduated && !s.isNotStarted && (s.passCount !== undefined ? s.passCount < 3 : s.percent < 80)).length;
+  const passCount = activeMasterStudents.filter(s => s.isGraduated || (!s.isNotStarted && (s.passCount !== undefined ? s.passCount === 3 : s.percent >= 80))).length;
   const riskRate = totalCount ? Math.round((riskCount / totalCount) * 100) : 0;
 
   const handleExportExcel = () => {
-    if (!masterStudents || masterStudents.length === 0) {
+    if (!activeMasterStudents || activeMasterStudents.length === 0) {
       alert('ไม่มีข้อมูลนักเรียนสำหรับส่งออก');
       return;
     }
     try {
       const wb = XLSX.utils.book_new();
-      const listToExport = filteredStudents.length > 0 ? filteredStudents : masterStudents;
+      const listToExport = filteredStudents.length > 0 ? filteredStudents : activeMasterStudents;
       const exportRows = listToExport.map((s, idx) => {
         const statLabel = s.isGraduated 
           ? 'สำเร็จการศึกษา' 
@@ -3784,7 +3820,7 @@ useEffect(() => {
 
   const deptStats = useMemo(() => {
     const map = {};
-    masterStudents.forEach(s => {
+    activeMasterStudents.forEach(s => {
       const d = s.dept || 'ทั่วไป';
       if (!map[d]) map[d] = { total: 0, pass: 0 };
       map[d].total++;
@@ -3795,7 +3831,7 @@ useEffect(() => {
       const passRate = total > 0 ? Math.round((pass / total) * 100) : 0;
       return { dept, total, pass, passRate };
     }).sort((a, b) => b.passRate - a.passRate);
-  }, [masterStudents]);
+  }, [activeMasterStudents]);
 
   // Centralized Student Photo Save / Remove (Works for both Admin and Teacher)
   const handleSaveStudentPhotoDirect = useCallback(async (studentOrKey, photoData) => {
@@ -4590,6 +4626,17 @@ useEffect(() => {
                   })
                 ]
               }),
+              hiddenClassLevels && hiddenClassLevels.length > 0 && /*#__PURE__*/_jsxs("div", {
+                className: "flex flex-wrap items-center gap-2 px-3.5 py-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs shadow-2xs",
+                children: [
+                  /*#__PURE__*/_jsx("span", { className: "font-bold flex items-center gap-1", children: "🚫 ซ่อนการแสดงผลชั้นปี:" }),
+                  /*#__PURE__*/_jsx("span", { className: "font-bold bg-white px-2 py-0.5 rounded-lg border border-amber-300 text-amber-950 shadow-2xs", children: hiddenClassLevels.join(', ') }),
+                  /*#__PURE__*/_jsxs("span", {
+                    className: "text-[11px] text-amber-700 font-medium",
+                    children: ["(ตัดออกจากสถิติแดชบอร์ด ", (masterStudents.length - activeMasterStudents.length), " คน)"]
+                  })
+                ]
+              }),
               /*#__PURE__*/_jsxs("div", {
                 className: "flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 border-t border-slate-100 pt-3",
                 children: [
@@ -4612,7 +4659,7 @@ useEffect(() => {
                           /*#__PURE__*/_jsx("span", { className: "truncate", children: "ทั้งหมด" }),
                           /*#__PURE__*/_jsx("span", {
                             className: "px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-mono font-bold transition-colors flex-shrink-0 " + (currentTab === "ALL" ? "bg-white/20 text-white" : "bg-slate-200/80 text-slate-700"),
-                            children: masterStudents.length
+                            children: activeMasterStudents.length
                           })
                         ]
                       }),
@@ -4665,7 +4712,7 @@ useEffect(() => {
             className: "space-y-4",
             children: [
               // แจ้งเตือนเมื่อภาคเรียนที่เลือกยังไม่มีข้อมูล (เช่น เพิ่งเปิดเทอม 2)
-              masterStudents.length === 0 && !isLoading && /*#__PURE__*/_jsxs("div", {
+              activeMasterStudents.length === 0 && !isLoading && /*#__PURE__*/_jsxs("div", {
                 className: "bg-white p-6 sm:p-8 rounded-3xl border-2 border-dashed border-sky-300 text-center space-y-4 max-w-xl mx-auto my-6 shadow-sm",
                 children: [
                   /*#__PURE__*/_jsx(Icon.Calendar, { className: "w-12 h-12 text-sky-500 mx-auto" }),
@@ -5636,6 +5683,8 @@ useEffect(() => {
         allowOffHoursCheckin: allowOffHoursCheckin,
         onToggleOffHoursCheckin: handleToggleOffHoursCheckin,
         masterStudents: masterStudents,
+        hiddenClassLevels: hiddenClassLevels,
+        onSaveHiddenClassLevels: handleSaveHiddenClassLevels,
         onLogout: () => {
           sessionStorage.removeItem('admin_session_token');
           setIsAdminLoggedIn(false);
