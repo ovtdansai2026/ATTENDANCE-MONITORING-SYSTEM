@@ -2656,6 +2656,8 @@ function AdminRecheckTab({
 // ==========================================
 function AdminPanelModal({
   studentPhotosMap,
+  studentCodesMap = {},
+  onSaveStudentCode,
   onSaveStudentPhoto,
   onOpenStudentPhoto,
   baseTotalDays,
@@ -5099,73 +5101,114 @@ const [adminTab, setAdminTab] = useState('term'); // 'term', 'students', 'logs',
                         })
                       ]
                     }),
-                    /*#__PURE__*/_jsxs("div", {
-                      className: "grid grid-cols-1 sm:grid-cols-3 gap-3",
-                      children: [
-                        /*#__PURE__*/_jsxs("div", {
-                          className: "p-3.5 bg-white rounded-xl border border-slate-200 text-center",
-                          children: [
-                            /*#__PURE__*/_jsx("div", { className: "text-[11px] font-bold text-slate-500", children: "นักเรียนในระบบเข้าแถว" }),
-                            /*#__PURE__*/_jsxs("div", { className: "text-xl font-black text-slate-800 mt-1", children: [termStudentsList.length, " คน"] })
-                          ]
-                        }),
-                        /*#__PURE__*/_jsxs("div", {
-                          className: "p-3.5 bg-emerald-50 rounded-xl border border-emerald-200 text-center",
-                          children: [
-                            /*#__PURE__*/_jsx("div", { className: "text-[11px] font-bold text-emerald-700", children: "มีรหัสนักศึกษาในระบบแล้ว" }),
-                            /*#__PURE__*/_jsxs("div", {
-                              className: "text-xl font-black text-emerald-800 mt-1",
-                              children: [
-                                termStudentsList.filter(s => Boolean(studentCodesMap?.[s.id] || studentCodesMap?.[s.student_name])).length,
-                                " คน (100%)"
-                              ]
-                            })
-                          ]
-                        }),
-                        /*#__PURE__*/_jsxs("div", {
-                          className: "p-3.5 bg-indigo-50 rounded-xl border border-indigo-200 text-center",
-                          children: [
-                            /*#__PURE__*/_jsx("div", { className: "text-[11px] font-bold text-indigo-700", children: "สถานะการแมตช์" }),
-                            /*#__PURE__*/_jsx("div", { className: "text-base font-black text-indigo-900 mt-1.5", children: "✅ สมบูรณ์ครบถ้วน" })
-                          ]
-                        })
-                      ]
-                    }),
-                    /*#__PURE__*/_jsxs("div", {
-                      className: "p-4 bg-white rounded-xl border border-slate-200 space-y-2",
-                      children: [
-                        /*#__PURE__*/_jsx("h5", {
-                          className: "text-xs font-bold text-slate-700",
-                          children: "ตัวอย่างรหัสนักศึกษาที่ผูกกับระบบเข้าแถวเรียบร้อยแล้ว:"
-                        }),
-                        /*#__PURE__*/_jsx("div", {
-                          className: "max-h-60 overflow-y-auto divide-y divide-slate-100 border border-slate-100 rounded-lg text-xs",
-                          children: termStudentsList.slice(0, 30).map(s => {
-                            const code = studentCodesMap?.[s.id] || studentCodesMap?.[s.student_name] || studentCodesMap?.[(s.student_name||'').trim()] || '-';
-                            return /*#__PURE__*/_jsxs("div", {
-                              className: "p-2 px-3 flex items-center justify-between hover:bg-slate-50",
-                              children: [
-                                /*#__PURE__*/_jsxs("div", {
-                                  className: "flex items-center gap-2",
-                                  children: [
-                                    /*#__PURE__*/_jsx("span", { className: "font-semibold text-slate-800", children: s.student_name }),
-                                    /*#__PURE__*/_jsxs("span", { className: "text-[10px] text-slate-400", children: ["(", s.pure_level, " ", s.department, ")"] })
-                                  ]
-                                }),
-                                /*#__PURE__*/_jsx("span", {
-                                  className: "font-mono font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded",
-                                  children: code
+                    (() => {
+                      const safeCodes = (studentCodesMap && typeof studentCodesMap === 'object') ? studentCodesMap : {};
+                      const matchedCount = termStudentsList.filter(s => Boolean(safeCodes[s.id] || safeCodes[s.student_name] || safeCodes[(s.student_name || '').trim()])).length;
+                      return /*#__PURE__*/_jsxs(_Fragment, {
+                        children: [
+                          /*#__PURE__*/_jsxs("div", {
+                            className: "px-3 py-2 bg-indigo-50/70 border border-indigo-100 rounded-xl text-xs text-indigo-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1",
+                            children: [
+                              /*#__PURE__*/_jsxs("div", {
+                                className: "flex items-center gap-1.5",
+                                children: [
+                                  /*#__PURE__*/_jsx(Icon.Info, { className: "w-4 h-4 text-indigo-600 flex-shrink-0" }),
+                                  /*#__PURE__*/_jsxs("span", {
+                                    children: ["กำลังแสดงผลสำหรับ: ", /*#__PURE__*/_jsx("strong", { children: `ภาคเรียนที่ ${adminSem} ปีการศึกษา ${adminYear}` })]
+                                  })
+                                ]
+                              }),
+                              /*#__PURE__*/_jsx("span", {
+                                className: "text-[11px] text-slate-500",
+                                children: "ผูกรหัสส่วนกลางผ่าน system_settings.student_codes_map"
+                              })
+                            ]
+                          }),
+                          /*#__PURE__*/_jsxs("div", {
+                            className: "grid grid-cols-1 sm:grid-cols-3 gap-3",
+                            children: [
+                              /*#__PURE__*/_jsxs("div", {
+                                className: "p-3.5 bg-white rounded-xl border border-slate-200 text-center",
+                                children: [
+                                  /*#__PURE__*/_jsx("div", { className: "text-[11px] font-bold text-slate-500", children: `นักเรียนในระบบ (${adminSem}/${adminYear})` }),
+                                  /*#__PURE__*/_jsxs("div", { className: "text-xl font-black text-slate-800 mt-1", children: [termStudentsList.length, " คน"] })
+                                ]
+                              }),
+                              /*#__PURE__*/_jsxs("div", {
+                                className: "p-3.5 bg-emerald-50 rounded-xl border border-emerald-200 text-center",
+                                children: [
+                                  /*#__PURE__*/_jsx("div", { className: "text-[11px] font-bold text-emerald-700", children: "ผูกรหัสนักศึกษาแล้ว" }),
+                                  /*#__PURE__*/_jsxs("div", {
+                                    className: "text-xl font-black text-emerald-800 mt-1",
+                                    children: [
+                                      matchedCount,
+                                      termStudentsList.length > 0 ? ` คน (${Math.round((matchedCount / termStudentsList.length) * 100)}%)` : " คน"
+                                    ]
+                                  })
+                                ]
+                              }),
+                              /*#__PURE__*/_jsxs("div", {
+                                className: "p-3.5 bg-indigo-50 rounded-xl border border-indigo-200 text-center",
+                                children: [
+                                  /*#__PURE__*/_jsx("div", { className: "text-[11px] font-bold text-indigo-700", children: "สถานะการซิงค์" }),
+                                  /*#__PURE__*/_jsx("div", {
+                                    className: "text-base font-black text-indigo-900 mt-1.5",
+                                    children: (matchedCount === termStudentsList.length && termStudentsList.length > 0) ? "✅ ครบถ้วน 100%" : "⚡ พร้อมใช้งาน"
+                                  })
+                                ]
+                              })
+                            ]
+                          }),
+                          /*#__PURE__*/_jsxs("div", {
+                            className: "p-4 bg-white rounded-xl border border-slate-200 space-y-2",
+                            children: [
+                              /*#__PURE__*/_jsxs("div", {
+                                className: "flex items-center justify-between",
+                                children: [
+                                  /*#__PURE__*/_jsx("h5", {
+                                    className: "text-xs font-bold text-slate-700",
+                                    children: "ตัวอย่างรหัสนักศึกษาที่ผูกกับระบบเช็คชื่อแล้ว:"
+                                  }),
+                                  /*#__PURE__*/_jsxs("span", {
+                                    className: "text-[11px] text-slate-400 font-medium",
+                                    children: [`แสดง ${Math.min(30, termStudentsList.length)} จาก ${termStudentsList.length} คน`]
+                                  })
+                                ]
+                              }),
+                              termStudentsList.length === 0 ? /*#__PURE__*/_jsx("div", {
+                                className: "p-6 text-center text-xs text-slate-400 border border-dashed border-slate-200 rounded-lg",
+                                children: `ยังไม่มีรายชื่อนักเรียนในภาคเรียนที่ ${adminSem}/${adminYear}`
+                              }) : /*#__PURE__*/_jsx("div", {
+                                className: "max-h-60 overflow-y-auto divide-y divide-slate-100 border border-slate-100 rounded-lg text-xs",
+                                children: termStudentsList.slice(0, 30).map(s => {
+                                  const code = safeCodes[s.id] || safeCodes[s.student_name] || safeCodes[(s.student_name || '').trim()] || '-';
+                                  return /*#__PURE__*/_jsxs("div", {
+                                    className: "p-2 px-3 flex items-center justify-between hover:bg-slate-50",
+                                    children: [
+                                      /*#__PURE__*/_jsxs("div", {
+                                        className: "flex items-center gap-2",
+                                        children: [
+                                          /*#__PURE__*/_jsx("span", { className: "font-semibold text-slate-800", children: s.student_name }),
+                                          /*#__PURE__*/_jsxs("span", { className: "text-[10px] text-slate-400", children: ["(", s.pure_level, " ", s.department, ")"] })
+                                        ]
+                                      }),
+                                      /*#__PURE__*/_jsx("span", {
+                                        className: `font-mono font-bold px-2 py-0.5 rounded text-xs ${code !== '-' ? 'text-indigo-700 bg-indigo-50 border border-indigo-100' : 'text-slate-400 bg-slate-100'}`,
+                                        children: code
+                                      })
+                                    ]
+                                  }, s.id);
                                 })
-                              ]
-                            }, s.id);
+                              }),
+                              termStudentsList.length > 30 && /*#__PURE__*/_jsxs("p", {
+                                className: "text-[11px] text-slate-400 text-center pt-1",
+                                children: ["แสดง 30 คนแรก จากทั้งหมด ", termStudentsList.length, " คน (มีรหัสในระบบครบ)"]
+                              })
+                            ]
                           })
-                        }),
-                        termStudentsList.length > 30 && /*#__PURE__*/_jsxs("p", {
-                          className: "text-[11px] text-slate-400 text-center pt-1",
-                          children: ["แสดง 30 คนแรก จากทั้งหมด ", termStudentsList.length, " คน (มีรหัสครบทุกคน)"]
-                        })
-                      ]
-                    })
+                        ]
+                      });
+                    })()
                   ]
                 })
                   ]
