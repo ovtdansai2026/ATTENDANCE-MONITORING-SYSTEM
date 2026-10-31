@@ -3565,7 +3565,7 @@ const [adminTab, setAdminTab] = useState('term'); // 'term', 'students', 'logs',
     if (!cleanDept || cleanDept === 'ทั่วไป') return alert('กรุณาระบุหรือเลือกแผนกวิชา');
     setSavingTeacher(true);
     try {
-      let pinHash = DEFAULT_PIN_HASH;
+      let pinHash = null;
       const cleanPin = newTeacherPin.trim();
       if (cleanPin) {
         if (!/^\d{6}$/.test(cleanPin)) {
@@ -3573,6 +3573,14 @@ const [adminTab, setAdminTab] = useState('term'); // 'term', 'students', 'logs',
           return alert('รหัสประจำห้องต้องเป็นตัวเลข 6 หลักเท่านั้น (เช่น 201010)');
         }
         pinHash = await hashPassword(cleanPin);
+      } else {
+        const defPin = window.getDefaultTeacherPin ? window.getDefaultTeacherPin({ department: cleanDept, class_level: newTeacherLevel }) : '';
+        if (defPin) {
+          pinHash = await hashPassword(defPin);
+        } else {
+          setSavingTeacher(false);
+          return alert('กรุณาระบุรหัส PIN ประจำห้อง 6 หลักสำหรับครูท่านนี้ (เช่น 201010)');
+        }
       }
       const newRec = {
         name: newTeacherName.trim(),
@@ -5444,7 +5452,7 @@ const [adminTab, setAdminTab] = useState('term'); // 'term', 'students', 'logs',
                         /*#__PURE__*/_jsx("h4", { className: "text-xs font-bold text-slate-800 uppercase flex items-center gap-1.5", children: [/*#__PURE__*/_jsx(Icon.Plus, { className: "w-3.5 h-3.5 text-emerald-600" }), "เพิ่มครูที่ปรึกษาประจำแผนก"] }),
                         /*#__PURE__*/_jsx(InfoTooltip, {
                           title: "ครูที่ปรึกษา",
-                          text: "กำหนดครูประจำแผนกและระดับชั้น รหัส PIN เริ่มต้นคือ 123456 (สามารถเปลี่ยนเป็น 6 หลักได้) สำหรับให้ครูใช้เข้าสู่ระบบเช็คชื่อ"
+                          text: "กำหนดครูประจำแผนกและระดับชั้น และตั้งรหัส PIN ประจำห้อง 6 หลัก (เช่น 201010) สำหรับให้ครูใช้เข้าสู่ระบบเช็คชื่อ"
                         })
                       ]
                     }),

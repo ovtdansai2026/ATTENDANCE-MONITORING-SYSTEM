@@ -8141,7 +8141,7 @@ function TimeRestrictionModal({
 
 // คำนวณรหัส PIN 6 หลักเริ่มต้นจากรหัสนักศึกษา (เช่น 69301050002 -> 301050 หรือ 010500) หรือรหัสสาขาวิชามาตรฐาน
 function getDefaultTeacherPin(teacher, masterStudents = []) {
-  if (!teacher) return '123456';
+  if (!teacher) return '';
   const normDept = normalizeDepartmentName(teacher.department);
   const classLvl = String(teacher.class_level || '').trim();
 
@@ -8189,8 +8189,9 @@ function getDefaultTeacherPin(teacher, masterStudents = []) {
   if (normDept.includes('ตลาด')) return isPvs ? '302020' : '202080';
   if (normDept.includes('ธุรกิจดิจิทัล') || normDept.includes('คอมพิวเตอร์')) return isPvs ? '319100' : '219100';
   if (normDept.includes('โรงแรม')) return pfx + '07010';
+  if (normDept.includes('อาหาร') || normDept.includes('โภชนาการ')) return pfx + '04010';
 
-  return '123456';
+  return '';
 }
 
 // ==========================================
@@ -8279,35 +8280,35 @@ function TeacherLoginModal({
         siblingRooms.unshift(selectedTeacher);
       }
 
+      // Fetch fresh sibling rooms with real pin_hash from DB
+      let siblingRoomsWithHash = [];
+      try {
+        const { data: dbTeachers } = await dbAssembly
+          .from('teachers')
+          .select('id, name, department, class_level, pin_hash');
+        if (dbTeachers && dbTeachers.length > 0) {
+          siblingRoomsWithHash = dbTeachers.filter(t => normalizeTeacherName(t.name) === targetNorm);
+        }
+      } catch (dbErr) {
+        console.warn('Teacher login DB fetch warning:', dbErr);
+      }
+
+      const roomsToCheck = siblingRoomsWithHash.length > 0 ? siblingRoomsWithHash : siblingRooms;
       let isMatch = false;
-      for (const rm of siblingRooms) {
+      for (const rm of roomsToCheck) {
         const rmPinHash = rm.pin_hash;
         const rmDefPin = getDefaultTeacherPin(rm, masterStudents);
-        const rmDefHash = await hashPassword(rmDefPin);
+        const rmDefHash = rmDefPin ? await hashPassword(rmDefPin) : null;
         
+        // Strict verification: only custom pin_hash or calculated department pin matches
         if (
           (rmPinHash && rmPinHash === targetHash) ||
-          pin === rmDefPin ||
-          targetHash === rmDefHash ||
-          (!rmPinHash && (pin === rmDefPin || pin === '123456' || pin === '12345' || pin === '1234')) ||
-          (rmPinHash === DEFAULT_PIN_HASH && (pin === '123456' || pin === '1234' || pin === '12345' || pin === rmDefPin))
+          (rmDefPin && pin === rmDefPin) ||
+          (rmDefHash && targetHash === rmDefHash)
         ) {
           isMatch = true;
           break;
         }
-      }
-
-      if (!isMatch) {
-        try {
-          const { data: dbTeacher } = await dbAssembly
-            .from('teachers')
-            .select('pin_hash')
-            .eq('id', selectedTeacher.id)
-            .maybeSingle();
-          if (dbTeacher && dbTeacher.pin_hash === targetHash) {
-            isMatch = true;
-          }
-        } catch (dbEx) {}
       }
 
       if (isMatch) {
@@ -9700,7 +9701,7 @@ function TeacherCheckinModal({
       try {
         const { data: dbAll } = await dbAssembly
           .from('teachers')
-          .select('id, name, department, class_level, phone, academic_year, semester');
+          .select('id, name, department, class_level, phone, academic_year, semester, pin_hash');
         if (!isMounted) return;
         const targetNorm = normalizeTeacherName(selectedTeacher.name);
         let siblings = (dbAll || []).filter(t => normalizeTeacherName(t.name) === targetNorm);
@@ -9940,32 +9941,17 @@ function TeacherCheckinModal({
       for (const rm of siblingRooms) {
         const rmPinHash = rm.pin_hash;
         const rmDefPin = getDefaultTeacherPin(rm, masterStudents);
-        const rmDefHash = await hashPassword(rmDefPin);
+        const rmDefHash = rmDefPin ? await hashPassword(rmDefPin) : null;
         
+        // Strict verification: only custom pin_hash or calculated department pin matches
         if (
           (rmPinHash && rmPinHash === targetHash) ||
-          pin === rmDefPin ||
-          targetHash === rmDefHash ||
-          (!rmPinHash && (pin === rmDefPin || pin === '123456' || pin === '12345' || pin === '1234')) ||
-          (rmPinHash === DEFAULT_PIN_HASH && (pin === '123456' || pin === '1234' || pin === '12345' || pin === rmDefPin))
+          (rmDefPin && pin === rmDefPin) ||
+          (rmDefHash && targetHash === rmDefHash)
         ) {
           isMatch = true;
           break;
         }
-      }
-
-      // Also check against DB record if needed
-      if (!isMatch) {
-        try {
-          const { data: dbTeacher } = await dbAssembly
-            .from('teachers')
-            .select('pin_hash')
-            .eq('id', selectedTeacher.id)
-            .maybeSingle();
-          if (dbTeacher && dbTeacher.pin_hash === targetHash) {
-            isMatch = true;
-          }
-        } catch (dbEx) {}
       }
 
       if (isMatch) {
@@ -11316,14 +11302,12 @@ function ChangePinModal({ teacher, defaultPin, onClose, onSuccess }) {
 
       for (const rm of siblingRooms) {
         const rmDefPin = getDefaultTeacherPin(rm, masterStudents);
-        const rmDefHash = await hashPassword(rmDefPin);
+        const rmDefHash = rmDefPin ? await hashPassword(rmDefPin) : null;
         const rmHash = rm.pin_hash;
         if (
           (rmHash && rmHash === oldHash) ||
-          cleanOld === rmDefPin ||
-          oldHash === rmDefHash ||
-          (!rmHash && (cleanOld === rmDefPin || cleanOld === '123456' || cleanOld === '12345' || cleanOld === '1234')) ||
-          (rmHash === DEFAULT_PIN_HASH && (cleanOld === '123456' || cleanOld === '1234' || cleanOld === '12345' || cleanOld === rmDefPin))
+          (rmDefPin && cleanOld === rmDefPin) ||
+          (rmDefHash && oldHash === rmDefHash)
         ) {
           isOldMatch = true;
           break;
@@ -11700,6 +11684,7 @@ window.formatLocalDate = formatLocalDate;
 window.InfoTooltip = InfoTooltip;
 window.StudentPhotoInput = StudentPhotoInput;
 window.hashPassword = hashPassword;
+window.getDefaultTeacherPin = getDefaultTeacherPin;
 
 // ==========================================
 // 🛡️ SECURE ADMIN MODULE LOADER BRIDGE
