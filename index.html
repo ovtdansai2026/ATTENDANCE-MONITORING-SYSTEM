@@ -6259,6 +6259,8 @@ function AttendanceCalendarModal({
   const [localCompensatory, setLocalCompensatory] = useState(compensatoryDays || []);
   const [isSavingSchedule, setIsSavingSchedule] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
+  const [editingHolidayReasonDate, setEditingHolidayReasonDate] = useState(null);
+  const [holidayReasonInput, setHolidayReasonInput] = useState('');
 
   useEffect(() => { if (termStartDate) setLocalStartDate(termStartDate); }, [termStartDate]);
   useEffect(() => { if (termEndDate) setLocalEndDate(termEndDate); }, [termEndDate]);
@@ -6294,28 +6296,72 @@ function AttendanceCalendarModal({
   const selectedIsWeekend = selectedDayOfWeek >= 5;
   const selectedIsHoliday = localHolidays.includes(selectedDateStr);
   const selectedIsCompensatory = localCompensatory.includes(selectedDateStr);
+  const selectedHolidayReason = selectedIsHoliday ? getHolidayLabel(selectedDateStr, holidayReasons) : '';
 
-  // Toggle Holiday (Weekday -> Holiday or back)
-  const handleToggleHoliday = async (dateStr) => {
+  // Toggle Holiday (Weekday -> Holiday or back) with Reason
+  const handleToggleHoliday = async (dateStr, customReason) => {
     if (!isAdminLoggedIn) return;
     const exists = localHolidays.includes(dateStr);
-    const updated = exists ? localHolidays.filter(d => d !== dateStr) : [...localHolidays, dateStr].sort();
-    setLocalHolidays(updated);
+    const updatedHols = exists ? localHolidays.filter(d => d !== dateStr) : [...localHolidays, dateStr].sort();
+    setLocalHolidays(updatedHols);
+
+    const updatedReasons = { ...(holidayReasons || {}) };
+    if (!exists) {
+      if (customReason && customReason.trim()) {
+        updatedReasons[dateStr] = customReason.trim();
+      }
+    } else {
+      delete updatedReasons[dateStr];
+    }
+
     try {
       const token = sessionStorage.getItem('admin_session_token') || 'admin2026';
-      const { data, error } = await dbAssembly.rpc('admin_save_system_setting_secure', {
-        p_key: 'special_holidays',
-        p_value: JSON.stringify(updated),
+      const records = [
+        { key: 'special_holidays', value: JSON.stringify(updatedHols) },
+        { key: 'holiday_reasons', value: JSON.stringify(updatedReasons) }
+      ];
+      const { data, error } = await dbAssembly.rpc('admin_save_system_settings_batch_secure', {
+        p_settings: records,
         p_auth_token_or_pin: token
       });
       if (error || (data && !data.success)) throw new Error(error?.message || data?.error || 'บันทึกล้มเหลว');
+
       if (onSaveCalendarSettings) {
-        onSaveCalendarSettings({ specialHolidays: updated });
+        await onSaveCalendarSettings({
+          specialHolidays: updatedHols,
+          holidayReasons: updatedReasons
+        });
       }
       setToastMsg(exists ? `คืนค่า ${dateStr} เป็นวันเรียนปกติแล้ว` : `ตั้งค่า ${dateStr} เป็นวันหยุดพิเศษแล้ว`);
       setTimeout(() => setToastMsg(''), 3500);
     } catch (e) {
       alert('บันทึกวันหยุดพิเศษล้มเหลว: ' + e.message);
+    }
+  };
+
+  // Save reason only
+  const handleSaveReasonOnly = async (dateStr, reason) => {
+    const clean = String(reason || '').trim();
+    const updatedReasons = { ...(holidayReasons || {}) };
+    if (clean) {
+      updatedReasons[dateStr] = clean;
+    } else {
+      delete updatedReasons[dateStr];
+    }
+    try {
+      const token = sessionStorage.getItem('admin_session_token') || 'admin2026';
+      await dbAssembly.rpc('admin_save_system_setting_secure', {
+        p_key: 'holiday_reasons',
+        p_value: JSON.stringify(updatedReasons),
+        p_auth_token_or_pin: token
+      });
+      if (onSaveCalendarSettings) {
+        await onSaveCalendarSettings({ holidayReasons: updatedReasons });
+      }
+      setToastMsg(`บันทึกเหตุผลวันหยุดวันที่ ${dateStr} เรียบร้อยแล้ว`);
+      setTimeout(() => setToastMsg(''), 3000);
+    } catch (e) {
+      alert('บันทึกเหตุผลล้มเหลว: ' + e.message);
     }
   };
 
@@ -6372,33 +6418,33 @@ function AttendanceCalendarModal({
   };
 
   return /*#__PURE__*/_jsx("div", {
-    className: "fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-2 sm:p-5",
+    className: "fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4",
     onClick: onClose,
     children: /*#__PURE__*/_jsxs("div", {
-      className: "bg-white border border-slate-200 rounded-3xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden",
+      className: "bg-white border border-slate-200 rounded-2xl sm:rounded-3xl max-w-4xl w-full max-h-[94vh] flex flex-col shadow-2xl overflow-hidden",
       onClick: e => e.stopPropagation(),
       children: [
-        // Modal Header
+        // Modal Header (Compact)
         /*#__PURE__*/_jsxs("div", {
-          className: "p-4 sm:p-5 bg-gradient-to-r from-amber-500 to-orange-600 text-white flex justify-between items-center",
+          className: "px-3 sm:px-4 py-2 sm:py-2.5 bg-gradient-to-r from-amber-500 to-orange-600 text-white flex justify-between items-center shadow-xs",
           children: [
             /*#__PURE__*/_jsxs("div", {
-              className: "flex items-center gap-3",
+              className: "flex items-center gap-2 sm:gap-2.5",
               children: [
                 /*#__PURE__*/_jsx("img", {
                   src: "logo.png",
                   alt: "ตราวิทยาลัย",
-                  className: "w-11 h-11 object-contain flex-shrink-0 drop-shadow-md"
+                  className: "w-7 h-7 sm:w-8 sm:h-8 object-contain flex-shrink-0 drop-shadow-sm"
                 }),
                 /*#__PURE__*/_jsxs("div", {
                   children: [
                     /*#__PURE__*/_jsx("h2", {
-                      className: "text-base sm:text-lg font-bold tracking-tight",
+                      className: "text-xs sm:text-sm font-bold tracking-tight text-white",
                       children: "ปฏิทินการเช็คชื่อเข้าแถว & วันเปิด-ปิดภาคเรียน"
                     }),
                     /*#__PURE__*/_jsxs("p", {
-                      className: "text-xs text-amber-100",
-                      children: ["ภาคเรียนที่ ", semester, "/", academicYear, " • วิทยาลัยการอาชีพด่านซ้าย"]
+                      className: "text-[10px] sm:text-[11px] text-amber-100",
+                      children: ["ภาคเรียนที่ ", semester, "/", academicYear, " • วก.ด่านซ้าย"]
                     })
                   ]
                 })
@@ -6406,119 +6452,104 @@ function AttendanceCalendarModal({
             }),
             /*#__PURE__*/_jsx("button", {
               onClick: onClose,
-              className: "w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white text-base cursor-pointer transition-colors",
-              children: /*#__PURE__*/_jsx(Icon.Close, { className: "w-5 h-5 text-slate-400 hover:text-slate-600" })
+              className: "w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white text-base cursor-pointer transition-colors",
+              children: /*#__PURE__*/_jsx(Icon.Close, { className: "w-4 h-4 text-white" })
             })
           ]
         }),
 
         /*#__PURE__*/_jsxs("div", {
-          className: "p-4 overflow-y-auto custom-scroll flex-1 space-y-4",
+          className: "p-2.5 sm:p-3 overflow-y-auto custom-scroll flex-1 space-y-2 sm:space-y-2.5",
           children: [
-            // Admin Term Dates Banner (If Admin) or Viewer Info Banner
+            // Admin Term Dates Banner (Compact Single Row Card)
             isAdminLoggedIn ? (
               /*#__PURE__*/_jsxs("div", {
-                className: "p-4 bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 rounded-2xl border-2 border-amber-300 shadow-sm space-y-3",
+                className: "p-2 sm:p-2.5 bg-amber-50/90 rounded-xl border border-amber-200/90 space-y-2 text-xs",
                 children: [
                   /*#__PURE__*/_jsxs("div", {
-                    className: "flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-200/80 pb-2.5",
+                    className: "flex flex-wrap items-center justify-between gap-1.5 border-b border-amber-200/60 pb-1.5",
                     children: [
                       /*#__PURE__*/_jsxs("div", {
-                        className: "flex items-center gap-2",
+                        className: "flex items-center gap-1.5 font-bold text-amber-950 text-xs",
                         children: [
-                          /*#__PURE__*/_jsx(Icon.Gear, { className: "w-5 h-5 text-amber-700 flex-shrink-0" }),
-                          /*#__PURE__*/_jsxs("div", {
-                            children: [
-                              /*#__PURE__*/_jsx("h3", {
-                                className: "text-xs sm:text-sm font-black text-amber-950",
-                                children: "ตั้งค่าวันเปิด-ปิดภาคเรียน และวันเรียนอัตโนมัติ (สิทธิ์แอดมิน)"
-                              }),
-                              /*#__PURE__*/_jsx("p", {
-                                className: "text-[11px] text-amber-800",
-                                children: "ระบบคำนวณวันเรียนจริงให้อัตโนมัติ (ข้ามเสาร์-อาทิตย์, หักวันหยุด, รวมชดเชย) เด็กไม่ตกใจคะแนน % ต่ำตอนต้นเทอม"
-                              })
-                            ]
-                          })
+                          /*#__PURE__*/_jsx(Icon.Gear, { className: "w-3.5 h-3.5 text-amber-700 flex-shrink-0" }),
+                          "ตั้งค่าวันเปิด-ปิดภาคเรียน (สิทธิ์แอดมิน)"
                         ]
                       }),
                       toastMsg && /*#__PURE__*/_jsx("span", {
-                        className: "text-xs font-bold text-emerald-900 bg-emerald-100 px-3 py-1 rounded-xl border border-emerald-300 shadow-xs animate-pulse",
+                        className: "text-[11px] font-bold text-emerald-900 bg-emerald-100 px-2 py-0.5 rounded-lg border border-emerald-300 animate-pulse",
                         children: toastMsg
                       })
                     ]
                   }),
 
                   /*#__PURE__*/_jsxs("div", {
-                    className: "grid grid-cols-1 sm:grid-cols-3 gap-3 items-end",
+                    className: "flex flex-wrap items-end gap-2",
                     children: [
                       /*#__PURE__*/_jsxs("div", {
+                        className: "flex-1 min-w-[130px]",
                         children: [
-                          /*#__PURE__*/_jsx("label", {
-                            className: "text-xs font-bold text-slate-700 block mb-1",
-                            children: [/*#__PURE__*/_jsx(Icon.Calendar, { className: "w-3.5 h-3.5 inline mr-1 text-slate-500" }), "วันเปิดภาคเรียน (เริ่มนับวันเรียน):"]
-                          }),
+                          /*#__PURE__*/_jsx("label", { className: "text-[10px] font-bold text-slate-600 block mb-0.5", children: "วันเปิดเทอม:" }),
                           /*#__PURE__*/_jsx("input", {
                             type: "date",
                             value: localStartDate,
                             onChange: e => setLocalStartDate(e.target.value),
-                            className: "w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold font-mono text-slate-800 cursor-pointer shadow-xs focus:ring-2 focus:ring-amber-400"
+                            className: "w-full bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs font-bold font-mono text-slate-800 cursor-pointer shadow-2xs focus:ring-1 focus:ring-amber-400"
                           })
                         ]
                       }),
                       /*#__PURE__*/_jsxs("div", {
+                        className: "flex-1 min-w-[130px]",
                         children: [
-                          /*#__PURE__*/_jsx("label", {
-                            className: "text-xs font-bold text-slate-700 block mb-1",
-                            children: [/*#__PURE__*/_jsx(Icon.Flag, { className: "w-3.5 h-3.5 inline mr-1 text-slate-500" }), "วันปิดภาคเรียน (สิ้นสุดภาคเรียน):"]
-                          }),
+                          /*#__PURE__*/_jsx("label", { className: "text-[10px] font-bold text-slate-600 block mb-0.5", children: "วันปิดเทอม:" }),
                           /*#__PURE__*/_jsx("input", {
                             type: "date",
                             value: localEndDate,
                             onChange: e => setLocalEndDate(e.target.value),
-                            className: "w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold font-mono text-slate-800 cursor-pointer shadow-xs focus:ring-2 focus:ring-amber-400"
+                            className: "w-full bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs font-bold font-mono text-slate-800 cursor-pointer shadow-2xs focus:ring-1 focus:ring-amber-400"
                           })
                         ]
                       }),
-                      /*#__PURE__*/_jsx("button", {
+                      /*#__PURE__*/_jsxs("button", {
                         type: "button",
                         onClick: handleSaveTermSchedule,
                         disabled: isSavingSchedule,
-                        className: "py-2 px-4 bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white rounded-xl text-xs font-black shadow-xs cursor-pointer disabled:opacity-50 transition-colors flex items-center justify-center gap-1.5",
-                        children: [/*#__PURE__*/_jsx(Icon.Save, { className: "w-4 h-4 inline mr-1.5" }), isSavingSchedule ? "กำลังบันทึก..." : "บันทึกกำหนดการเปิด-ปิดเทอม"]
+                        className: "py-1 px-3 bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white rounded-lg text-xs font-bold shadow-2xs cursor-pointer disabled:opacity-50 transition-colors flex items-center gap-1",
+                        children: [/*#__PURE__*/_jsx(Icon.Save, { className: "w-3.5 h-3.5 inline" }), isSavingSchedule ? "บันทึก..." : "บันทึกเปิด-ปิดเทอม"]
                       })
                     ]
                   }),
 
-                  // Summary Statistics
+                  // Compact Quick Stats
                   /*#__PURE__*/_jsxs("div", {
-                    className: "grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs font-bold pt-1",
+                    className: "grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-center text-xs font-bold pt-0.5",
                     children: [
                       /*#__PURE__*/_jsxs("div", {
-                        className: "p-2 bg-white/80 rounded-xl border border-amber-200",
+                        className: "px-2 py-1 bg-white rounded-lg border border-amber-200 flex items-center justify-between",
                         children: [
-                          /*#__PURE__*/_jsx("div", { className: "text-[10px] text-slate-500", children: "วันเรียนที่ผ่านมาแล้ว (ตัวหาร %)" }),
-                          /*#__PURE__*/_jsxs("div", { className: "text-base font-black font-mono text-sky-800 mt-0.5", children: [liveStats.elapsedDays, " วัน"] })
+                          /*#__PURE__*/_jsx("span", { className: "text-[10px] text-slate-500 font-normal", children: "เรียนแล้ว:" }),
+                          /*#__PURE__*/_jsxs("span", { className: "font-mono font-bold text-sky-800", children: [liveStats.elapsedDays, " วัน"] })
                         ]
                       }),
                       /*#__PURE__*/_jsxs("div", {
-                        className: "p-2 bg-white/80 rounded-xl border border-amber-200",
+                        className: "px-2 py-1 bg-white rounded-lg border border-amber-200 flex items-center justify-between",
                         children: [
-                          /*#__PURE__*/_jsx("div", { className: "text-[10px] text-slate-500", children: "วันเรียนทั้งเทอม (เป้าหมาย)" }),
-                          /*#__PURE__*/_jsxs("div", { className: "text-base font-black font-mono text-slate-800 mt-0.5", children: [liveStats.totalTermDays, " วัน"] })
+                          /*#__PURE__*/_jsx("span", { className: "text-[10px] text-slate-500 font-normal", children: "เป้าหมาย:" }),
+                          /*#__PURE__*/_jsxs("span", { className: "font-mono font-bold text-slate-800", children: [liveStats.totalTermDays, " วัน"] })
                         ]
                       }),
                       /*#__PURE__*/_jsxs("div", {
-                        className: "p-2 bg-amber-100/60 rounded-xl border border-amber-300",
+                        className: "px-2 py-1 bg-amber-100/70 rounded-lg border border-amber-300 flex items-center justify-between",
                         children: [
-                          /*#__PURE__*/_jsx("div", { className: "text-[10px] text-amber-900", children: [/*#__PURE__*/_jsx(Icon.Sun, { className: "w-3.5 h-3.5 inline mr-1 text-amber-600" }), "วันหยุดพิเศษ"] }),
-                          /*#__PURE__*/_jsxs("div", { className: "text-base font-black font-mono text-amber-900 mt-0.5", children: [localHolidays.length, " วัน"] })
+                          /*#__PURE__*/_jsxs("span", { className: "text-[10px] text-amber-900 font-normal flex items-center gap-0.5", children: [/*#__PURE__*/_jsx(Icon.Sun, { className: "w-3 h-3 text-amber-600 inline" }), "หยุดพิเศษ:"] }),
+                          /*#__PURE__*/_jsxs("span", { className: "font-mono font-bold text-amber-950", children: [localHolidays.length, " วัน"] })
                         ]
                       }),
                       /*#__PURE__*/_jsxs("div", {
-                        className: "p-2 bg-indigo-100/60 rounded-xl border border-indigo-300",
+                        className: "px-2 py-1 bg-indigo-100/70 rounded-lg border border-indigo-300 flex items-center justify-between",
                         children: [
-                          /*#__PURE__*/_jsx("div", { className: "text-[10px] text-indigo-900", children: [/*#__PURE__*/_jsx(Icon.Book, { className: "w-3.5 h-3.5 inline mr-1 text-indigo-600" }), "วันเรียนชดเชย"] }),
-                          /*#__PURE__*/_jsxs("div", { className: "text-base font-black font-mono text-indigo-900 mt-0.5", children: [localCompensatory.length, " วัน"] })
+                          /*#__PURE__*/_jsxs("span", { className: "text-[10px] text-indigo-900 font-normal flex items-center gap-0.5", children: [/*#__PURE__*/_jsx(Icon.Book, { className: "w-3 h-3 text-indigo-600 inline" }), "ชดเชย:"] }),
+                          /*#__PURE__*/_jsxs("span", { className: "font-mono font-bold text-indigo-950", children: [localCompensatory.length, " วัน"] })
                         ]
                       })
                     ]
@@ -6527,17 +6558,17 @@ function AttendanceCalendarModal({
               })
             ) : (
               /*#__PURE__*/_jsxs("div", {
-                className: "p-3 bg-slate-50 rounded-2xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs",
+                className: "p-2 bg-slate-50 rounded-xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 text-xs",
                 children: [
                   /*#__PURE__*/_jsxs("div", {
-                    className: "flex items-center gap-2 text-slate-700",
+                    className: "flex items-center gap-1.5 text-slate-700",
                     children: [
-                      /*#__PURE__*/_jsx(Icon.Info, { className: "w-4 h-4 text-sky-600 flex-shrink-0" }),
+                      /*#__PURE__*/_jsx(Icon.Info, { className: "w-3.5 h-3.5 text-sky-600 flex-shrink-0" }),
                       /*#__PURE__*/_jsxs("span", {
                         children: [
-                          "วันเรียนที่ผ่านมาแล้ว: ",
+                          "วันเรียนที่ผ่านมา: ",
                           /*#__PURE__*/_jsxs("strong", { className: "text-sky-800 font-mono", children: [liveStats.elapsedDays, " วัน"] }),
-                          " (จากทั้งเทอม ~", liveStats.totalTermDays, " วัน) • ข้ามเสาร์-อาทิตย์และวันหยุดอัตโนมัติ"
+                          " (จากทั้งเทอม ~", liveStats.totalTermDays, " วัน) • ข้ามเสาร์-อาทิตย์และวันหยุด"
                         ]
                       })
                     ]
@@ -6545,24 +6576,24 @@ function AttendanceCalendarModal({
                   /*#__PURE__*/_jsx("button", {
                     type: "button",
                     onClick: onOpenAdminLogin,
-                    className: "text-xs font-bold text-sky-700 hover:text-sky-900 cursor-pointer underline whitespace-nowrap",
-                    children: [/*#__PURE__*/_jsx(Icon.Lock, { className: "w-3.5 h-3.5 inline mr-1 text-sky-700" }), "เข้าสู่ระบบแอดมิน เพื่อตั้งวันหยุด/ชดเชย"]
+                    className: "text-[11px] font-bold text-sky-700 hover:text-sky-900 cursor-pointer underline whitespace-nowrap",
+                    children: [/*#__PURE__*/_jsx(Icon.Lock, { className: "w-3 h-3 inline mr-1 text-sky-700" }), "เข้าสู่ระบบแอดมิน เพื่อตั้งวันหยุด/ชดเชย"]
                   })
                 ]
               })
             ),
 
-            // Month Navigation
+            // Month Navigation (Compact)
             /*#__PURE__*/_jsxs("div", {
-              className: "flex items-center justify-between bg-slate-50 p-2.5 rounded-2xl border border-slate-200",
+              className: "flex items-center justify-between bg-slate-50 px-2.5 py-1 rounded-xl border border-slate-200",
               children: [
                 /*#__PURE__*/_jsx("button", {
                   onClick: () => setCurrentDate(new Date(year, month - 1, 1)),
-                  className: "px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-100 cursor-pointer shadow-xs",
+                  className: "px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 hover:bg-slate-100 cursor-pointer shadow-2xs",
                   children: "◀ เดือนก่อน"
                 }),
                 /*#__PURE__*/_jsxs("div", {
-                  className: "text-sm sm:text-base font-bold text-slate-900 flex items-center gap-1.5",
+                  className: "text-xs sm:text-sm font-bold text-slate-900 flex items-center gap-1",
                   children: [
                     monthNames[month],
                     " ",
@@ -6571,18 +6602,18 @@ function AttendanceCalendarModal({
                 }),
                 /*#__PURE__*/_jsx("button", {
                   onClick: () => setCurrentDate(new Date(year, month + 1, 1)),
-                  className: "px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-100 cursor-pointer shadow-xs",
+                  className: "px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 hover:bg-slate-100 cursor-pointer shadow-2xs",
                   children: "เดือนถัดไป ▶"
                 })
               ]
             }),
 
-            // Calendar Grid
+            // Calendar Grid (Compact Day Cells)
             /*#__PURE__*/_jsxs("div", {
-              className: "border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-xs",
+              className: "border border-slate-200 rounded-xl overflow-hidden bg-white shadow-xs",
               children: [
                 /*#__PURE__*/_jsx("div", {
-                  className: "grid grid-cols-7 bg-slate-100 text-center text-xs font-bold py-2 border-b border-slate-200",
+                  className: "grid grid-cols-7 bg-slate-100 text-center text-[11px] sm:text-xs font-bold py-1 border-b border-slate-200",
                   children: ['จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.', 'อา.'].map((w, idx) => /*#__PURE__*/_jsx("div", {
                     className: idx >= 5 ? 'text-rose-500' : 'text-slate-700',
                     children: w
@@ -6592,7 +6623,7 @@ function AttendanceCalendarModal({
                   className: "grid grid-cols-7 divide-x divide-y divide-slate-100",
                   children: monthDays.map((item, idx) => {
                     if (!item.day) {
-                      return /*#__PURE__*/_jsx("div", { className: "h-16 sm:h-20 bg-slate-50/50" }, idx);
+                      return /*#__PURE__*/_jsx("div", { className: "h-9 sm:h-11 bg-slate-50/50" }, idx);
                     }
                     const isSelected = item.dateStr === selectedDateStr;
                     const isHoliday = localHolidays.includes(item.dateStr);
@@ -6601,7 +6632,7 @@ function AttendanceCalendarModal({
                     const dateSessions = sessionsByDate[item.dateStr] || [];
                     const hasPhotos = dateSessions.some(s => s.evidence_photo_url);
 
-                    let cellClasses = "h-12 sm:h-16 p-1 flex flex-col justify-between text-left transition-all cursor-pointer relative ";
+                    let cellClasses = "min-h-[38px] sm:min-h-[46px] p-0.5 sm:p-1 flex flex-col justify-between text-left transition-all cursor-pointer relative ";
                     if (isSelected) {
                       cellClasses += "ring-2 ring-amber-500 ring-inset bg-amber-50/90 ";
                     } else if (isHoliday) {
@@ -6615,6 +6646,7 @@ function AttendanceCalendarModal({
                     }
 
                     return /*#__PURE__*/_jsxs("button", {
+                      type: "button",
                       onClick: () => setSelectedDateStr(item.dateStr),
                       className: cellClasses,
                       children: [
@@ -6622,7 +6654,7 @@ function AttendanceCalendarModal({
                           className: "flex justify-between items-center w-full",
                           children: [
                             /*#__PURE__*/_jsx("span", {
-                              className: `text-xs font-bold rounded-lg px-1.5 py-0.5 ${
+                              className: `text-[10px] sm:text-xs font-bold rounded px-1 py-0.2 ${
                                 isToday
                                   ? 'bg-sky-600 text-white font-mono'
                                   : (isHoliday
@@ -6634,11 +6666,11 @@ function AttendanceCalendarModal({
                               children: item.day
                             }),
                             /*#__PURE__*/_jsxs("div", {
-                              className: "flex items-center gap-1",
+                              className: "flex items-center gap-0.5",
                               children: [
-                                hasPhotos && /*#__PURE__*/_jsx(Icon.Camera, { className: "w-3 h-3 text-sky-600" }),
+                                hasPhotos && /*#__PURE__*/_jsx(Icon.Camera, { className: "w-2.5 h-2.5 text-sky-600" }),
                                 isAdminLoggedIn && /*#__PURE__*/_jsx("span", {
-                                  className: "text-[10px] opacity-70",
+                                  className: "text-[9px] opacity-70",
                                   title: item.isWeekend ? (isCompensatory ? "เรียนชดเชย" : "วันหยุด") : (isHoliday ? "วันหยุดพิเศษ" : "วันเรียน"),
                                   children: item.isWeekend ? (isCompensatory ? "[ชดเชย]" : "") : (isHoliday ? "[หยุด]" : "")
                                 })
@@ -6650,21 +6682,17 @@ function AttendanceCalendarModal({
                           className: "w-full space-y-0.5",
                           children: [
                             isHoliday && /*#__PURE__*/_jsxs("div", {
-                              className: "text-[9px] bg-amber-200/90 text-amber-950 font-black px-1 rounded truncate",
+                              className: "text-[8.5px] sm:text-[9px] bg-amber-200/90 text-amber-950 font-black px-1 rounded truncate",
                               title: getHolidayLabel(item.dateStr, holidayReasons),
-                              children: [/*#__PURE__*/_jsx(Icon.Sun, { className: "w-2.5 h-2.5 inline mr-0.5" }), getHolidayLabel(item.dateStr, holidayReasons)]
+                              children: [/*#__PURE__*/_jsx(Icon.Sun, { className: "w-2 h-2 inline mr-0.5" }), getHolidayLabel(item.dateStr, holidayReasons)]
                             }),
                             isCompensatory && /*#__PURE__*/_jsx("div", {
-                              className: "text-[9px] bg-indigo-200/90 text-indigo-950 font-black px-1 rounded truncate",
-                              children: [/*#__PURE__*/_jsx(Icon.Book, { className: "w-2.5 h-2.5 inline mr-0.5" }), "ชดเชย"]
+                              className: "text-[8.5px] sm:text-[9px] bg-indigo-200/90 text-indigo-950 font-black px-1 rounded truncate",
+                              children: [/*#__PURE__*/_jsx(Icon.Book, { className: "w-2 h-2 inline mr-0.5" }), "ชดเชย"]
                             }),
                             dateSessions.length > 0 && /*#__PURE__*/_jsxs("div", {
-                              className: "text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1 rounded truncate",
+                              className: "text-[8.5px] sm:text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1 rounded truncate",
                               children: ["เช็ค ", dateSessions.length, " ห้อง"]
-                            }),
-                            !isHoliday && !isCompensatory && !item.isWeekend && dateSessions.length === 0 && /*#__PURE__*/_jsx("div", {
-                              className: "text-[9px] text-slate-300 truncate",
-                              children: "วันเรียนปกติ"
                             })
                           ]
                         })
@@ -6675,185 +6703,243 @@ function AttendanceCalendarModal({
               ]
             }),
 
-            // Selected Date Breakdown & Admin Action Bar
+            // Selected Date Breakdown & Admin Action Bar (With Holiday Reason Input)
             /*#__PURE__*/_jsxs("div", {
-              className: "bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3",
+              className: "bg-slate-50 p-2 sm:p-2.5 rounded-xl border border-slate-200 space-y-2",
               children: [
                 /*#__PURE__*/_jsxs("div", {
-                  className: "flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-3",
+                  className: "flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-2",
                   children: [
                     /*#__PURE__*/_jsxs("div", {
                       children: [
                         /*#__PURE__*/_jsxs("h3", {
-                          className: "text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2",
+                          className: "text-xs sm:text-sm font-bold text-slate-900 flex items-center gap-1.5 flex-wrap",
                           children: [
-                            [/*#__PURE__*/_jsx(Icon.Calendar, { className: "w-4 h-4 inline mr-1 text-slate-500" }), "รายละเอียดประจำวันที่: "],
+                            [/*#__PURE__*/_jsx(Icon.Calendar, { className: "w-3.5 h-3.5 inline mr-1 text-slate-500" }), "ประจำวันที่: "],
                             /*#__PURE__*/_jsx("span", { className: "text-amber-800 font-mono font-bold", children: selectedDateStr }),
                             selectedIsWeekend ? (
-                              /*#__PURE__*/_jsx("span", { className: "text-xs px-2 py-0.5 bg-rose-100 text-rose-700 rounded-lg font-bold", children: "วันเสาร์-อาทิตย์" })
+                              /*#__PURE__*/_jsx("span", { className: "text-[10px] px-1.5 py-0.2 bg-rose-100 text-rose-700 rounded-md font-bold", children: "วันเสาร์-อาทิตย์" })
                             ) : (
-                              /*#__PURE__*/_jsx("span", { className: "text-xs px-2 py-0.5 bg-slate-200 text-slate-700 rounded-lg font-bold", children: "วันธรรมดา" })
+                              /*#__PURE__*/_jsx("span", { className: "text-[10px] px-1.5 py-0.2 bg-slate-200 text-slate-700 rounded-md font-bold", children: "วันธรรมดา" })
                             )
                           ]
                         }),
                         /*#__PURE__*/_jsxs("div", {
-                          className: "text-xs mt-1 flex flex-wrap items-center gap-2",
+                          className: "text-xs mt-0.5 flex flex-wrap items-center gap-1.5",
                           children: [
-                            selectedIsHoliday && /*#__PURE__*/_jsxs("span", { className: "text-amber-800 font-bold flex items-center gap-1 bg-amber-100 px-2 py-0.5 rounded-lg border border-amber-200", children: [/*#__PURE__*/_jsx(Icon.Sun, { className: "w-3.5 h-3.5 text-amber-600" }), `วันหยุด: ${getHolidayLabel(selectedDateStr, holidayReasons)} (ไม่นับเป็นวันเรียน)`] }),
-                            selectedIsCompensatory && /*#__PURE__*/_jsxs("span", { className: "text-indigo-700 font-bold flex items-center gap-1", children: [/*#__PURE__*/_jsx(Icon.Book, { className: "w-3.5 h-3.5" }), "เป็นวันเรียนชดเชย (ระบบนับเพิ่มเป็นวันเรียน)"] }),
-                            !selectedIsHoliday && !selectedIsCompensatory && (selectedIsWeekend ? /*#__PURE__*/_jsx("span", { className: "text-slate-500", children: "วันหยุดประจำสัปดาห์ (ไม่นับเป็นวันเรียน)" }) : /*#__PURE__*/_jsxs("span", { className: "text-emerald-700 font-bold flex items-center gap-1", children: [/*#__PURE__*/_jsx(Icon.CheckSimple, { className: "w-3.5 h-3.5" }), "วันเรียนปกติ (นับเป็นวันเรียน)"] })),
-                            /*#__PURE__*/_jsxs("span", { className: "text-slate-400 font-normal", children: ["• ส่งเช็คชื่อแล้ว ", selectedDateSessions.length, "/", teachers.length, " ห้อง"] })
+                            selectedIsHoliday && /*#__PURE__*/_jsxs("span", { className: "text-amber-900 font-bold flex items-center gap-1 bg-amber-100 px-2 py-0.5 rounded-md border border-amber-300 text-[11px]", children: [/*#__PURE__*/_jsx(Icon.Sun, { className: "w-3 h-3 text-amber-600" }), `🛑 วันหยุด: ${selectedHolidayReason} (ไม่นับเป็นวันเรียน)`] }),
+                            selectedIsCompensatory && /*#__PURE__*/_jsxs("span", { className: "text-indigo-700 font-bold flex items-center gap-1 text-[11px]", children: [/*#__PURE__*/_jsx(Icon.Book, { className: "w-3 h-3" }), "วันเรียนชดเชย (นับเป็นวันเรียน)"] }),
+                            !selectedIsHoliday && !selectedIsCompensatory && (selectedIsWeekend ? /*#__PURE__*/_jsx("span", { className: "text-slate-500 text-[11px]", children: "วันหยุดประจำสัปดาห์ (ไม่นับเป็นวันเรียน)" }) : /*#__PURE__*/_jsxs("span", { className: "text-emerald-700 font-bold flex items-center gap-1 text-[11px]", children: [/*#__PURE__*/_jsx(Icon.CheckSimple, { className: "w-3 h-3" }), "วันเรียนปกติ (นับเป็นวันเรียน)"] })),
+                            /*#__PURE__*/_jsxs("span", { className: "text-slate-400 font-normal text-[11px]", children: ["• เช็คชื่อแล้ว ", selectedDateSessions.length, "/", teachers.length, " ห้อง"] })
                           ]
                         })
                       ]
                     }),
 
-                    // Admin Day Toggle Button
-                    isAdminLoggedIn && /*#__PURE__*/_jsxs("div", {
-                      className: "flex-shrink-0 flex items-center gap-2",
-                      children: [
-                        !selectedIsWeekend ? (
-                          /*#__PURE__*/_jsxs("button", {
-                            type: "button",
-                            onClick: () => handleToggleHoliday(selectedDateStr),
-                            className: `px-4 py-2 rounded-xl text-xs font-black shadow-xs cursor-pointer transition-all flex items-center gap-1.5 ${
-                              selectedIsHoliday
-                                ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                                : 'bg-amber-500 hover:bg-amber-600 text-white'
-                            }`,
-                            children: [
-                              selectedIsHoliday ? /*#__PURE__*/_jsx(Icon.CheckSimple, { className: "w-3.5 h-3.5" }) : /*#__PURE__*/_jsx(Icon.Sun, { className: "w-3.5 h-3.5" }),
-                              selectedIsHoliday ? "คืนค่าเป็นวันเรียนปกติ" : "เปลี่ยนเป็นวันหยุดพิเศษ"
-                            ]
-                          })
-                        ) : (
-                          /*#__PURE__*/_jsxs("button", {
-                            type: "button",
-                            onClick: () => handleToggleCompensatory(selectedDateStr),
-                            className: `px-4 py-2 rounded-xl text-xs font-black shadow-xs cursor-pointer transition-all flex items-center gap-1.5 ${
-                              selectedIsCompensatory
-                                ? 'bg-slate-700 hover:bg-slate-800 text-white'
-                                : 'bg-indigo-600 hover:bg-indigo-700 text-white'
-                            }`,
-                            children: [
-                              selectedIsCompensatory ? /*#__PURE__*/_jsx(Icon.Close, { className: "w-3.5 h-3.5" }) : /*#__PURE__*/_jsx(Icon.Book, { className: "w-3.5 h-3.5" }),
-                              selectedIsCompensatory ? "คืนค่าเป็นวันหยุดสุดสัปดาห์" : "เปลี่ยนเป็นวันเรียนชดเชย"
-                            ]
-                          })
-                        )
-                      ]
+                    // Admin Action Bar (With Holiday Reason Input & Controls)
+                    isAdminLoggedIn && /*#__PURE__*/_jsx("div", {
+                      className: "flex-shrink-0 flex items-center gap-1.5 flex-wrap",
+                      children: editingHolidayReasonDate === selectedDateStr ? (
+                        /*#__PURE__*/_jsxs("div", {
+                          className: "flex items-center gap-1 bg-white p-1 rounded-lg border border-slate-300 shadow-2xs",
+                          children: [
+                            /*#__PURE__*/_jsx("input", {
+                              type: "text",
+                              value: holidayReasonInput,
+                              onChange: e => setHolidayReasonInput(e.target.value),
+                              placeholder: "ระบุเหตุผล เช่น วันปิยมหาราช...",
+                              className: "px-2 py-0.5 text-xs text-slate-800 font-medium focus:outline-none w-44 sm:w-56",
+                              autoFocus: true
+                            }),
+                            /*#__PURE__*/_jsx("button", {
+                              type: "button",
+                              onClick: async () => {
+                                const r = holidayReasonInput.trim();
+                                if (!selectedIsHoliday) {
+                                  await handleToggleHoliday(selectedDateStr, r);
+                                } else {
+                                  await handleSaveReasonOnly(selectedDateStr, r);
+                                }
+                                setEditingHolidayReasonDate(null);
+                              },
+                              className: "px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md font-bold text-xs cursor-pointer shadow-2xs",
+                              children: "บันทึก"
+                            }),
+                            /*#__PURE__*/_jsx("button", {
+                              type: "button",
+                              onClick: () => setEditingHolidayReasonDate(null),
+                              className: "px-2 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-md text-xs cursor-pointer",
+                              children: "ยกเลิก"
+                            })
+                          ]
+                        })
+                      ) : (
+                        /*#__PURE__*/_jsxs("div", {
+                          className: "flex items-center gap-1.5 flex-wrap",
+                          children: [
+                            !selectedIsWeekend && /*#__PURE__*/_jsx("button", {
+                              type: "button",
+                              onClick: () => {
+                                setEditingHolidayReasonDate(selectedDateStr);
+                                setHolidayReasonInput(holidayReasons[selectedDateStr] || "");
+                              },
+                              className: "px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-xs font-bold cursor-pointer shadow-2xs flex items-center gap-1",
+                              title: "ระบุหรือแก้ไขชื่อเหตุผลวันหยุด",
+                              children: "✏️ ระบุเหตุผลวันหยุด"
+                            }),
+                            !selectedIsWeekend ? (
+                              /*#__PURE__*/_jsxs("button", {
+                                type: "button",
+                                onClick: async () => {
+                                  if (selectedIsHoliday) {
+                                    if (confirm(`ต้องการยกเลิกวันหยุดวันที่ ${selectedDateStr} หรือไม่?`)) {
+                                      await handleToggleHoliday(selectedDateStr);
+                                    }
+                                  } else {
+                                    setEditingHolidayReasonDate(selectedDateStr);
+                                    setHolidayReasonInput(holidayReasons[selectedDateStr] || "");
+                                  }
+                                },
+                                className: `px-3 py-1 rounded-lg text-xs font-bold shadow-xs cursor-pointer transition-all flex items-center gap-1.5 ${
+                                  selectedIsHoliday
+                                    ? 'bg-rose-100 hover:bg-rose-200 text-rose-800 border border-rose-300'
+                                    : 'bg-amber-500 hover:bg-amber-600 text-white'
+                                }`,
+                                children: [
+                                  selectedIsHoliday ? /*#__PURE__*/_jsx(Icon.Close, { className: "w-3 h-3" }) : /*#__PURE__*/_jsx(Icon.Sun, { className: "w-3 h-3" }),
+                                  selectedIsHoliday ? "✕ ยกเลิกวันหยุด" : "+ ตั้งเป็นวันหยุด"
+                                ]
+                              })
+                            ) : (
+                              /*#__PURE__*/_jsxs("button", {
+                                type: "button",
+                                onClick: () => handleToggleCompensatory(selectedDateStr),
+                                className: `px-3 py-1 rounded-lg text-xs font-bold shadow-xs cursor-pointer transition-all flex items-center gap-1.5 ${
+                                  selectedIsCompensatory
+                                    ? 'bg-slate-700 hover:bg-slate-800 text-white'
+                                    : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                                }`,
+                                children: [
+                                  selectedIsCompensatory ? /*#__PURE__*/_jsx(Icon.Close, { className: "w-3 h-3" }) : /*#__PURE__*/_jsx(Icon.Book, { className: "w-3 h-3" }),
+                                  selectedIsCompensatory ? "คืนค่าเป็นวันหยุดสุดสัปดาห์" : "เปลี่ยนเป็นวันเรียนชดเชย"
+                                ]
+                              })
+                            )
+                          ]
+                        })
+                      )
                     })
                   ]
                 }),
 
                 /*#__PURE__*/_jsxs("div", {
-                  className: "space-y-2",
+                  className: "space-y-1.5",
                   children: [
                     selectedDateStr < formatLocalDate(new Date()) && !isAdminLoggedIn && /*#__PURE__*/_jsxs("div", {
-                      className: "p-3 mb-2 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-900 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs",
+                      className: "p-2 mb-1.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 shadow-2xs",
                       children: [
                         /*#__PURE__*/_jsxs("div", {
-                          className: "flex items-center gap-1.5 font-bold",
+                          className: "flex items-center gap-1 font-bold",
                           children: [
-                            /*#__PURE__*/_jsx(Icon.Lock, { className: "w-4 h-4 text-amber-600 flex-shrink-0" }),
+                            /*#__PURE__*/_jsx(Icon.Lock, { className: "w-3.5 h-3.5 text-amber-600 flex-shrink-0" }),
                             /*#__PURE__*/_jsx("span", { children: "โหมดดูประวัติย้อนหลัง: การเช็คชื่อหรือแก้ไขข้อมูลย้อนหลังสงวนสิทธิ์เฉพาะผู้ดูแลระบบ (Admin)" })
                           ]
                         }),
-                        onOpenAdminLogin && /*#__PURE__*/_jsx("button", {
+                        /*#__PURE__*/_jsx("button", {
                           type: "button",
                           onClick: onOpenAdminLogin,
-                          className: "px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold cursor-pointer whitespace-nowrap self-start sm:self-auto shadow-xs transition-colors",
-                          children: "เข้าสู่ระบบ Admin"
+                          className: "px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold cursor-pointer transition-colors shadow-2xs whitespace-nowrap self-end sm:self-auto",
+                          children: "เข้าสู่ระบบแอดมิน"
                         })
                       ]
                     }),
-                    teachers.map(t => {
-                      const session = selectedDateSessions.find(s => s.department === t.department && s.class_level === t.class_level);
-                      const isPastDate = selectedDateStr < formatLocalDate(new Date());
-                      return /*#__PURE__*/_jsxs("div", {
-                        className: `p-3 rounded-xl border flex items-center justify-between gap-2 ${session ? 'bg-white border-emerald-200 shadow-xs' : 'bg-white/60 border-slate-200 opacity-70'}`,
-                        children: [
-                          /*#__PURE__*/_jsxs("div", {
-                            className: "min-w-0 flex items-center gap-2.5",
-                            children: [
-                              /*#__PURE__*/_jsx("span", {
-                                className: `w-7 h-7 rounded-xl flex items-center justify-center text-xs font-bold ${session ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-700'}`,
-                                children: session ? /*#__PURE__*/_jsx(Icon.CheckSimple, { className: "w-4 h-4 text-emerald-800" }) : /*#__PURE__*/_jsx(Icon.Close, { className: "w-4 h-4 text-rose-700" })
-                              }),
-                              /*#__PURE__*/_jsxs("div", {
-                                className: "min-w-0",
-                                children: [
-                                  /*#__PURE__*/_jsxs("div", {
-                                    className: "text-xs font-bold text-slate-900 flex items-center gap-1.5",
-                                    children: [
-                                      t.class_level,
-                                      " แผนก",
-                                      t.department,
-                                      /*#__PURE__*/_jsxs("span", { className: "text-slate-400 font-normal", children: ["(", t.name, ")"] })
-                                    ]
-                                  }),
-                                  session ? /*#__PURE__*/_jsxs("div", {
-                                    className: "text-[11px] text-emerald-700 font-medium flex items-center gap-2 mt-0.5",
-                                    children: [
-                                      /*#__PURE__*/_jsxs("span", { children: ["มา: ", session.present_count, " คน"] }),
-                                      /*#__PURE__*/_jsxs("span", { children: ["ขาด: ", session.absent_count, " คน"] }),
-                                      /*#__PURE__*/_jsxs("span", { children: ["ลา: ", session.leave_count, " คน"] }),
-                                      session.created_at && /*#__PURE__*/_jsxs("span", { className: "text-slate-400 font-mono text-[10px]", children: ["(ส่งเมื่อ ", new Date(session.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }), " น.)"] })
-                                    ]
-                                  }) : /*#__PURE__*/_jsx("div", {
-                                    className: "text-[11px] text-rose-600 font-medium",
-                                    children: [/*#__PURE__*/_jsx("span", { className: "w-2 h-2 rounded-full bg-rose-500 inline-block mr-1.5" }), "ยังไม่ได้ส่งข้อมูลเช็คชื่อ"]
+
+                    /*#__PURE__*/_jsxs("div", {
+                      className: "flex justify-between items-center",
+                      children: [
+                        /*#__PURE__*/_jsx("h4", { className: "text-xs font-bold text-slate-800 uppercase tracking-wider", children: "สถานะการเช็คชื่อรายห้องเรียนประจำวัน" }),
+                        /*#__PURE__*/_jsxs("span", { className: "text-[11px] text-slate-500", children: ["เช็คแล้ว ", selectedDateSessions.length, " จากทั้งหมด ", teachers.length, " ห้อง"] })
+                      ]
+                    }),
+
+                    /*#__PURE__*/_jsx("div", {
+                      className: "grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-[30vh] overflow-y-auto custom-scroll pr-1",
+                      children: teachers.map(t => {
+                        const sess = selectedDateSessions.find(s => s.teacher_name === t.name);
+                        const isChecked = Boolean(sess);
+                        const isPastDate = selectedDateStr < formatLocalDate(new Date());
+
+                        return /*#__PURE__*/_jsxs("div", {
+                          className: `p-2 rounded-xl border flex items-center justify-between gap-2 text-xs transition-colors ${
+                            isChecked
+                              ? 'bg-emerald-50/50 border-emerald-200'
+                              : 'bg-white border-slate-200 hover:border-slate-300'
+                          }`,
+                          children: [
+                            /*#__PURE__*/_jsxs("div", {
+                              className: "flex items-center gap-2 min-w-0",
+                              children: [
+                                /*#__PURE__*/_jsx("div", {
+                                  className: `w-6 h-6 rounded-lg flex items-center justify-center font-bold text-[10px] flex-shrink-0 ${
+                                    isChecked ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-400'
+                                  }`,
+                                  children: isChecked ? /*#__PURE__*/_jsx(Icon.CheckSimple, { className: "w-3.5 h-3.5" }) : "✕"
+                                }),
+                                /*#__PURE__*/_jsxs("div", {
+                                  className: "min-w-0",
+                                  children: [
+                                    /*#__PURE__*/_jsxs("div", {
+                                      className: "font-bold text-slate-900 truncate",
+                                      children: [t.name, " (", t.class_level, ")"]
+                                    }),
+                                    /*#__PURE__*/_jsx("div", {
+                                      className: "text-[10px] text-slate-500 truncate",
+                                      children: t.department
+                                    })
+                                  ]
+                                })
+                              ]
+                            }),
+                            /*#__PURE__*/_jsxs("div", {
+                              className: "flex items-center gap-1.5 flex-shrink-0",
+                              children: [
+                                isChecked && sess.evidence_photo_url && /*#__PURE__*/_jsxs("button", {
+                                  type: "button",
+                                  onClick: () => setViewingPhotoUrl(sess.evidence_photo_url),
+                                  className: "px-2 py-1 bg-sky-100 hover:bg-sky-200 text-sky-800 rounded-lg text-[11px] font-bold cursor-pointer flex items-center gap-1 shadow-2xs transition-colors",
+                                  title: "ดูภาพหลักฐานเข้าแถว",
+                                  children: [/*#__PURE__*/_jsx(Icon.Camera, { className: "w-3 h-3 text-sky-700" }), "ดูรูป"]
+                                }),
+                                isChecked ? (
+                                  /*#__PURE__*/_jsxs("button", {
+                                    type: "button",
+                                    onClick: () => onSelectClassForCheckin(t, selectedDateStr),
+                                    className: "px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-lg text-xs font-bold cursor-pointer flex items-center gap-1 shadow-2xs transition-colors",
+                                    title: "ดูรายชื่อและแก้ไขการเช็คชื่อ",
+                                    children: [/*#__PURE__*/_jsx(Icon.Edit, { className: "w-3 h-3 text-slate-600" }), "แก้ไข"]
                                   })
-                                ]
-                              })
-                            ]
-                          }),
-                          /*#__PURE__*/_jsxs("div", {
-                            className: "flex items-center gap-1.5 flex-shrink-0",
-                            children: [
-                              session?.evidence_photo_url && /*#__PURE__*/_jsx("button", {
-                                onClick: () => setViewingPhotoUrl(session.evidence_photo_url),
-                                className: "px-2.5 py-1.5 bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 rounded-xl text-xs font-bold cursor-pointer flex items-center gap-1 shadow-xs transition-colors",
-                                children: [/*#__PURE__*/_jsx(Icon.Camera, { className: "w-3.5 h-3.5 mr-1" }), "ดูรูปหลักฐาน"]
-                              }),
-                              session ? (
-                                isPastDate && !isAdminLoggedIn ? /*#__PURE__*/_jsxs("button", {
-                                  type: "button",
-                                  onClick: () => {
-                                    alert('การแก้ไขข้อมูลการเข้าแถวย้อนหลัง สงวนสิทธิ์เฉพาะผู้ดูแลระบบ (Admin) เท่านั้น\nกรุณาเข้าสู่ระบบด้วยรหัสผ่านแอดมิน');
-                                    if (onOpenAdminLogin) onOpenAdminLogin();
-                                  },
-                                  className: "px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-500 border border-slate-300 rounded-xl text-xs font-bold cursor-pointer flex items-center gap-1 shadow-xs transition-colors",
-                                  title: "เฉพาะผู้ดูแลระบบ (Admin) จึงจะแก้ไขข้อมูลย้อนหลังได้",
-                                  children: [/*#__PURE__*/_jsx(Icon.Lock, { className: "w-3.5 h-3.5 text-slate-400" }), "แก้ไข (Admin)"]
-                                }) : /*#__PURE__*/_jsxs("button", {
-                                  type: "button",
-                                  onClick: () => onSelectClassForCheckin(t, selectedDateStr),
-                                  className: "px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold cursor-pointer flex items-center gap-1 shadow-xs transition-colors",
-                                  title: "ดูรายชื่อและแก้ไขการเช็คชื่อ",
-                                  children: [/*#__PURE__*/_jsx(Icon.Edit, { className: "w-3.5 h-3.5 text-slate-600" }), "แก้ไข/ดูรายชื่อ"]
-                                })
-                              ) : (
-                                isPastDate && !isAdminLoggedIn ? /*#__PURE__*/_jsxs("button", {
-                                  type: "button",
-                                  onClick: () => {
-                                    alert('การเช็คชื่อย้อนหลัง สงวนสิทธิ์เฉพาะผู้ดูแลระบบ (Admin) เท่านั้น\nกรุณาเข้าสู่ระบบด้วยรหัสผ่านแอดมิน');
-                                    if (onOpenAdminLogin) onOpenAdminLogin();
-                                  },
-                                  className: "px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-500 border border-slate-300 rounded-xl text-xs font-bold cursor-pointer flex items-center gap-1 shadow-xs transition-colors",
-                                  title: "เฉพาะผู้ดูแลระบบ (Admin) จึงจะเช็คชื่อย้อนหลังได้",
-                                  children: [/*#__PURE__*/_jsx(Icon.Lock, { className: "w-3.5 h-3.5 text-slate-400" }), "เช็คชื่อย้อนหลัง (Admin)"]
-                                }) : /*#__PURE__*/_jsxs("button", {
-                                  type: "button",
-                                  onClick: () => onSelectClassForCheckin(t, selectedDateStr),
-                                  className: "px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold cursor-pointer shadow-xs flex items-center gap-1 transition-colors",
-                                  children: [/*#__PURE__*/_jsx(Icon.CheckSimple, { className: "w-3.5 h-3.5 text-white" }), isPastDate ? "เช็คชื่อย้อนหลัง" : "เช็คชื่อห้องนี้"]
-                                })
-                              )
-                            ]
-                          })
-                        ]
-                      }, t.id || t.name);
+                                ) : (
+                                  isPastDate && !isAdminLoggedIn ? /*#__PURE__*/_jsxs("button", {
+                                    type: "button",
+                                    onClick: () => {
+                                      alert('การเช็คชื่อย้อนหลัง สงวนสิทธิ์เฉพาะผู้ดูแลระบบ (Admin) เท่านั้น\nกรุณาเข้าสู่ระบบด้วยรหัสผ่านแอดมิน');
+                                      if (onOpenAdminLogin) onOpenAdminLogin();
+                                    },
+                                    className: "px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-500 border border-slate-300 rounded-lg text-xs font-bold cursor-pointer flex items-center gap-1 shadow-2xs transition-colors",
+                                    title: "เฉพาะผู้ดูแลระบบ (Admin) จึงจะเช็คชื่อย้อนหลังได้",
+                                    children: [/*#__PURE__*/_jsx(Icon.Lock, { className: "w-3 h-3 text-slate-400" }), "ย้อนหลัง (Admin)"]
+                                  }) : /*#__PURE__*/_jsxs("button", {
+                                    type: "button",
+                                    onClick: () => onSelectClassForCheckin(t, selectedDateStr),
+                                    className: "px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold cursor-pointer shadow-2xs flex items-center gap-1 transition-colors",
+                                    children: [/*#__PURE__*/_jsx(Icon.CheckSimple, { className: "w-3 h-3 text-white" }), isPastDate ? "เช็คย้อนหลัง" : "เช็คชื่อ"]
+                                  })
+                                )
+                              ]
+                            })
+                          ]
+                        }, t.id || t.name);
+                      })
                     })
                   ]
                 })
@@ -6864,25 +6950,25 @@ function AttendanceCalendarModal({
 
         // Photo Lightbox
         viewingPhotoUrl && /*#__PURE__*/_jsx("div", {
-          className: "fixed inset-0 z-70 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4",
+          className: "fixed inset-0 z-70 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4",
           onClick: () => setViewingPhotoUrl(null),
           children: /*#__PURE__*/_jsxs("div", {
-            className: "max-w-xl w-full bg-white rounded-3xl p-4 shadow-2xl space-y-3",
+            className: "max-w-xl w-full bg-white rounded-2xl p-3 shadow-2xl space-y-2",
             onClick: e => e.stopPropagation(),
             children: [
               /*#__PURE__*/_jsxs("div", {
-                className: "flex justify-between items-center pb-2 border-b border-slate-200",
+                className: "flex justify-between items-center pb-1.5 border-b border-slate-200",
                 children: [
-                  /*#__PURE__*/_jsx("h4", { className: "text-sm font-bold text-slate-800 flex items-center gap-1.5", children: [/*#__PURE__*/_jsx(Icon.Camera, { className: "w-4 h-4 text-slate-700" }), "ภาพถ่ายหลักฐานการเข้าแถว"] }),
-                  /*#__PURE__*/_jsx("button", { onClick: () => setViewingPhotoUrl(null), className: "text-slate-400 hover:text-slate-600 text-lg cursor-pointer", children: /*#__PURE__*/_jsx(Icon.Close, { className: "w-5 h-5 text-slate-400 hover:text-slate-600" }) })
+                  /*#__PURE__*/_jsx("h4", { className: "text-xs font-bold text-slate-800 flex items-center gap-1", children: [/*#__PURE__*/_jsx(Icon.Camera, { className: "w-3.5 h-3.5 text-slate-700" }), "ภาพถ่ายหลักฐานการเข้าแถว"] }),
+                  /*#__PURE__*/_jsx("button", { onClick: () => setViewingPhotoUrl(null), className: "text-slate-400 hover:text-slate-600 text-base cursor-pointer", children: /*#__PURE__*/_jsx(Icon.Close, { className: "w-4 h-4 text-slate-400 hover:text-slate-600" }) })
                 ]
               }),
               /*#__PURE__*/_jsx("div", {
-                className: "max-h-[60vh] overflow-hidden rounded-2xl bg-black flex items-center justify-center",
+                className: "max-h-[60vh] overflow-hidden rounded-xl bg-black flex items-center justify-center",
                 children: /*#__PURE__*/_jsx("img", {
                   src: viewingPhotoUrl,
                   alt: "หลักฐานเข้าแถว",
-                  className: "max-h-[60vh] w-auto object-contain rounded-2xl"
+                  className: "max-h-[60vh] w-auto object-contain rounded-xl"
                 })
               }),
               /*#__PURE__*/_jsxs("div", {
@@ -6892,12 +6978,12 @@ function AttendanceCalendarModal({
                     href: viewingPhotoUrl,
                     target: "_blank",
                     rel: "noreferrer",
-                    className: "text-sky-700 hover:underline font-semibold",
-                    children: "เปิดรูปขนาดเต็มในแท็บใหม่ ↗"
+                    className: "text-sky-700 hover:underline font-semibold text-[11px]",
+                    children: "เปิดรูปขนาดเต็ม ↗"
                   }),
                   /*#__PURE__*/_jsx("button", {
                     onClick: () => setViewingPhotoUrl(null),
-                    className: "px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold cursor-pointer",
+                    className: "px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold cursor-pointer",
                     children: "ปิด"
                   })
                 ]
@@ -6907,10 +6993,10 @@ function AttendanceCalendarModal({
         }),
 
         /*#__PURE__*/_jsx("div", {
-          className: "p-4 bg-slate-50 border-t border-slate-200 flex justify-end",
+          className: "p-2 sm:p-2.5 bg-slate-50 border-t border-slate-200 flex justify-end",
           children: /*#__PURE__*/_jsx("button", {
             onClick: onClose,
-            className: "px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold cursor-pointer shadow-xs",
+            className: "px-4 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold cursor-pointer shadow-2xs",
             children: "ปิดหน้าต่าง"
           })
         })
