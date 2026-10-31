@@ -2881,7 +2881,7 @@ useEffect(() => {
 
   // Fetch Assembly Data
   const fetchAssemblyData = useCallback(async () => {
-    setIsLoading(prev => (masterStudentsRef.current && masterStudentsRef.current.length > 0) ? false : true);
+    setIsLoading(true);
     try {
       const [
         studentsRaw,
@@ -3427,7 +3427,7 @@ useEffect(() => {
 
   // Fetch Activities Data (เทอม 1 ใช้ ReCheck เดิม / เทอม 2 ขึ้นไปซิงก์นักเรียนจาก attendance_summary ก้อนเดียวกัน 100%)
   const fetchActivitiesData = useCallback(async () => {
-    setIsLoading(prev => (masterStudentsRef.current && masterStudentsRef.current.length > 0) ? false : true);
+    setIsLoading(true);
     try {
       const activeYear = currentAcademicYear || '2569';
       const activeSem = currentSemester || '1';
@@ -3609,6 +3609,7 @@ useEffect(() => {
   }, [currentAcademicYear, currentSemester]);
 
   const reloadData = useCallback(() => {
+    setIsLoading(true);
     if (systemMode === 'assembly') fetchAssemblyData();
     else if (systemMode === 'activities') fetchActivitiesData();
     else fetchAssemblyData();
@@ -4004,11 +4005,12 @@ useEffect(() => {
                     /* Button 1: รีเฟรช */
                     /*#__PURE__*/_jsxs("button", {
                       onClick: reloadData,
+                      disabled: isLoading,
                       title: "รีเฟรชข้อมูลล่าสุด",
-                      className: "w-full sm:w-auto justify-center px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/20 transition-all active:scale-95 flex items-center gap-1.5 backdrop-blur-xs cursor-pointer shadow-xs",
+                      className: "w-full sm:w-auto justify-center px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/20 transition-all active:scale-95 flex items-center gap-1.5 backdrop-blur-xs cursor-pointer shadow-xs disabled:opacity-70",
                       children: [
-                        /*#__PURE__*/_jsx(Icon.Refresh, { className: "w-3.5 h-3.5" }),
-                        /*#__PURE__*/_jsx("span", { children: "รีเฟรช" })
+                        /*#__PURE__*/_jsx(Icon.Refresh, { className: `w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}` }),
+                        /*#__PURE__*/_jsx("span", { children: isLoading ? "กำลังโหลด..." : "รีเฟรช" })
                       ]
                     }),
 
@@ -4499,74 +4501,119 @@ useEffect(() => {
           children: [
             /*#__PURE__*/_jsxs("section", {
               className: "grid grid-cols-4 gap-1.5 sm:gap-4",
-            children: [
-              /*#__PURE__*/_jsxs("div", {
-                className: "bg-white p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between",
-                children: [
-                  /*#__PURE__*/_jsx("div", { className: "text-[11px] sm:text-xs font-medium text-slate-500", children: "ทั้งหมด" }),
-                  /*#__PURE__*/_jsxs("div", {
-                    className: "text-base sm:text-3xl font-bold font-mono text-slate-900",
-                    children: [totalCount, " ", /*#__PURE__*/_jsx("span", { className: "text-xs text-slate-400 font-normal", children: "คน" })]
-                  }),
-                  /*#__PURE__*/_jsx("div", {
-                    className: "w-full bg-slate-100 h-1 sm:h-1.5 rounded-full mt-2 overflow-hidden",
-                    children: /*#__PURE__*/_jsx("div", { className: "bg-slate-800 h-full w-full" })
-                  })
-                ]
-              }),
-              /*#__PURE__*/_jsxs("div", {
-                className: "bg-white p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-rose-100 shadow-xs flex flex-col justify-between",
-                children: [
-                  /*#__PURE__*/_jsx("div", { className: "text-[11px] sm:text-xs font-medium text-rose-700", children: "เสี่ยงตก" }),
-                  /*#__PURE__*/_jsxs("div", {
-                    className: "text-base sm:text-3xl font-bold font-mono text-rose-600",
-                    children: [riskCount, " ", /*#__PURE__*/_jsx("span", { className: "text-xs text-rose-400 font-normal", children: "คน" })]
-                  }),
-                  /*#__PURE__*/_jsx("div", {
-                    className: "w-full bg-rose-50 h-1 sm:h-1.5 rounded-full mt-2 overflow-hidden",
-                    children: /*#__PURE__*/_jsx("div", {
-                      className: "bg-rose-500 h-full transition-all duration-500",
-                      style: { width: `${totalCount ? (riskCount / totalCount) * 100 : 0}%` }
+              children: isLoading ? [
+                /* Skeleton KPI 1: ทั้งหมด */
+                /*#__PURE__*/_jsxs("div", {
+                  key: "sk-kpi-1",
+                  className: "bg-white p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between animate-pulse",
+                  children: [
+                    /*#__PURE__*/_jsx("div", { className: "h-3 sm:h-3.5 w-12 sm:w-16 bg-slate-200 rounded" }),
+                    /*#__PURE__*/_jsx("div", { className: "h-6 sm:h-9 w-16 sm:w-24 bg-slate-200 rounded my-1.5 sm:my-2" }),
+                    /*#__PURE__*/_jsx("div", { className: "w-full bg-slate-100 h-1 sm:h-1.5 rounded-full overflow-hidden", children: /*#__PURE__*/_jsx("div", { className: "bg-slate-300 h-full w-2/3" }) })
+                  ]
+                }),
+                /* Skeleton KPI 2: เสี่ยงตก */
+                /*#__PURE__*/_jsxs("div", {
+                  key: "sk-kpi-2",
+                  className: "bg-white p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-rose-100 shadow-xs flex flex-col justify-between animate-pulse",
+                  children: [
+                    /*#__PURE__*/_jsx("div", { className: "h-3 sm:h-3.5 w-12 sm:w-16 bg-rose-200 rounded" }),
+                    /*#__PURE__*/_jsx("div", { className: "h-6 sm:h-9 w-14 sm:w-20 bg-rose-200 rounded my-1.5 sm:my-2" }),
+                    /*#__PURE__*/_jsx("div", { className: "w-full bg-rose-50 h-1 sm:h-1.5 rounded-full overflow-hidden", children: /*#__PURE__*/_jsx("div", { className: "bg-rose-300 h-full w-1/3" }) })
+                  ]
+                }),
+                /* Skeleton KPI 3: ผ่านเกณฑ์ */
+                /*#__PURE__*/_jsxs("div", {
+                  key: "sk-kpi-3",
+                  className: "bg-white p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-emerald-100 shadow-xs flex flex-col justify-between animate-pulse",
+                  children: [
+                    /*#__PURE__*/_jsx("div", { className: "h-3 sm:h-3.5 w-12 sm:w-16 bg-emerald-200 rounded" }),
+                    /*#__PURE__*/_jsx("div", { className: "h-6 sm:h-9 w-14 sm:w-20 bg-emerald-200 rounded my-1.5 sm:my-2" }),
+                    /*#__PURE__*/_jsx("div", { className: "w-full bg-emerald-50 h-1 sm:h-1.5 rounded-full overflow-hidden", children: /*#__PURE__*/_jsx("div", { className: "bg-emerald-300 h-full w-3/4" }) })
+                  ]
+                }),
+                /* Skeleton KPI 4: ผ่านไม่ครบ */
+                /*#__PURE__*/_jsxs("div", {
+                  key: "sk-kpi-4",
+                  className: "bg-white p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-amber-100 shadow-xs flex flex-col justify-between animate-pulse",
+                  children: [
+                    /*#__PURE__*/_jsx("div", { className: "h-3 sm:h-3.5 w-14 sm:w-20 bg-amber-200 rounded" }),
+                    /*#__PURE__*/_jsx("div", { className: "h-6 sm:h-9 w-12 sm:w-16 bg-amber-200 rounded my-1.5 sm:my-2" }),
+                    /*#__PURE__*/_jsx("div", { className: "w-full bg-amber-50 h-1 sm:h-1.5 rounded-full overflow-hidden", children: /*#__PURE__*/_jsx("div", { className: "bg-amber-300 h-full w-1/4" }) })
+                  ]
+                })
+              ] : [
+                /*#__PURE__*/_jsxs("div", {
+                  key: "real-kpi-1",
+                  className: "bg-white p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between",
+                  children: [
+                    /*#__PURE__*/_jsx("div", { className: "text-[11px] sm:text-xs font-medium text-slate-500", children: "ทั้งหมด" }),
+                    /*#__PURE__*/_jsxs("div", {
+                      className: "text-base sm:text-3xl font-bold font-mono text-slate-900",
+                      children: [totalCount, " ", /*#__PURE__*/_jsx("span", { className: "text-xs text-slate-400 font-normal", children: "คน" })]
+                    }),
+                    /*#__PURE__*/_jsx("div", {
+                      className: "w-full bg-slate-100 h-1 sm:h-1.5 rounded-full mt-2 overflow-hidden",
+                      children: /*#__PURE__*/_jsx("div", { className: "bg-slate-800 h-full w-full" })
                     })
-                  })
-                ]
-              }),
-              /*#__PURE__*/_jsxs("div", {
-                className: "bg-white p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-emerald-100 shadow-xs flex flex-col justify-between",
-                children: [
-                  /*#__PURE__*/_jsx("div", { className: "text-[11px] sm:text-xs font-medium text-emerald-700", children: "ผ่านเกณฑ์" }),
-                  /*#__PURE__*/_jsxs("div", {
-                    className: "text-base sm:text-3xl font-bold font-mono text-emerald-600",
-                    children: [passCount, " ", /*#__PURE__*/_jsx("span", { className: "text-xs text-emerald-400 font-normal", children: "คน" })]
-                  }),
-                  /*#__PURE__*/_jsx("div", {
-                    className: "w-full bg-emerald-50 h-1 sm:h-1.5 rounded-full mt-2 overflow-hidden",
-                    children: /*#__PURE__*/_jsx("div", {
-                      className: "bg-emerald-500 h-full transition-all duration-500",
-                      style: { width: `${totalCount ? (passCount / totalCount) * 100 : 0}%` }
+                  ]
+                }),
+                /*#__PURE__*/_jsxs("div", {
+                  key: "real-kpi-2",
+                  className: "bg-white p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-rose-100 shadow-xs flex flex-col justify-between",
+                  children: [
+                    /*#__PURE__*/_jsx("div", { className: "text-[11px] sm:text-xs font-medium text-rose-700", children: "เสี่ยงตก" }),
+                    /*#__PURE__*/_jsxs("div", {
+                      className: "text-base sm:text-3xl font-bold font-mono text-rose-600",
+                      children: [riskCount, " ", /*#__PURE__*/_jsx("span", { className: "text-xs text-rose-400 font-normal", children: "คน" })]
+                    }),
+                    /*#__PURE__*/_jsx("div", {
+                      className: "w-full bg-rose-50 h-1 sm:h-1.5 rounded-full mt-2 overflow-hidden",
+                      children: /*#__PURE__*/_jsx("div", {
+                        className: "bg-rose-500 h-full transition-all duration-500",
+                        style: { width: `${totalCount ? (riskCount / totalCount) * 100 : 0}%` }
+                      })
                     })
-                  })
-                ]
-              }),
-              /*#__PURE__*/_jsxs("div", {
-                className: "bg-white p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-amber-100 shadow-xs flex flex-col justify-between",
-                children: [
-                  /*#__PURE__*/_jsx("div", { className: "text-[11px] sm:text-xs font-medium text-amber-700", children: "ผ่านไม่ครบ 3" }),
-                  /*#__PURE__*/_jsxs("div", {
-                    className: "text-base sm:text-3xl font-bold font-mono text-amber-600",
-                    children: [riskRate, "%"]
-                  }),
-                  /*#__PURE__*/_jsx("div", {
-                    className: "w-full bg-amber-50 h-1 sm:h-1.5 rounded-full mt-2 overflow-hidden",
-                    children: /*#__PURE__*/_jsx("div", {
-                      className: "bg-amber-500 h-full transition-all duration-500",
-                      style: { width: `${riskRate}%` }
+                  ]
+                }),
+                /*#__PURE__*/_jsxs("div", {
+                  key: "real-kpi-3",
+                  className: "bg-white p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-emerald-100 shadow-xs flex flex-col justify-between",
+                  children: [
+                    /*#__PURE__*/_jsx("div", { className: "text-[11px] sm:text-xs font-medium text-emerald-700", children: "ผ่านเกณฑ์" }),
+                    /*#__PURE__*/_jsxs("div", {
+                      className: "text-base sm:text-3xl font-bold font-mono text-emerald-600",
+                      children: [passCount, " ", /*#__PURE__*/_jsx("span", { className: "text-xs text-emerald-400 font-normal", children: "คน" })]
+                    }),
+                    /*#__PURE__*/_jsx("div", {
+                      className: "w-full bg-emerald-50 h-1 sm:h-1.5 rounded-full mt-2 overflow-hidden",
+                      children: /*#__PURE__*/_jsx("div", {
+                        className: "bg-emerald-500 h-full transition-all duration-500",
+                        style: { width: `${totalCount ? (passCount / totalCount) * 100 : 0}%` }
+                      })
                     })
-                  })
-                ]
-              })
-            ]
-          }),
+                  ]
+                }),
+                /*#__PURE__*/_jsxs("div", {
+                  key: "real-kpi-4",
+                  className: "bg-white p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-amber-100 shadow-xs flex flex-col justify-between",
+                  children: [
+                    /*#__PURE__*/_jsx("div", { className: "text-[11px] sm:text-xs font-medium text-amber-700", children: "ผ่านไม่ครบ 3" }),
+                    /*#__PURE__*/_jsxs("div", {
+                      className: "text-base sm:text-3xl font-bold font-mono text-amber-600",
+                      children: [riskRate, "%"]
+                    }),
+                    /*#__PURE__*/_jsx("div", {
+                      className: "w-full bg-amber-50 h-1 sm:h-1.5 rounded-full mt-2 overflow-hidden",
+                      children: /*#__PURE__*/_jsx("div", {
+                        className: "bg-amber-500 h-full transition-all duration-500",
+                        style: { width: `${riskRate}%` }
+                      })
+                    })
+                  ]
+                })
+              ]
+            }),
 
           /* Dashboard Inline Compact Calendar Block */
           /*#__PURE__*/_jsx(DashboardInlineCalendar, {
@@ -4659,7 +4706,7 @@ useEffect(() => {
                           /*#__PURE__*/_jsx("span", { className: "truncate", children: "ทั้งหมด" }),
                           /*#__PURE__*/_jsx("span", {
                             className: "px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-mono font-bold transition-colors flex-shrink-0 " + (currentTab === "ALL" ? "bg-white/20 text-white" : "bg-slate-200/80 text-slate-700"),
-                            children: activeMasterStudents.length
+                            children: isLoading ? "..." : activeMasterStudents.length
                           })
                         ]
                       }),
@@ -4678,7 +4725,7 @@ useEffect(() => {
                           /*#__PURE__*/_jsx("span", { className: "truncate", children: "เสี่ยงตก" }),
                           /*#__PURE__*/_jsx("span", {
                             className: "px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-mono font-bold transition-colors flex-shrink-0 " + (currentTab === "RISK" ? "bg-white/25 text-white" : "bg-rose-100 text-rose-700"),
-                            children: riskCount
+                            children: isLoading ? "..." : riskCount
                           })
                         ]
                       }),
@@ -4697,7 +4744,7 @@ useEffect(() => {
                           /*#__PURE__*/_jsx("span", { className: "truncate", children: "ผ่านเกณฑ์" }),
                           /*#__PURE__*/_jsx("span", {
                             className: "px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-mono font-bold transition-colors flex-shrink-0 " + (currentTab === "PASS" ? "bg-white/25 text-white" : "bg-emerald-100 text-emerald-800"),
-                            children: passCount
+                            children: isLoading ? "..." : passCount
                           })
                         ]
                       })
@@ -4710,9 +4757,165 @@ useEffect(() => {
 
           /*#__PURE__*/_jsxs("div", {
             className: "space-y-4",
-            children: [
+            children: isLoading ? [
+              /* Skeleton Loader Banner with Spinning Icon */
+              /*#__PURE__*/_jsxs("div", {
+                key: "sk-loading-box",
+                className: "bg-white p-6 sm:p-8 rounded-3xl border border-sky-100 shadow-xs text-center space-y-3.5",
+                children: [
+                  /*#__PURE__*/_jsx("div", {
+                    className: "w-12 h-12 mx-auto rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center shadow-2xs",
+                    children: /*#__PURE__*/_jsx(Icon.Refresh, { className: "w-6 h-6 animate-spin text-sky-600" })
+                  }),
+                  /*#__PURE__*/_jsxs("div", {
+                    className: "space-y-1",
+                    children: [
+                      /*#__PURE__*/_jsx("h3", {
+                        className: "text-base sm:text-lg font-bold text-slate-800",
+                        children: "กำลังดึงข้อมูลล่าสุดจากฐานข้อมูล..."
+                      }),
+                      /*#__PURE__*/_jsxs("p", {
+                        className: "text-xs sm:text-sm text-slate-500",
+                        children: [
+                          "กำลังเชื่อมต่อและโหลดข้อมูลนักเรียน ภาคเรียนที่ ", currentSemester, "/", currentAcademicYear, " กรุณารอสักครู่"
+                        ]
+                      })
+                    ]
+                  }),
+                  /* Shimmer pulse bar */
+                  /*#__PURE__*/_jsx("div", {
+                    className: "w-48 sm:w-64 h-1.5 mx-auto bg-slate-100 rounded-full overflow-hidden",
+                    children: /*#__PURE__*/_jsx("div", {
+                      className: "h-full bg-gradient-to-r from-sky-400 via-indigo-500 to-sky-400 rounded-full animate-pulse",
+                      style: { width: '100%' }
+                    })
+                  })
+                ]
+              }),
+
+              /* Mobile Skeleton Cards */
+              /*#__PURE__*/_jsx("div", {
+                key: "sk-mobile-list",
+                className: "md:hidden space-y-3",
+                children: [1, 2, 3, 4, 5].map(idx => (
+                  /*#__PURE__*/_jsxs("div", {
+                    key: idx,
+                    className: "bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3 animate-pulse",
+                    children: [
+                      /*#__PURE__*/_jsxs("div", {
+                        className: "flex items-center justify-between gap-2",
+                        children: [
+                          /*#__PURE__*/_jsxs("div", {
+                            className: "flex items-center gap-2.5 min-w-0",
+                            children: [
+                              /*#__PURE__*/_jsx("div", { className: "w-6 h-6 rounded-lg bg-slate-200" }),
+                              /*#__PURE__*/_jsx("div", { className: "w-8 h-8 rounded-full bg-slate-200" }),
+                              /*#__PURE__*/_jsx("div", { className: "h-4 w-32 bg-slate-200 rounded" })
+                            ]
+                          }),
+                          /*#__PURE__*/_jsx("div", { className: "h-5 w-16 bg-slate-200 rounded-lg" })
+                        ]
+                      }),
+                      /*#__PURE__*/_jsxs("div", {
+                        className: "flex items-center justify-between",
+                        children: [
+                          /*#__PURE__*/_jsx("div", { className: "h-3 w-28 bg-slate-200 rounded" }),
+                          /*#__PURE__*/_jsx("div", { className: "h-3 w-20 bg-slate-200 rounded" })
+                        ]
+                      }),
+                      /*#__PURE__*/_jsx("div", {
+                        className: "grid grid-cols-3 gap-2 p-2 bg-slate-50 rounded-xl",
+                        children: [1, 2, 3].map(col => (
+                          /*#__PURE__*/_jsx("div", { key: col, className: "h-6 bg-slate-200 rounded-lg" })
+                        ))
+                      })
+                    ]
+                  }, idx)
+                ))
+              }),
+
+              /* Desktop Skeleton Table */
+              /*#__PURE__*/_jsx("div", {
+                key: "sk-desktop-table",
+                className: "hidden md:block bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden",
+                children: /*#__PURE__*/_jsxs("table", {
+                  className: "w-full text-left border-collapse",
+                  children: [
+                    /*#__PURE__*/_jsx("thead", {
+                      className: "bg-slate-50/80 border-b border-slate-200 text-xs text-slate-500 font-bold uppercase",
+                      children: /*#__PURE__*/_jsxs("tr", {
+                        children: [
+                          /*#__PURE__*/_jsx("th", { className: "py-3 px-3 text-center w-14", children: "ลำดับ" }),
+                          /*#__PURE__*/_jsx("th", { className: "py-3 px-3", children: "ชื่อ - นามสกุล" }),
+                          /*#__PURE__*/_jsx("th", { className: "py-3 px-3", children: "ระดับชั้น • แผนกวิชา" }),
+                          /*#__PURE__*/_jsx("th", { className: "py-3 px-3 text-center", children: "สถานะภาพรวม" }),
+                          /*#__PURE__*/_jsx("th", { className: "py-3 px-3", children: "สถิติการเข้าแถว" }),
+                          /*#__PURE__*/_jsx("th", { className: "py-3 px-3 text-center w-28", children: "จัดการ" })
+                        ]
+                      })
+                    }),
+                    /*#__PURE__*/_jsx("tbody", {
+                      className: "divide-y divide-slate-100",
+                      children: [1, 2, 3, 4, 5, 6, 7].map(idx => (
+                        /*#__PURE__*/_jsxs("tr", {
+                          key: idx,
+                          className: "animate-pulse",
+                          children: [
+                            /*#__PURE__*/_jsx("td", { className: "py-3 px-3 text-center", children: /*#__PURE__*/_jsx("div", { className: "w-6 h-4 mx-auto bg-slate-200 rounded" }) }),
+                            /*#__PURE__*/_jsx("td", {
+                              className: "py-3 px-3",
+                              children: /*#__PURE__*/_jsxs("div", {
+                                className: "flex items-center gap-2.5",
+                                children: [
+                                  /*#__PURE__*/_jsx("div", { className: "w-9 h-9 rounded-full bg-slate-200 flex-shrink-0" }),
+                                  /*#__PURE__*/_jsxs("div", {
+                                    className: "space-y-1.5",
+                                    children: [
+                                      /*#__PURE__*/_jsx("div", { className: "h-3.5 w-32 bg-slate-200 rounded" }),
+                                      /*#__PURE__*/_jsx("div", { className: "h-2.5 w-20 bg-slate-200 rounded" })
+                                    ]
+                                  })
+                                ]
+                              })
+                            }),
+                            /*#__PURE__*/_jsx("td", {
+                              className: "py-3 px-3",
+                              children: /*#__PURE__*/_jsxs("div", {
+                                className: "flex items-center gap-2",
+                                children: [
+                                  /*#__PURE__*/_jsx("div", { className: "h-5 w-12 bg-slate-200 rounded" }),
+                                  /*#__PURE__*/_jsx("div", { className: "h-5 w-24 bg-slate-200 rounded" })
+                                ]
+                              })
+                            }),
+                            /*#__PURE__*/_jsx("td", {
+                              className: "py-3 px-3 text-center",
+                              children: /*#__PURE__*/_jsx("div", { className: "h-6 w-20 mx-auto bg-slate-200 rounded-lg" })
+                            }),
+                            /*#__PURE__*/_jsx("td", {
+                              className: "py-3 px-3",
+                              children: /*#__PURE__*/_jsxs("div", {
+                                className: "space-y-1.5 w-36",
+                                children: [
+                                  /*#__PURE__*/_jsx("div", { className: "h-2.5 bg-slate-200 rounded-full" }),
+                                  /*#__PURE__*/_jsx("div", { className: "h-2 w-16 bg-slate-200 rounded" })
+                                ]
+                              })
+                            }),
+                            /*#__PURE__*/_jsx("td", {
+                              className: "py-3 px-3 text-center",
+                              children: /*#__PURE__*/_jsx("div", { className: "h-7 w-20 mx-auto bg-slate-200 rounded-xl" })
+                            })
+                          ]
+                        }, idx)
+                      ))
+                    })
+                  ]
+                })
+              })
+            ] : [
               // แจ้งเตือนเมื่อภาคเรียนที่เลือกยังไม่มีข้อมูล (เช่น เพิ่งเปิดเทอม 2)
-              activeMasterStudents.length === 0 && !isLoading && /*#__PURE__*/_jsxs("div", {
+              activeMasterStudents.length === 0 && /*#__PURE__*/_jsxs("div", {
                 className: "bg-white p-6 sm:p-8 rounded-3xl border-2 border-dashed border-sky-300 text-center space-y-4 max-w-xl mx-auto my-6 shadow-sm",
                 children: [
                   /*#__PURE__*/_jsx(Icon.Calendar, { className: "w-12 h-12 text-sky-500 mx-auto" }),
@@ -5670,6 +5873,8 @@ useEffect(() => {
         onSaveAcademicTerm: (yr, sem) => {
           setCurrentAcademicYear(yr);
           setCurrentSemester(sem);
+          setIsLoading(true);
+          setMasterStudents([]);
           reloadData();
         },
         teachersList: teachersList,
@@ -9927,7 +10132,7 @@ function TeacherCheckinModal({
   // Load students for selected teacher
   const loadRoomStudents = useCallback(async (teacher, date) => {
     if (!teacher) return;
-    setIsLoadingStudents(prev => (roomStudents && roomStudents.length > 0) ? false : true);
+    setIsLoadingStudents(true);
     setSaveSuccessMsg('');
     setPhotoDataUrl(null);
     try {
