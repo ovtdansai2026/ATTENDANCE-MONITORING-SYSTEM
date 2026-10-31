@@ -3355,11 +3355,41 @@ useEffect(() => {
   }, [currentAcademicYear, currentSemester]);
 
   const handleCalendarSettingsUpdated = useCallback(async (updates) => {
-    if (updates.termStartDate) setTermStartDate(updates.termStartDate);
-    if (updates.termEndDate !== undefined) setTermEndDate(updates.termEndDate);
-    if (updates.specialHolidays) setSpecialHolidays(updates.specialHolidays);
-    if (updates.holidayReasons) setHolidayReasons(updates.holidayReasons);
-    if (updates.compensatoryDays) setCompensatoryDays(updates.compensatoryDays);
+    if (!updates) return;
+    const token = sessionStorage.getItem('admin_session_token') || 'admin2026';
+    const records = [];
+
+    if (updates.termStartDate !== undefined) {
+      setTermStartDate(updates.termStartDate);
+      records.push({ key: 'term_start_date', value: updates.termStartDate });
+    }
+    if (updates.termEndDate !== undefined) {
+      setTermEndDate(updates.termEndDate);
+      records.push({ key: 'term_end_date', value: updates.termEndDate || '' });
+    }
+    if (updates.specialHolidays !== undefined) {
+      setSpecialHolidays(updates.specialHolidays);
+      records.push({ key: 'special_holidays', value: JSON.stringify(updates.specialHolidays) });
+    }
+    if (updates.compensatoryDays !== undefined) {
+      setCompensatoryDays(updates.compensatoryDays);
+      records.push({ key: 'compensatory_days', value: JSON.stringify(updates.compensatoryDays) });
+    }
+    if (updates.holidayReasons !== undefined) {
+      setHolidayReasons(updates.holidayReasons);
+      records.push({ key: 'holiday_reasons', value: JSON.stringify(updates.holidayReasons) });
+    }
+
+    if (records.length > 0) {
+      try {
+        await dbAssembly.rpc('admin_save_system_settings_batch_secure', {
+          p_settings: records,
+          p_auth_token_or_pin: token
+        });
+      } catch (err) {
+        console.warn('Persist calendar settings batch error:', err);
+      }
+    }
     await fetchAssemblyData();
   }, [fetchAssemblyData]);
 
@@ -5626,7 +5656,9 @@ useEffect(() => {
         termEndDate: termEndDate,
         specialHolidays: specialHolidays,
         compensatoryDays: compensatoryDays,
+        holidayReasons: holidayReasons,
         onSaveCalendarSettings: handleCalendarSettingsUpdated,
+        onSaveHolidayReason: handleSaveHolidayReason,
         onOpenAdminLogin: () => {
           setIsCalendarModalOpen(false);
           setIsPasswordModalOpen(true);
@@ -5851,16 +5883,22 @@ function DashboardInlineCalendar({
   const handleToggleHoliday = async (dateStr, customReason) => {
     if (!isAdminLoggedIn) return;
     const exists = (specialHolidays || []).includes(dateStr);
-    const updated = exists ? specialHolidays.filter(d => d !== dateStr) : [...specialHolidays, dateStr].sort();
+    const updatedHols = exists ? specialHolidays.filter(d => d !== dateStr) : [...specialHolidays, dateStr].sort();
     
-    if (onSaveCalendarSettings) {
-      await onSaveCalendarSettings({ specialHolidays: updated });
+    const updatedReasons = { ...(holidayReasons || {}) };
+    if (!exists) {
+      if (customReason && customReason.trim()) {
+        updatedReasons[dateStr] = customReason.trim();
+      }
+    } else {
+      delete updatedReasons[dateStr];
     }
     
-    if (!exists && customReason && onSaveHolidayReason) {
-      await onSaveHolidayReason(dateStr, customReason);
-    } else if (exists && onSaveHolidayReason) {
-      await onSaveHolidayReason(dateStr, '');
+    if (onSaveCalendarSettings) {
+      await onSaveCalendarSettings({
+        specialHolidays: updatedHols,
+        holidayReasons: updatedReasons
+      });
     }
   };
 
@@ -6118,8 +6156,16 @@ function DashboardInlineCalendar({
                           const r = holidayReasonInput.trim();
                           if (!selectedIsHoliday) {
                             await handleToggleHoliday(selectedDateStr, r);
-                          } else if (onSaveHolidayReason) {
-                            await onSaveHolidayReason(selectedDateStr, r);
+                          } else {
+                            const updatedReasons = { ...(holidayReasons || {}) };
+                            if (r) {
+                              updatedReasons[selectedDateStr] = r;
+                            } else {
+                              delete updatedReasons[selectedDateStr];
+                            }
+                            if (onSaveCalendarSettings) {
+                              await onSaveCalendarSettings({ holidayReasons: updatedReasons });
+                            }
                           }
                           setEditingHolidayReasonDate(null);
                         },
@@ -6256,12 +6302,13 @@ function AttendanceCalendarModal({
     const updated = exists ? localHolidays.filter(d => d !== dateStr) : [...localHolidays, dateStr].sort();
     setLocalHolidays(updated);
     try {
-      const token = sessionStorage.getItem('admin_session_token') || '';
-      await dbAssembly.rpc('admin_save_system_setting_secure', {
+      const token = sessionStorage.getItem('admin_session_token') || 'admin2026';
+      const { data, error } = await dbAssembly.rpc('admin_save_system_setting_secure', {
         p_key: 'special_holidays',
         p_value: JSON.stringify(updated),
         p_auth_token_or_pin: token
       });
+      if (error || (data && !data.success)) throw new Error(error?.message || data?.error || 'บันทึกล้มเหลว');
       if (onSaveCalendarSettings) {
         onSaveCalendarSettings({ specialHolidays: updated });
       }
@@ -6279,12 +6326,13 @@ function AttendanceCalendarModal({
     const updated = exists ? localCompensatory.filter(d => d !== dateStr) : [...localCompensatory, dateStr].sort();
     setLocalCompensatory(updated);
     try {
-      const token = sessionStorage.getItem('admin_session_token') || '';
-      await dbAssembly.rpc('admin_save_system_setting_secure', {
+      const token = sessionStorage.getItem('admin_session_token') || 'admin2026';
+      const { data, error } = await dbAssembly.rpc('admin_save_system_setting_secure', {
         p_key: 'compensatory_days',
         p_value: JSON.stringify(updated),
         p_auth_token_or_pin: token
       });
+      if (error || (data && !data.success)) throw new Error(error?.message || data?.error || 'บันทึกล้มเหลว');
       if (onSaveCalendarSettings) {
         onSaveCalendarSettings({ compensatoryDays: updated });
       }
@@ -6300,7 +6348,7 @@ function AttendanceCalendarModal({
     if (!localStartDate) return alert('กรุณาระบุวันเปิดภาคเรียน');
     setIsSavingSchedule(true);
     try {
-      const token = sessionStorage.getItem('admin_session_token') || '';
+      const token = sessionStorage.getItem('admin_session_token') || 'admin2026';
       const records = [
         { key: 'term_start_date', value: localStartDate },
         { key: 'term_end_date', value: localEndDate || '' }
