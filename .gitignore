@@ -10,6 +10,8 @@
 !/index.html
 !/logo.png
 !/README.md
+!/vercel.json
+!/admin-module.js
 !/recheck/
 !/recheck/**
 
@@ -22,7 +24,9 @@ node_modules/
 *.sql
 *.cmd
 server.js
+serve.js
 *.env*
+*.log
 google-service-account.json
 credentials.json
 .DS_Store
