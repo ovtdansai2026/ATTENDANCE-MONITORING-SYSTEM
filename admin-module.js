@@ -2990,6 +2990,171 @@ const [adminTab, setAdminTab] = useState('term'); // 'term', 'students', 'logs',
     }
   };
 
+  // Full Backup & Restore State & Handlers
+  const [isExportingBackup, setIsExportingBackup] = useState(false);
+  const [isRestoringBackup, setIsRestoringBackup] = useState(false);
+  const backupFileInputRef = useRef(null);
+
+  const handleExportFullBackup = async () => {
+    setIsExportingBackup(true);
+    try {
+      const [
+        summaryRes,
+        dailyRes,
+        sessionsRes,
+        teachersRes,
+        settingsRes,
+        rulesRes
+      ] = await Promise.all([
+        fetchAllRows(dbAssembly, 'attendance_summary', '*').catch(() => []),
+        fetchAllRows(dbAssembly, 'daily_attendance', '*').catch(() => []),
+        fetchAllRows(dbAssembly, 'attendance_checkin_sessions', '*').catch(() => []),
+        fetchAllRows(dbAssembly, 'teachers', '*').catch(() => []),
+        fetchAllRows(dbAssembly, 'system_settings', '*').catch(() => []),
+        fetchAllRows(dbAssembly, 'system_rules', '*').catch(() => [])
+      ]);
+
+      const backupObj = {
+        app: 'DAN_SAI_ATTENDANCE_SYSTEM',
+        version: '2.0',
+        exported_at: new Date().toISOString(),
+        college: 'วิทยาลัยการอาชีพด่านซ้าย',
+        summary: {
+          attendance_summary_count: (summaryRes || []).length,
+          daily_attendance_count: (dailyRes || []).length,
+          attendance_checkin_sessions_count: (sessionsRes || []).length,
+          teachers_count: (teachersRes || []).length,
+          settings_count: (settingsRes || []).length
+        },
+        data: {
+          attendance_summary: summaryRes || [],
+          daily_attendance: dailyRes || [],
+          attendance_checkin_sessions: sessionsRes || [],
+          teachers: teachersRes || [],
+          system_settings: settingsRes || [],
+          system_rules: rulesRes || []
+        }
+      };
+
+      const jsonStr = JSON.stringify(backupObj, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const now = new Date();
+      const datePart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      a.href = url;
+      a.download = `backup_dansai_attendance_full_${datePart}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      alert(`✅ สำรองข้อมูลทั้งหมดเรียบร้อยแล้ว!\n\n• นักเรียน (attendance_summary): ${(summaryRes || []).length} คน\n• ประวัติเช็คชื่อรายวัน (daily_attendance): ${(dailyRes || []).length} รายการ\n• รอบเช็คชื่อ & ภาพถ่าย (attendance_checkin_sessions): ${(sessionsRes || []).length} รอบ\n• ครูที่ปรึกษา: ${(teachersRes || []).length} คน\n\nดาวน์โหลดไฟล์ JSON สำเร็จ`);
+    } catch (err) {
+      console.error('Backup error:', err);
+      alert('เกิดข้อผิดพลาดในการสำรองข้อมูล: ' + (err.message || err));
+    } finally {
+      setIsExportingBackup(false);
+    }
+  };
+
+  const handleRestoreFullBackup = async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    setIsRestoringBackup(true);
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      if (!parsed || !parsed.data) {
+        throw new Error('รูปแบบไฟล์สำรองข้อมูลไม่ถูกต้อง (ไม่พบโครงสร้าง data)');
+      }
+
+      const d = parsed.data;
+      const summCount = (d.attendance_summary || []).length;
+      const dailyCount = (d.daily_attendance || []).length;
+      const sessCount = (d.attendance_checkin_sessions || []).length;
+      const teachCount = (d.teachers || []).length;
+
+      const confirmMsg = `ยืนยันการกู้คืนข้อมูลเข้าสู่ระบบ Supabase?\n\n` +
+        `พบข้อมูลในไฟล์สำรอง (${file.name}):\n` +
+        `• วันที่สำรอง: ${parsed.exported_at ? new Date(parsed.exported_at).toLocaleString('th-TH') : 'ไม่ระบุ'}\n` +
+        `• รายชื่อนักเรียน: ${summCount} คน\n` +
+        `• ประวัติเช็คชื่อรายวัน: ${dailyCount} รายการ\n` +
+        `• รอบเช็คชื่อและภาพถ่าย: ${sessCount} รอบ\n` +
+        `• ครูที่ปรึกษา: ${teachCount} คน\n\n` +
+        `ระบบจะทำการกู้คืนข้อมูลเข้าสู่ฐานข้อมูล Supabase\nต้องการดำเนินการต่อหรือไม่?`;
+
+      if (!window.confirm(confirmMsg)) {
+        if (backupFileInputRef.current) backupFileInputRef.current.value = '';
+        setIsRestoringBackup(false);
+        return;
+      }
+
+      // 1. Restore attendance_summary
+      if (d.attendance_summary && d.attendance_summary.length > 0) {
+        for (let i = 0; i < d.attendance_summary.length; i += 50) {
+          const chunk = d.attendance_summary.slice(i, i + 50);
+          await dbAssembly.from('attendance_summary').upsert(chunk, { onConflict: 'id' });
+        }
+      }
+
+      // 2. Restore daily_attendance
+      if (d.daily_attendance && d.daily_attendance.length > 0) {
+        for (let i = 0; i < d.daily_attendance.length; i += 50) {
+          const chunk = d.daily_attendance.slice(i, i + 50);
+          await dbAssembly.from('daily_attendance').upsert(chunk, { onConflict: 'check_date,student_id,academic_year,semester' });
+        }
+      }
+
+      // 3. Restore attendance_checkin_sessions (clean schema)
+      if (d.attendance_checkin_sessions && d.attendance_checkin_sessions.length > 0) {
+        const cleanSessions = d.attendance_checkin_sessions.map(s => ({
+          check_date: s.check_date,
+          teacher_name: s.teacher_name,
+          department: s.department,
+          class_level: s.class_level,
+          total_students: s.total_students,
+          present_count: s.present_count,
+          absent_count: s.absent_count,
+          leave_count: s.leave_count,
+          evidence_photo_url: s.evidence_photo_url,
+          academic_year: s.academic_year,
+          semester: s.semester,
+          notes: s.notes || (s.activity_type ? JSON.stringify({ activity_type: s.activity_type }) : null)
+        }));
+        for (let i = 0; i < cleanSessions.length; i += 50) {
+          const chunk = cleanSessions.slice(i, i + 50);
+          await dbAssembly.from('attendance_checkin_sessions').upsert(chunk, { onConflict: 'check_date,department,class_level,academic_year,semester' });
+        }
+      }
+
+      // 4. Restore teachers
+      if (d.teachers && d.teachers.length > 0) {
+        for (let i = 0; i < d.teachers.length; i += 50) {
+          const chunk = d.teachers.slice(i, i + 50);
+          await dbAssembly.from('teachers').upsert(chunk, { onConflict: 'id' });
+        }
+      }
+
+      // 5. Restore system_settings
+      if (d.system_settings && d.system_settings.length > 0) {
+        for (let i = 0; i < d.system_settings.length; i += 50) {
+          const chunk = d.system_settings.slice(i, i + 50);
+          await dbAssembly.from('system_settings').upsert(chunk, { onConflict: 'key' });
+        }
+      }
+
+      alert('🎉 กู้คืนข้อมูลทั้งหมดเข้าสู่ระบบ Supabase เรียบร้อยแล้ว!');
+      if (reloadData) reloadData();
+      if (fetchStorageStats) fetchStorageStats();
+    } catch (err) {
+      console.error('Restore error:', err);
+      alert('เกิดข้อผิดพลาดในการกู้คืนข้อมูล: ' + (err.message || err));
+    } finally {
+      setIsRestoringBackup(false);
+      if (backupFileInputRef.current) backupFileInputRef.current.value = '';
+    }
+  };
+
   // Teachers State
   const [teachers, setTeachers] = useState(teachersList || []);
   useEffect(() => {
@@ -6003,6 +6168,72 @@ const [adminTab, setAdminTab] = useState('term'); // 'term', 'students', 'logs',
                             /*#__PURE__*/_jsx("div", { className: "text-[11px] text-slate-400", children: "นักเรียนในระบบ" }),
                             /*#__PURE__*/_jsxs("div", { className: "text-sm sm:text-base font-bold font-mono text-emerald-300", children: [storageStats?.total_students || 0, " คน"] })
                           ]
+                        })
+                      ]
+                    })
+                  ]
+                }),
+
+                // Full Backup & Restore Card
+                /*#__PURE__*/_jsxs("div", {
+                  className: "p-4 sm:p-5 bg-white border border-slate-200 rounded-3xl shadow-xs space-y-3",
+                  children: [
+                    /*#__PURE__*/_jsxs("div", {
+                      className: "flex justify-between items-center",
+                      children: [
+                        /*#__PURE__*/_jsxs("div", {
+                          className: "flex items-center gap-2",
+                          children: [
+                            /*#__PURE__*/_jsx(Icon.Shield, { className: "w-5 h-5 text-emerald-600" }),
+                            /*#__PURE__*/_jsx("h3", {
+                              className: "text-sm sm:text-base font-bold text-slate-900",
+                              children: "สำรอง & กู้คืนข้อมูลระบบ (Full Backup & Restore)"
+                            })
+                          ]
+                        }),
+                        /*#__PURE__*/_jsx(InfoTooltip, {
+                          title: "สำรองและกู้คืนข้อมูล",
+                          text: "ดาวน์โหลดข้อมูลทุกตารางในฐานข้อมูลเป็นไฟล์ JSON เก็บไว้บนคอมพิวเตอร์ของคุณ และสามารถนำไฟล์มากู้คืนข้อมูลทั้งหมดกลับเข้าสู่ระบบได้ตลอดเวลา"
+                        })
+                      ]
+                    }),
+                    /*#__PURE__*/_jsx("p", {
+                      className: "text-xs text-slate-500",
+                      children: "สำรองข้อมูลครอบคลุมทั้ง: รายชื่อนักเรียน, สถิติการเข้าแถว, ประวัติเช็คชื่อรายวัน, บันทึกการเข้าแถวและรูปถ่าย, ครูที่ปรึกษา และการตั้งค่าระบบทั้งหมด"
+                    }),
+                    /*#__PURE__*/_jsxs("div", {
+                      className: "flex flex-col sm:flex-row gap-2.5 pt-1",
+                      children: [
+                        /*#__PURE__*/_jsxs("button", {
+                          type: "button",
+                          onClick: handleExportFullBackup,
+                          disabled: isExportingBackup || isRestoringBackup,
+                          className: "flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 disabled:bg-slate-300 text-white rounded-2xl text-xs sm:text-sm font-bold shadow-sm cursor-pointer flex items-center justify-center gap-2 transition-all",
+                          children: [
+                            isExportingBackup
+                              ? /*#__PURE__*/_jsx(Icon.Spin, { className: "w-4 h-4 text-white" })
+                              : /*#__PURE__*/_jsx(Icon.Save, { className: "w-4 h-4 text-white" }),
+                            isExportingBackup ? "กำลังส่งออกข้อมูล..." : "📦 สำรองข้อมูลทั้งหมด (ดาวน์โหลด JSON)"
+                          ]
+                        }),
+                        /*#__PURE__*/_jsxs("button", {
+                          type: "button",
+                          onClick: () => backupFileInputRef.current && backupFileInputRef.current.click(),
+                          disabled: isExportingBackup || isRestoringBackup,
+                          className: "flex-1 py-3 px-4 bg-indigo-50 hover:bg-indigo-100 active:bg-indigo-200 border border-indigo-200 text-indigo-900 rounded-2xl text-xs sm:text-sm font-bold cursor-pointer flex items-center justify-center gap-2 transition-all",
+                          children: [
+                            isRestoringBackup
+                              ? /*#__PURE__*/_jsx(Icon.Spin, { className: "w-4 h-4 text-indigo-600" })
+                              : /*#__PURE__*/_jsx(Icon.Upload, { className: "w-4 h-4 text-indigo-600" }),
+                            isRestoringBackup ? "กำลังกู้คืนข้อมูล..." : "📥 กู้คืนข้อมูล (เลือกไฟล์ JSON)"
+                          ]
+                        }),
+                        /*#__PURE__*/_jsx("input", {
+                          ref: backupFileInputRef,
+                          type: "file",
+                          accept: ".json",
+                          onChange: handleRestoreFullBackup,
+                          className: "hidden"
                         })
                       ]
                     })
