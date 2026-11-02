@@ -6228,6 +6228,21 @@ function DashboardInlineCalendar({
   }, [sessions]);
 
   const selectedDateSessions = sessionsByDate[selectedDateStr] || [];
+  const selectedDateCheckedRoomsCount = useMemo(() => {
+    return (teachers || []).filter(t => {
+      return selectedDateSessions.some(s => {
+        const isNameMatch = normalizeTeacherName(s.teacher_name) === normalizeTeacherName(t.name);
+        if (!isNameMatch) return false;
+        const sLevel = String(s.class_level || '').replace(/\s+/g, '');
+        const tLevel = String(t.class_level || '').replace(/\s+/g, '');
+        const sDept = String(s.department || '').replace(/\s+/g, '');
+        const tDept = String(t.department || '').replace(/\s+/g, '');
+        if (sLevel && tLevel && sLevel !== tLevel) return false;
+        if (sDept && tDept && !sDept.includes(tDept) && !tDept.includes(sDept)) return false;
+        return true;
+      }) || selectedDateSessions.some(s => normalizeTeacherName(s.teacher_name) === normalizeTeacherName(t.name));
+    }).length;
+  }, [teachers, selectedDateSessions]);
   const selectedDateObj = new Date(selectedDateStr + 'T00:00:00');
   const selectedDayOfWeek = (selectedDateObj.getDay() + 6) % 7;
   const selectedIsWeekend = selectedDayOfWeek >= 5;
@@ -6502,7 +6517,7 @@ function DashboardInlineCalendar({
                   /*#__PURE__*/_jsx("span", { className: "text-slate-400", children: "•" }),
                   /*#__PURE__*/_jsxs("span", {
                     className: "text-slate-600",
-                    children: ["เช็คชื่อแล้ว ", selectedDateSessions.length, "/", teachers.length, " ห้อง"]
+                    children: ["เช็คชื่อแล้ว ", selectedDateCheckedRoomsCount, "/", teachers.length, " ห้อง"]
                   })
                 ]
               }),
@@ -6670,6 +6685,21 @@ function AttendanceCalendarModal({
 
   // Selected date calculations
   const selectedDateSessions = sessionsByDate[selectedDateStr] || [];
+  const selectedDateCheckedRoomsCount = useMemo(() => {
+    return (teachers || []).filter(t => {
+      return selectedDateSessions.some(s => {
+        const isNameMatch = normalizeTeacherName(s.teacher_name) === normalizeTeacherName(t.name);
+        if (!isNameMatch) return false;
+        const sLevel = String(s.class_level || '').replace(/\s+/g, '');
+        const tLevel = String(t.class_level || '').replace(/\s+/g, '');
+        const sDept = String(s.department || '').replace(/\s+/g, '');
+        const tDept = String(t.department || '').replace(/\s+/g, '');
+        if (sLevel && tLevel && sLevel !== tLevel) return false;
+        if (sDept && tDept && !sDept.includes(tDept) && !tDept.includes(sDept)) return false;
+        return true;
+      }) || selectedDateSessions.some(s => normalizeTeacherName(s.teacher_name) === normalizeTeacherName(t.name));
+    }).length;
+  }, [teachers, selectedDateSessions]);
   const selectedDateObj = new Date(selectedDateStr + 'T00:00:00');
   const selectedDayOfWeek = (selectedDateObj.getDay() + 6) % 7;
   const selectedIsWeekend = selectedDayOfWeek >= 5;
@@ -7121,7 +7151,7 @@ function AttendanceCalendarModal({
                             selectedIsHoliday && /*#__PURE__*/_jsxs("span", { className: "text-amber-900 font-bold flex items-center gap-1 bg-amber-100 px-2 py-0.5 rounded-md border border-amber-300 text-[11px]", children: [/*#__PURE__*/_jsx(Icon.Sun, { className: "w-3 h-3 text-amber-600" }), `🛑 วันหยุด: ${selectedHolidayReason} (ไม่นับเป็นวันเรียน)`] }),
                             selectedIsCompensatory && /*#__PURE__*/_jsxs("span", { className: "text-indigo-700 font-bold flex items-center gap-1 text-[11px]", children: [/*#__PURE__*/_jsx(Icon.Book, { className: "w-3 h-3" }), "วันเรียนชดเชย (นับเป็นวันเรียน)"] }),
                             !selectedIsHoliday && !selectedIsCompensatory && (selectedIsWeekend ? /*#__PURE__*/_jsx("span", { className: "text-slate-500 text-[11px]", children: "วันหยุดประจำสัปดาห์ (ไม่นับเป็นวันเรียน)" }) : /*#__PURE__*/_jsxs("span", { className: "text-emerald-700 font-bold flex items-center gap-1 text-[11px]", children: [/*#__PURE__*/_jsx(Icon.CheckSimple, { className: "w-3 h-3" }), "วันเรียนปกติ (นับเป็นวันเรียน)"] })),
-                            /*#__PURE__*/_jsxs("span", { className: "text-slate-400 font-normal text-[11px]", children: ["• เช็คชื่อแล้ว ", selectedDateSessions.length, "/", teachers.length, " ห้อง"] })
+                            /*#__PURE__*/_jsxs("span", { className: "text-slate-400 font-normal text-[11px]", children: ["• เช็คชื่อแล้ว ", selectedDateCheckedRoomsCount, "/", teachers.length, " ห้อง"] })
                           ]
                         })
                       ]
@@ -7249,14 +7279,24 @@ function AttendanceCalendarModal({
                       className: "flex justify-between items-center",
                       children: [
                         /*#__PURE__*/_jsx("h4", { className: "text-xs font-bold text-slate-800 uppercase tracking-wider", children: "สถานะการเช็คชื่อรายห้องเรียนประจำวัน" }),
-                        /*#__PURE__*/_jsxs("span", { className: "text-[11px] text-slate-500", children: ["เช็คแล้ว ", selectedDateSessions.length, " จากทั้งหมด ", teachers.length, " ห้อง"] })
+                        /*#__PURE__*/_jsxs("span", { className: "text-[11px] text-slate-500", children: ["เช็คแล้ว ", selectedDateCheckedRoomsCount, " จากทั้งหมด ", teachers.length, " ห้อง"] })
                       ]
                     }),
 
                     /*#__PURE__*/_jsx("div", {
                       className: "grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-[30vh] overflow-y-auto custom-scroll pr-1",
                       children: teachers.map(t => {
-                        const sess = selectedDateSessions.find(s => s.teacher_name === t.name);
+                        const sess = selectedDateSessions.find(s => {
+                          const isNameMatch = normalizeTeacherName(s.teacher_name) === normalizeTeacherName(t.name);
+                          if (!isNameMatch) return false;
+                          const sLevel = String(s.class_level || '').replace(/\s+/g, '');
+                          const tLevel = String(t.class_level || '').replace(/\s+/g, '');
+                          const sDept = String(s.department || '').replace(/\s+/g, '');
+                          const tDept = String(t.department || '').replace(/\s+/g, '');
+                          if (sLevel && tLevel && sLevel !== tLevel) return false;
+                          if (sDept && tDept && !sDept.includes(tDept) && !tDept.includes(sDept)) return false;
+                          return true;
+                        }) || selectedDateSessions.find(s => normalizeTeacherName(s.teacher_name) === normalizeTeacherName(t.name));
                         const isChecked = Boolean(sess);
                         const isPastDate = selectedDateStr < formatLocalDate(new Date());
 
