@@ -506,7 +506,7 @@ function normalizeTeacherName(str) {
   if (!str) return '';
   return String(str)
     .replace(/[\u200B-\u200D\uFEFF\u00A0]/g, '')
-    .replace(/^(นาย|นางสาว|นาง|ว่าที่ร\.ต\.|ว่าที่ ร\.ต\.|ว่าที่ร้อยตรี|อาจารย์|ครู|ผศ\.|รศ\.|ศ\.|ดร\.|อ\.)\s*/g, '')
+    .replace(/^(นาย|นางสาว|นาง|ว่าที่ร\.ต\.|ว่าที่ ร\.ต\.|ว่าที่ร้อยตรี|อาจารย์|ครู|ผศ\.|รศ\.|ศ\.|ดร\.|อ\.|น\.ส\.|น\.ส)\s*/g, '')
     .replace(/\s+/g, '')
     .toLowerCase();
 }
@@ -10262,146 +10262,160 @@ function TeacherCheckinModal({
     loadRoomStudents(nextRoom, checkDate);
   };
 
+  // Combined multi-room attendance mode (defaults to true for multi-room teachers)
+  const [isAllRoomsCombined, setIsAllRoomsCombined] = useState(true);
+
   // Photo Evidence State
   const [photoDataUrl, setPhotoDataUrl] = useState(null);
   const [photoFile, setPhotoFile] = useState(null);
   const [isCapturingPhoto, setIsCapturingPhoto] = useState(false);
   const fileInputRef = useRef(null);
 
-  // Load students for selected teacher
-  const loadRoomStudents = useCallback(async (teacher, date) => {
+  // Load students for selected teacher (supports loading multiple rooms combined)
+  const loadRoomStudents = useCallback(async (teacher, date, targetRooms = null) => {
     if (!teacher) return;
     setIsLoadingStudents(true);
     setSaveSuccessMsg('');
     setPhotoDataUrl(null);
     try {
-      let students = [];
+      const rooms = (targetRooms && targetRooms.length > 0) ? targetRooms : [teacher];
+      let allCombinedStudents = [];
 
-      // 1. ค้นหาจาก masterStudents ในหน่วยความจำก่อน (รวดเร็ว ถูกต้อง และไม่เกิด 400 Bad Request)
-      const normDept = normalizeDepartmentName(teacher.department);
-      const cleanLevel = String(teacher.class_level || '').trim();
+      for (const rm of rooms) {
+        const normDept = normalizeDepartmentName(rm.department);
+        const cleanLevel = String(rm.class_level || '').trim();
+        const roomLabel = `${rm.class_level} ${formatDeptDisplay(rm.department)}`;
 
-      students = (masterStudents || []).filter(s => {
-        const sDept = normalizeDepartmentName(s.dept || s.department);
-        const matchDept = sDept === normDept || sDept.includes(normDept) || normDept.includes(sDept);
-        const sLvl = String(s.level || s.class_level || s.pure_level || '').trim();
-        const matchLevel = sLvl === cleanLevel || sLvl.includes(cleanLevel) || cleanLevel.includes(sLvl);
-        return matchDept && matchLevel;
-      }).map(s => {
-        const id = s.student_id || String(s.id);
-        const name = s.name;
-        const cleanName = String(name || '').replace(/\s+/g, ' ').trim();
-        const tightName = String(name || '').replace(/\s+/g, '');
-        const photo = s.photoUrl || s.photo_url || 
-                      studentPhotosMap[id] || 
-                      studentPhotosMap[name] || 
-                      studentPhotosMap[cleanName] ||
-                      Object.entries(studentPhotosMap || {}).find(([k]) => k.replace(/\s+/g, '') === tightName)?.[1];
-        const studentCode = s.student_code || 
-                            studentCodesMap[id] || 
-                            studentCodesMap[name] || 
-                            studentCodesMap[cleanName] || 
-                            Object.entries(studentCodesMap || {}).find(([k]) => k.replace(/\s+/g, '') === tightName)?.[1] || 
-                            '';
-        return {
-          id: s.id,
-          student_id: id,
-          student_code: studentCode,
-          name: name,
-          department: s.dept || teacher.department,
-          class_level: s.level || teacher.class_level,
-          photoUrl: photo
-        };
-      });
+        let students = (masterStudents || []).filter(s => {
+          const sDept = normalizeDepartmentName(s.dept || s.department);
+          const matchDept = sDept === normDept || sDept.includes(normDept) || normDept.includes(sDept);
+          const sLvl = String(s.level || s.class_level || s.pure_level || '').trim();
+          const matchLevel = sLvl === cleanLevel || sLvl.includes(cleanLevel) || cleanLevel.includes(sLvl);
+          return matchDept && matchLevel;
+        }).map(s => {
+          const id = s.student_id || String(s.id);
+          const name = s.name;
+          const cleanName = String(name || '').replace(/\s+/g, ' ').trim();
+          const tightName = String(name || '').replace(/\s+/g, '');
+          const photo = s.photoUrl || s.photo_url || 
+                        studentPhotosMap[id] || 
+                        studentPhotosMap[name] || 
+                        studentPhotosMap[cleanName] ||
+                        Object.entries(studentPhotosMap || {}).find(([k]) => k.replace(/\s+/g, '') === tightName)?.[1];
+          const studentCode = s.student_code || 
+                              studentCodesMap[id] || 
+                              studentCodesMap[name] || 
+                              studentCodesMap[cleanName] || 
+                              Object.entries(studentCodesMap || {}).find(([k]) => k.replace(/\s+/g, '') === tightName)?.[1] || 
+                              '';
+          return {
+            id: s.id,
+            student_id: id,
+            student_code: studentCode,
+            name: name,
+            department: s.dept || rm.department,
+            class_level: s.level || rm.class_level,
+            room_id: rm.id,
+            room_label: roomLabel,
+            photoUrl: photo
+          };
+        });
 
-      // 2. หากยังไม่พบ ให้ดึงจากตาราง attendance_summary ของ dbAssembly
-      if (students.length === 0) {
-        try {
-          const { data, error } = await dbAssembly.from('attendance_summary')
-            .select('id, student_name, department, pure_level')
-            .eq('department', teacher.department)
-            .eq('pure_level', teacher.class_level);
-          if (!error && data && data.length > 0) {
-            students = data.map(s => {
-              const id = String(s.id);
-              const name = s.student_name || 'นักเรียน';
-              const cleanName = String(name || '').replace(/\s+/g, ' ').trim();
-              const tightName = String(name || '').replace(/\s+/g, '');
-              const photo = studentPhotosMap[id] || 
-                            studentPhotosMap[name] || 
-                            studentPhotosMap[cleanName] ||
-                            Object.entries(studentPhotosMap || {}).find(([k]) => k.replace(/\s+/g, '') === tightName)?.[1];
-              const studentCode = studentCodesMap[id] || 
-                                  studentCodesMap[name] || 
-                                  studentCodesMap[cleanName] || 
-                                  Object.entries(studentCodesMap || {}).find(([k]) => k.replace(/\s+/g, '') === tightName)?.[1] || 
-                                  '';
-              return {
-                id: s.id,
-                student_id: id,
-                student_code: studentCode,
-                name: name,
-                department: s.department,
-                class_level: s.pure_level,
-                photoUrl: photo
-              };
-            });
+        // 2. หากยังไม่พบ ให้ดึงจากตาราง attendance_summary ของ dbAssembly
+        if (students.length === 0) {
+          try {
+            const { data, error } = await dbAssembly.from('attendance_summary')
+              .select('id, student_name, department, pure_level')
+              .eq('department', rm.department)
+              .eq('pure_level', rm.class_level);
+            if (!error && data && data.length > 0) {
+              students = data.map(s => {
+                const id = String(s.id);
+                const name = s.student_name || 'นักเรียน';
+                const cleanName = String(name || '').replace(/\s+/g, ' ').trim();
+                const tightName = String(name || '').replace(/\s+/g, '');
+                const photo = studentPhotosMap[id] || 
+                              studentPhotosMap[name] || 
+                              studentPhotosMap[cleanName] ||
+                              Object.entries(studentPhotosMap || {}).find(([k]) => k.replace(/\s+/g, '') === tightName)?.[1];
+                const studentCode = studentCodesMap[id] || 
+                                    studentCodesMap[name] || 
+                                    studentCodesMap[cleanName] || 
+                                    Object.entries(studentCodesMap || {}).find(([k]) => k.replace(/\s+/g, '') === tightName)?.[1] || 
+                                    '';
+                return {
+                  id: s.id,
+                  student_id: id,
+                  student_code: studentCode,
+                  name: name,
+                  department: s.department || rm.department,
+                  class_level: s.pure_level || rm.class_level,
+                  room_id: rm.id,
+                  room_label: roomLabel,
+                  photoUrl: photo
+                };
+              });
+            }
+          } catch (e) {
+            console.warn('attendance_summary query fallback:', e);
           }
-        } catch (e) {
-          console.warn('attendance_summary query fallback:', e);
         }
+
+        allCombinedStudents = allCombinedStudents.concat(students);
       }
 
-      if (students.length === 0) {
+      if (allCombinedStudents.length === 0) {
         const prefix = teacher.department.includes('คอม') ? '692020400' : (teacher.department.includes('ไฟ') ? '692010400' : (teacher.department.includes('บัญชี') ? '692020100' : '692010100'));
-        students = [
-          { student_id: prefix + '01', name: 'นายกิตติศักดิ์ พรหมดี', department: teacher.department, class_level: teacher.class_level },
-          { student_id: prefix + '02', name: 'นายนนธวัช แสนคำวัง', department: teacher.department, class_level: teacher.class_level },
-          { student_id: prefix + '03', name: 'นายเสกสรรค์ กันยาประสิทธิ์', department: teacher.department, class_level: teacher.class_level },
-          { student_id: prefix + '04', name: 'นายอนุชา พงษ์สถิตย์', department: teacher.department, class_level: teacher.class_level },
-          { student_id: prefix + '05', name: 'นางสาวกนกพร สุวรรณโชติ', department: teacher.department, class_level: teacher.class_level },
-          { student_id: prefix + '06', name: 'นางสาวพิมพ์ลภัส วรวงศ์', department: teacher.department, class_level: teacher.class_level },
-          { student_id: prefix + '07', name: 'นายณัฐวุฒิ ทองหล่อ', department: teacher.department, class_level: teacher.class_level },
-          { student_id: prefix + '08', name: 'นางสาวศิริพร บุญเสริม', department: teacher.department, class_level: teacher.class_level },
-          { student_id: prefix + '09', name: 'นายธีรภัทร ศรีสวัสดิ์', department: teacher.department, class_level: teacher.class_level },
-          { student_id: prefix + '10', name: 'นางสาวชลธิชา มั่นคง', department: teacher.department, class_level: teacher.class_level }
+        allCombinedStudents = [
+          { student_id: prefix + '01', name: 'นายกิตติศักดิ์ พรหมดี', department: teacher.department, class_level: teacher.class_level, room_label: `${teacher.class_level} ${formatDeptDisplay(teacher.department)}` },
+          { student_id: prefix + '02', name: 'นายนนธวัช แสนคำวัง', department: teacher.department, class_level: teacher.class_level, room_label: `${teacher.class_level} ${formatDeptDisplay(teacher.department)}` },
+          { student_id: prefix + '03', name: 'นายเสกสรรค์ กันยาประสิทธิ์', department: teacher.department, class_level: teacher.class_level, room_label: `${teacher.class_level} ${formatDeptDisplay(teacher.department)}` },
+          { student_id: prefix + '04', name: 'นายอนุชา พงษ์สถิตย์', department: teacher.department, class_level: teacher.class_level, room_label: `${teacher.class_level} ${formatDeptDisplay(teacher.department)}` },
+          { student_id: prefix + '05', name: 'นางสาวกนกพร สุวรรณโชติ', department: teacher.department, class_level: teacher.class_level, room_label: `${teacher.class_level} ${formatDeptDisplay(teacher.department)}` }
         ];
       }
 
       const initialMap = {};
+      let sharedPhoto = null;
       try {
-        const { data: existingAtt } = await dbAssembly.from('daily_attendance')
-          .select('*')
-          .eq('check_date', date)
-          .eq('department', teacher.department)
-          .eq('class_level', teacher.class_level);
-        if (existingAtt && existingAtt.length > 0) {
-          existingAtt.forEach(rec => {
-            initialMap[rec.student_id] = rec.status;
-          });
-        }
+        for (const rm of rooms) {
+          const { data: existingAtt } = await dbAssembly.from('daily_attendance')
+            .select('*')
+            .eq('check_date', date)
+            .eq('department', rm.department)
+            .eq('class_level', rm.class_level);
+          if (existingAtt && existingAtt.length > 0) {
+            existingAtt.forEach(rec => {
+              initialMap[rec.student_id] = rec.status;
+            });
+          }
 
-        // Also check if session exists with photo (ใช้ .limit(1) เพื่อหลีกเลี่ยงข้อผิดพลาด 406 Not Acceptable ของ Supabase)
-        const { data: sessionRows } = await dbAssembly.from('attendance_checkin_sessions')
-          .select('evidence_photo_url')
-          .eq('check_date', date)
-          .eq('department', teacher.department)
-          .eq('class_level', teacher.class_level)
-          .limit(1);
-        if (sessionRows && sessionRows.length > 0 && sessionRows[0].evidence_photo_url) {
-          setPhotoDataUrl(sessionRows[0].evidence_photo_url);
+          if (!sharedPhoto) {
+            const { data: sessionRows } = await dbAssembly.from('attendance_checkin_sessions')
+              .select('evidence_photo_url')
+              .eq('check_date', date)
+              .eq('department', rm.department)
+              .eq('class_level', rm.class_level)
+              .limit(1);
+            if (sessionRows && sessionRows.length > 0 && sessionRows[0].evidence_photo_url) {
+              sharedPhoto = sessionRows[0].evidence_photo_url;
+            }
+          }
+        }
+        if (sharedPhoto) {
+          setPhotoDataUrl(sharedPhoto);
         }
       } catch (e) {
         console.warn('Daily attendance query fallback:', e);
       }
 
-      students.forEach(s => {
+      allCombinedStudents.forEach(s => {
         if (!initialMap[s.student_id]) {
           initialMap[s.student_id] = 'absent';
         }
       });
 
-      setRoomStudents(students);
+      setRoomStudents(allCombinedStudents);
       setAttendanceMap(initialMap);
     } catch (e) {
       console.error(e);
@@ -10414,9 +10428,10 @@ function TeacherCheckinModal({
   // Auto load students if starting directly in checkin sheet (already authenticated)
   useEffect(() => {
     if (step === 'checkin_sheet' && selectedTeacher) {
-      loadRoomStudents(selectedTeacher, checkDate);
+      const activeRooms = (isAllRoomsCombined && teacherRooms.length > 1) ? teacherRooms : [selectedTeacher];
+      loadRoomStudents(selectedTeacher, checkDate, activeRooms);
     }
-  }, [step, selectedTeacher?.id, checkDate]);
+  }, [step, selectedTeacher?.id, checkDate, isAllRoomsCombined, teacherRooms.length]);
 
   // Handle Photo Taking
   const handlePhotoCapture = async (e) => {
@@ -10513,8 +10528,10 @@ function TeacherCheckinModal({
         if (onTeacherLoginSuccess) {
           onTeacherLoginSuccess(selectedTeacher);
         }
+        setIsAllRoomsCombined(true);
         setStep('checkin_sheet');
-        loadRoomStudents(selectedTeacher, checkDate);
+        const activeRooms = siblingRooms.length > 1 ? siblingRooms : [selectedTeacher];
+        loadRoomStudents(selectedTeacher, checkDate, activeRooms);
       } else {
         setPinError('รหัส PIN 6 หลักไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง');
         setPinInput('');
@@ -10685,7 +10702,7 @@ function TeacherCheckinModal({
         }
       }
 
-      // 2. Save individual records in daily_attendance
+      // 2. Save individual records in daily_attendance (preserves each student's exact department & class_level)
       const activeYearStr = String(academicYear || '2569');
       const activeSemStr = String(semester || '2');
 
@@ -10693,8 +10710,8 @@ function TeacherCheckinModal({
         check_date: checkDate,
         student_id: String(s.student_id || s.id),
         student_name: s.name,
-        department: selectedTeacher.department,
-        class_level: selectedTeacher.class_level,
+        department: s.department || selectedTeacher.department,
+        class_level: s.class_level || selectedTeacher.class_level,
         teacher_name: selectedTeacher.name,
         status: attendanceMap[s.student_id] || 'absent',
         academic_year: activeYearStr,
@@ -10737,7 +10754,7 @@ function TeacherCheckinModal({
         }
       }
 
-      // 3. Save Session & Photo in attendance_checkin_sessions (Strictly matching Supabase schema cache)
+      // 3. Save Session & Photo in attendance_checkin_sessions for all managed rooms with shared photo
       try {
         const sessionNotesObj = {
           activity_type: checkinMode,
@@ -10753,30 +10770,39 @@ function TeacherCheckinModal({
           sessionNotesObj.activity_name = selectedCentralActivity?.name || selectedCentralActivity?.activity_name || null;
         }
 
-        const sessionRecord = {
-          check_date: checkDate,
-          teacher_name: selectedTeacher.name,
-          department: selectedTeacher.department,
-          class_level: selectedTeacher.class_level,
-          total_students: roomStudents.length,
-          present_count: pCount,
-          absent_count: aCount,
-          leave_count: lCount,
-          evidence_photo_url: finalPhotoUrl,
-          academic_year: activeYearStr,
-          semester: activeSemStr,
-          notes: JSON.stringify(sessionNotesObj)
-        };
+        const roomsToSave = (isAllRoomsCombined && teacherRooms.length > 1) ? teacherRooms : [selectedTeacher];
+        for (const rm of roomsToSave) {
+          const rmStudents = roomStudents.filter(s => (s.department === rm.department && s.class_level === rm.class_level));
+          if (rmStudents.length === 0) continue;
+          const rmP = rmStudents.filter(s => attendanceMap[s.student_id] === 'present').length;
+          const rmA = rmStudents.filter(s => (attendanceMap[s.student_id] || 'absent') === 'absent').length;
+          const rmL = rmStudents.filter(s => attendanceMap[s.student_id] === 'leave').length;
 
-        const { error: sessionErr } = await dbAssembly.from('attendance_checkin_sessions').upsert(sessionRecord, {
-          onConflict: 'check_date,department,class_level,academic_year,semester'
-        });
-        if (sessionErr) {
-          console.warn('attendance_checkin_sessions upsert note:', sessionErr);
-          await dbAssembly.from('attendance_checkin_sessions').insert([sessionRecord]).catch(e => console.warn('fallback insert:', e));
+          const sessionRecord = {
+            check_date: checkDate,
+            teacher_name: selectedTeacher.name,
+            department: rm.department,
+            class_level: rm.class_level,
+            total_students: rmStudents.length,
+            present_count: rmP,
+            absent_count: rmA,
+            leave_count: rmL,
+            evidence_photo_url: finalPhotoUrl || '',
+            academic_year: activeYearStr,
+            semester: activeSemStr,
+            notes: JSON.stringify(sessionNotesObj)
+          };
+
+          const { error: sessErr } = await dbAssembly.from('attendance_checkin_sessions').upsert([sessionRecord], {
+            onConflict: 'check_date,department,class_level,academic_year,semester'
+          });
+          if (sessErr) {
+            console.error('attendance_checkin_sessions upsert error for room:', rm.class_level, sessErr);
+            await dbAssembly.from('attendance_checkin_sessions').insert([sessionRecord]).catch(e => console.warn('fallback insert:', e));
+          }
         }
-      } catch (sessionErr) {
-        console.warn('attendance_checkin_sessions save note:', sessionErr);
+      } catch (sessCatch) {
+        console.warn('Session record save exception:', sessCatch);
       }
 
       const modeTitle = checkinMode === 'club' ? 'กิจกรรมชมรมวิชาชีพ' : (checkinMode === 'central' ? 'กิจกรรมกลาง' : 'การเข้าแถว');
@@ -10788,8 +10814,12 @@ function TeacherCheckinModal({
       setSubmittedSummary({
         checkDate,
         teacherName: selectedTeacher.name,
-        department: selectedTeacher.department,
-        classLevel: selectedTeacher.class_level,
+        department: (isAllRoomsCombined && teacherRooms.length > 1)
+          ? teacherRooms.map(r => formatDeptDisplay(r.department)).filter((v, i, a) => a.indexOf(v) === i).join(', ')
+          : selectedTeacher.department,
+        classLevel: (isAllRoomsCombined && teacherRooms.length > 1)
+          ? teacherRooms.map(r => r.class_level).join(' และ ')
+          : selectedTeacher.class_level,
         totalStudents: roomStudents.length,
         presentCount: pCount,
         absentCount: aCount,
@@ -11235,9 +11265,11 @@ function TeacherCheckinModal({
                             /*#__PURE__*/_jsxs("div", {
                               className: "min-w-0",
                               children: [
-                                /*#__PURE__*/_jsxs("div", {
-                                  className: "text-lg sm:text-2xl font-black tracking-tight text-white truncate",
-                                  children: ["ห้อง ", selectedTeacher?.class_level, " ", formatDeptDisplay(selectedTeacher?.department)]
+                                /*#__PURE__*/_jsx("div", {
+                                  className: "text-base sm:text-2xl font-black tracking-tight text-white truncate",
+                                  children: (isAllRoomsCombined && teacherRooms.length > 1)
+                                    ? `รวมทุกห้อง (${teacherRooms.map(r => `${r.class_level} ${formatDeptDisplay(r.department)}`).join(' • ')})`
+                                    : `ห้อง ${selectedTeacher?.class_level} ${formatDeptDisplay(selectedTeacher?.department)}`
                                 }),
                                 /*#__PURE__*/_jsxs("div", {
                                   className: "text-xs sm:text-sm font-semibold text-emerald-100 mt-0.5 sm:mt-1 flex items-center gap-1.5 flex-wrap",
@@ -11284,7 +11316,7 @@ function TeacherCheckinModal({
                       ]
                     }),
 
-                    // Multi-room Switch Tabs (When teacher manages 2+ rooms) - Compact & Elegant
+                    // Multi-room Switch Tabs (When teacher manages 2+ rooms) - Combined & Senior-Friendly
                     teacherRooms.length > 1 && /*#__PURE__*/_jsxs("div", {
                       className: "pt-2 border-t border-white/20 flex flex-wrap items-center gap-1.5",
                       children: [
@@ -11292,15 +11324,51 @@ function TeacherCheckinModal({
                           className: "text-[11px] sm:text-xs font-bold text-emerald-100 flex items-center gap-1 mr-1",
                           children: [
                             /*#__PURE__*/_jsx(Icon.Users, { className: "w-3.5 h-3.5 text-emerald-200" }),
-                            `สลับห้อง (${teacherRooms.length} ห้อง):`
+                            `ห้องที่ดูแล (${teacherRooms.length} ห้อง):`
                           ]
                         }),
+                        /* Combined All-Rooms Tab */
+                        /*#__PURE__*/_jsxs("button", {
+                          type: "button",
+                          onClick: () => {
+                            if (hasUnsavedChanges && !isAllRoomsCombined) {
+                              if (!confirm('คุณมีข้อมูลที่ยังไม่ได้กดบันทึก ต้องการสลับไปดูรวมทุกห้องหรือไม่?')) return;
+                            }
+                            setHasUnsavedChanges(false);
+                            setIsAllRoomsCombined(true);
+                            loadRoomStudents(selectedTeacher, checkDate, teacherRooms);
+                          },
+                          className: `px-2.5 py-1 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs ${
+                            isAllRoomsCombined
+                              ? "bg-amber-400 text-amber-950 shadow-md ring-2 ring-amber-200 font-black"
+                              : "bg-black/20 hover:bg-black/30 text-white border border-white/30 hover:border-white/50"
+                          }`,
+                          children: [
+                            /*#__PURE__*/_jsx("span", { children: `👥 รวมทุกห้อง (${teacherRooms.length} ห้อง)` }),
+                            isAllRoomsCombined ? /*#__PURE__*/_jsx("span", {
+                              className: "text-[10px] bg-amber-950 text-amber-100 px-1.5 py-0.5 rounded-md font-black",
+                              children: "กำลังเช็ค (ถ่ายรูปรวม)"
+                            }) : /*#__PURE__*/_jsx("span", {
+                              className: "text-[10px] text-emerald-200 bg-white/10 px-1.5 py-0.5 rounded-md",
+                              children: "สลับ"
+                            })
+                          ]
+                        }),
+                        /* Individual Room Tabs */
                         teacherRooms.map(rm => {
-                          const isCurrent = rm.id === selectedTeacher?.id;
+                          const isCurrent = !isAllRoomsCombined && rm.id === selectedTeacher?.id;
                           return /*#__PURE__*/_jsxs("button", {
                             key: rm.id,
                             type: "button",
-                            onClick: () => handleSwitchRoom(rm),
+                            onClick: () => {
+                              if (hasUnsavedChanges) {
+                                if (!confirm(`คุณมีข้อมูลที่ยังไม่ได้กดบันทึก ต้องการสลับไปเช็คห้อง ${rm.class_level} หรือไม่?`)) return;
+                              }
+                              setHasUnsavedChanges(false);
+                              setIsAllRoomsCombined(false);
+                              setSelectedTeacher(rm);
+                              loadRoomStudents(rm, checkDate, [rm]);
+                            },
                             className: `px-2.5 py-1 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs ${
                               isCurrent
                                 ? "bg-white text-emerald-950 shadow-md ring-2 ring-emerald-300 font-black"
@@ -11313,7 +11381,7 @@ function TeacherCheckinModal({
                                 children: "กำลังเช็ค"
                               }) : /*#__PURE__*/_jsx("span", {
                                 className: "text-[10px] text-emerald-200 bg-white/10 px-1.5 py-0.5 rounded-md",
-                                children: "สลับ"
+                                children: "เฉพาะห้องนี้"
                               })
                             ]
                           }, rm.id);
@@ -11628,12 +11696,32 @@ function TeacherCheckinModal({
                 const sName = String(s.name || '');
                 const cleanName = sName.replace(/\s+/g, ' ').trim();
                 const tightName = sName.replace(/\s+/g, '');
-                return /*#__PURE__*/_jsxs("div", {
-                  className: `p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl border shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-2 sm:gap-3 transition-all ${
-                    currentStatus === 'present'
-                      ? 'bg-emerald-50/60 border-emerald-400 ring-1 ring-emerald-300/60'
-                      : 'bg-white border-slate-200 hover:border-slate-300'
-                  }`,
+                const isFirstOfRoom = isAllRoomsCombined && teacherRooms.length > 1 && (idx === 0 || s.room_label !== roomStudents[idx - 1]?.room_label);
+
+                return /*#__PURE__*/_jsxs(React.Fragment, {
+                  children: [
+                    isFirstOfRoom && /*#__PURE__*/_jsxs("div", {
+                      className: "pt-2.5 pb-1 flex items-center justify-between text-xs font-black text-emerald-900 border-b-2 border-emerald-300 mt-2 first:mt-0 bg-emerald-50/80 px-2.5 py-1.5 rounded-xl shadow-2xs",
+                      children: [
+                        /*#__PURE__*/_jsxs("div", {
+                          className: "flex items-center gap-1.5",
+                          children: [
+                            /*#__PURE__*/_jsx(Icon.Users, { className: "w-4 h-4 text-emerald-700" }),
+                            `ชั้น ${s.class_level} แผนก${formatDeptDisplay(s.department)}`
+                          ]
+                        }),
+                        /*#__PURE__*/_jsx("span", {
+                          className: "text-[11px] bg-white text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded-full font-black shadow-2xs",
+                          children: `${roomStudents.filter(st => st.room_label === s.room_label).length} คน`
+                        })
+                      ]
+                    }),
+                    /*#__PURE__*/_jsxs("div", {
+                      className: `p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl border shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-2 sm:gap-3 transition-all ${
+                        currentStatus === 'present'
+                          ? 'bg-emerald-50/60 border-emerald-400 ring-1 ring-emerald-300/60'
+                          : 'bg-white border-slate-200 hover:border-slate-300'
+                      }`,
                   children: [
                     /*#__PURE__*/_jsxs("div", {
                       className: "flex items-center justify-between md:justify-start gap-2.5 min-w-0",
@@ -11736,8 +11824,10 @@ function TeacherCheckinModal({
                       ]
                     })
                   ]
-                }, s.student_id);
-              })
+                })
+              ]
+            }, s.student_id);
+          })
             }),
 
             /*#__PURE__*/_jsxs("div", {
