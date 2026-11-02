@@ -10432,6 +10432,7 @@ function TeacherCheckinModal({
       alert('เกิดข้อผิดพลาดในการโหลดรูป: ' + err.message);
     } finally {
       setIsCapturingPhoto(false);
+      if (e.target) e.target.value = '';
     }
   };
 
@@ -10645,7 +10646,6 @@ function TeacherCheckinModal({
 
     // บังคับถ่ายรูปหลักฐานการเข้าแถว/กิจกรรมก่อนบันทึกเสมอ
     if (!photoDataUrl) {
-      alert('⚠️ ระบบบังคับถ่ายรูปหลักฐาน:\nกรุณากดถ่ายรูปหรือแนบภาพถ่ายหลักฐานก่อนกดบันทึกข้อมูล');
       if (fileInputRef.current) {
         fileInputRef.current.click();
       }
@@ -11396,7 +11396,7 @@ function TeacherCheckinModal({
                               alt: "หลักฐาน",
                               className: "w-5 h-5 rounded-md object-cover ring-1 ring-emerald-400"
                             }) : /*#__PURE__*/_jsx(Icon.Camera, { className: "w-4 h-4 text-white" }),
-                            photoDataUrl ? "✓ มีรูปหลักฐานแล้ว (กดเปลี่ยน)" : "📸 ถ่ายรูปหลักฐานเข้าแถว (จำเป็น)"
+                            photoDataUrl ? "✓ มีรูปหลักฐานแล้ว (กดเปลี่ยน)" : (checkinMode === 'central' ? "ถ่ายรูปหลักฐานกิจกรรมกลาง (จำเป็น)" : (checkinMode === 'club' ? "ถ่ายรูปหลักฐานกิจกรรมชมรม (จำเป็น)" : "ถ่ายรูปหลักฐานเข้าแถว (จำเป็น)"))
                           ]
                         })
                       ]
@@ -11753,7 +11753,7 @@ function TeacherCheckinModal({
                   className: "text-[11px] sm:text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 py-1.5 px-2.5 rounded-xl flex items-center justify-center gap-1.5 shadow-2xs text-center",
                   children: [
                     /*#__PURE__*/_jsx(Icon.Alert, { className: "w-3.5 h-3.5 text-rose-600 flex-shrink-0" }),
-                    checkinMode === 'central' ? "📸 ต้องถ่ายรูปหลักฐานกิจกรรมกลางก่อนจึงจะกดบันทึกได้" : (checkinMode === 'club' ? "📸 ต้องถ่ายรูปหลักฐานกิจกรรมชมรมก่อนจึงจะกดบันทึกได้" : "📸 ต้องถ่ายรูปหลักฐานการเข้าแถวด้านบนก่อนจึงจะกดบันทึกได้")
+                    checkinMode === 'central' ? "📸 กดถ่ายรูปหลักฐานกิจกรรมกลาง (ปุ่มด้านล่างหรือด้านบน) ก่อนกดบันทึกข้อมูล" : (checkinMode === 'club' ? "📸 กดถ่ายรูปหลักฐานกิจกรรมชมรม (ปุ่มด้านล่างหรือด้านบน) ก่อนกดบันทึกข้อมูล" : "📸 กดถ่ายรูปหลักฐานเข้าแถว (ปุ่มด้านล่างหรือด้านบน) ก่อนกดบันทึกข้อมูล")
                   ]
                 }),
                 /*#__PURE__*/_jsxs("div", {
@@ -11766,7 +11766,7 @@ function TeacherCheckinModal({
                     }),
                     /*#__PURE__*/_jsx("button", {
                       type: "button",
-                      onClick: handleSaveDailyAttendance,
+                      onClick: !photoDataUrl ? () => { if (fileInputRef.current) fileInputRef.current.click(); } : handleSaveDailyAttendance,
                       disabled: isSaving || (checkinMode === 'central' && !isAdminLoggedIn && (!availableCentralActivities || availableCentralActivities.length === 0)) || (checkinMode === 'club' && !isAdminLoggedIn && (!availableClubSessions || availableClubSessions.length === 0)),
                       className: `flex-1 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl font-black text-xs sm:text-base flex items-center justify-center gap-1.5 transition-all active:scale-[0.99] ${
                         isSaving || (checkinMode === 'central' && !isAdminLoggedIn && (!availableCentralActivities || availableCentralActivities.length === 0)) || (checkinMode === 'club' && !isAdminLoggedIn && (!availableClubSessions || availableClubSessions.length === 0))
@@ -11777,13 +11777,13 @@ function TeacherCheckinModal({
                       }`,
                       title: (checkinMode === 'central' && !isAdminLoggedIn && (!availableCentralActivities || availableCentralActivities.length === 0))
                         ? 'กิจกรรมกลางยังไม่เปิดให้เช็คชื่อ'
-                        : (!photoDataUrl ? 'กรุณาถ่ายรูปหรือแนบหลักฐานก่อนบันทึก' : 'กดเพื่อบันทึกข้อมูลและรูปภาพเข้าสู่ระบบ'),
+                        : (!photoDataUrl ? 'กดเพื่อถ่ายรูปหรือแนบหลักฐานเข้าแถว (จำเป็น)' : 'กดเพื่อบันทึกข้อมูลและรูปภาพเข้าสู่ระบบ'),
                       children: isSaving
                         ? [/*#__PURE__*/_jsx(Icon.Spin, { className: "w-4 h-4 inline mr-1" }), 'กำลังบันทึกข้อมูล...']
                         : (checkinMode === 'central' && !isAdminLoggedIn && (!availableCentralActivities || availableCentralActivities.length === 0))
                         ? [/*#__PURE__*/_jsx(Icon.Lock, { className: "w-4 h-4 inline mr-1 text-slate-400" }), 'กิจกรรมกลางปิดอยู่ (ล็อกการเช็คชื่อ)']
                         : !photoDataUrl
-                        ? [/*#__PURE__*/_jsx(Icon.Camera, { className: "w-4 h-4 inline mr-1 text-white" }), 'ถ่ายรูปหลักฐานเพื่อบันทึก']
+                        ? [/*#__PURE__*/_jsx(Icon.Camera, { className: "w-4 h-4 inline mr-1 text-white" }), checkinMode === 'central' ? 'ถ่ายรูปหลักฐานกิจกรรมกลาง (จำเป็น)' : (checkinMode === 'club' ? 'ถ่ายรูปหลักฐานกิจกรรมชมรม (จำเป็น)' : 'ถ่ายรูปหลักฐานเข้าแถว (จำเป็น)')]
                         : checkinMode === 'central'
                         ? [/*#__PURE__*/_jsx(Icon.Save, { className: "w-4 h-4 inline mr-1" }), 'บันทึกกิจกรรมกลาง (แนบรูปแล้ว ✓)']
                         : checkinMode === 'club'
