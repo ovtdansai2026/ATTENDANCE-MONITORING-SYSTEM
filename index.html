@@ -3373,12 +3373,12 @@ useEffect(() => {
         const rawPresent = parseInt(s.present_days, 10) || 0;
         const rawTotal = parseInt(s.total_days, 10) || 0;
         const computedPresent = Math.max(rawPresent, dailyPresent);
-        const hasAttendanceStarted = computedPresent > 0 || rawTotal > 0;
-        const isTermNotStarted = Boolean(daysStats.isNotStarted) || (!hasAttendanceStarted && String(activeSem) === '2');
+        // Term start status is strictly determined by whether today is before term start date (daysStats.isNotStarted)
+        const isTermNotStarted = Boolean(daysStats.isNotStarted);
         const total = isTermNotStarted ? 0 : effectiveDays;
         const present = isTermNotStarted ? 0 : Math.min(total, computedPresent);
         const isGraduated = s.pure_level === 'สำเร็จการศึกษา';
-        const pct = (isGraduated || isTermNotStarted) ? 100 : (total > 0 ? Math.min(100, Math.round((present / total) * 100)) : 100);
+        const pct = (isGraduated || isTermNotStarted) ? 100 : (total > 0 ? Math.min(100, Math.round((present / total) * 100)) : 0);
 
         // Real Central Activities Data
         const cleanName = (s.student_name || '').trim().replace(/\s+/g, ' ');
