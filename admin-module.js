@@ -24,6 +24,7 @@
   const normalizeTeacherName = window.normalizeTeacherName;
   const formatLocalDate = window.formatLocalDate;
   const formatThaiDateFull = window.formatThaiDateFull || ((d) => d);
+  const safeCopyToClipboard = window.safeCopyToClipboard || ((t) => navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject());
   const InfoTooltip = window.InfoTooltip;
   const StudentPhotoInput = window.StudentPhotoInput;
   const hashPassword = window.hashPassword;
@@ -3249,7 +3250,7 @@ const [adminTab, setAdminTab] = useState('term'); // 'term', 'students', 'logs',
     }
     text += `━━━━━━━━━━━━━━━━━━\n` +
       `รบกวนคุณครูที่ปรึกษาเข้าสู่ระบบเพื่อเช็คชื่อและแนบภาพถ่ายด้วยครับ`;
-    navigator.clipboard.writeText(text).then(() => {
+    safeCopyToClipboard(text).then(() => {
       setIsCopiedTeacherList(true);
       setTimeout(() => setIsCopiedTeacherList(false), 3500);
     }).catch(() => {
