@@ -10942,7 +10942,7 @@ function TeacherCheckinModal({
       }
       
       const distinctCheckDates = [...new Set([
-        ...roomAttendanceHistory.map(h => h.check_date),
+        ...(roomAttendanceHistory || []).map(h => h.check_date),
         checkDate
       ])].filter(d => (!startD || d >= startD) && d <= checkDate);
       
@@ -10955,7 +10955,7 @@ function TeacherCheckinModal({
       const absentList = roomStudents.filter(s => attendanceMap[s.student_id] === 'absent').map(s => {
         // 1. Calculate past present days directly from real daily_attendance history
         const cleanSName = (s.name || '').replace(/\s+/g, '');
-        const pastPresentCount = roomAttendanceHistory.filter(h => {
+        const pastPresentCount = (roomAttendanceHistory || []).filter(h => {
           const idMatch = (h.student_id && s.student_id && String(h.student_id) === String(s.student_id));
           const nameMatch = (h.student_name && cleanSName && h.student_name.replace(/\s+/g, '') === cleanSName);
           return (idMatch || nameMatch) && (!startD || h.check_date >= startD) && h.check_date < checkDate && h.status === 'present';
@@ -10963,7 +10963,7 @@ function TeacherCheckinModal({
 
         // 2. Fallback to masterStudents if history table was empty
         let curPresent = pastPresentCount;
-        if (pastPresentCount === 0 && roomAttendanceHistory.length === 0) {
+        if (pastPresentCount === 0 && (!roomAttendanceHistory || roomAttendanceHistory.length === 0)) {
           const m = (masterStudents || []).find(ms => 
             String(ms.id) === String(s.id) || 
             String(ms.student_id) === String(s.student_id) ||
