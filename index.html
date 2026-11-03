@@ -1,143 +1,4 @@
-                (() => {
-                  const buildLineOpenChatReport = () => {
-                    try {
-                      const sum = submittedSummary;
-                      if (!sum) return '';
-                      const dateFormatted = typeof formatThaiDateFull === 'function'
-                        ? formatThaiDateFull(sum.checkDate)
-                        : (sum.checkDate || '');
-                      const total = sum.totalStudents || 0;
-                      const present = sum.presentCount || 0;
-                      const absent = sum.absentCount || 0;
-                      const pct = total > 0 ? Math.round((present / total) * 100) : 0;
-
-                      let text = '🚩 รายงานการเข้าแถวหน้าเสาธง\n' +
-                        'วิทยาลัยการอาชีพด่านซ้าย\n' +
-                        `🗓️ วันที่: ${dateFormatted}\n` +
-                        `🏫 ${sum.classLevel || ''} ${sum.department || ''}\n` +
-                        `ครูที่ปรึกษา: ${sum.teacherName || ''}\n` +
-                        '━━━━━━━━━━━━━━━━━━\n' +
-                        `📊 สรุปยอด${sum.isCombined ? 'รวม' : 'วันนี้'} (ทั้งหมด ${total} คน)\n` +
-                        `• มา: ${present} คน (${pct}%)\n` +
-                        `• ขาด: ${absent} คน\n` +
-                        '━━━━━━━━━━━━━━━━━━\n' +
-                        '📋 รายชื่อนักเรียนที่ขาดวันนี้:\n';
-
-                      const absList = sum.absentList || [];
-                      if (absList.length === 0) {
-                        text += sum.isCombined
-                          ? '🎉 วันนี้ทุกห้องมาเข้าแถวครบ 100% (ไม่มีคนขาด)\n'
-                          : '🎉 วันนี้มาเข้าแถวครบทุกคน 100% (ไม่มีคนขาด)\n';
-                      } else if (sum.isCombined && sum.teacherRooms && sum.teacherRooms.length > 1) {
-                        sum.teacherRooms.forEach(rm => {
-                          const roomLabel = `ชั้น ${rm.class_level || ''} ${typeof formatDeptDisplay === 'function' ? formatDeptDisplay(rm.department) : (rm.department || '')}`;
-                          const rmStudents = (roomStudents || []).filter(rs => 
-                            (rs.room_id && rm.id && rs.room_id === rm.id) ||
-                            (rs.class_level === rm.class_level && (typeof normalizeDepartmentName === 'function' ? normalizeDepartmentName(rs.department) === normalizeDepartmentName(rm.department) : rs.department === rm.department))
-                          );
-                          const rmTotal = rmStudents.length;
-                          const rmAbs = absList.filter(st => 
-                            (st.room_id && rm.id && st.room_id === rm.id) ||
-                            (st.class_level === rm.class_level && (typeof normalizeDepartmentName === 'function' ? normalizeDepartmentName(st.department) === normalizeDepartmentName(rm.department) : st.department === rm.department))
-                          );
-                          const rmPres = Math.max(0, rmTotal - rmAbs.length);
-
-                          text += `\n📂 ${roomLabel} (มา ${rmPres}/${rmTotal} คน):\n`;
-                          if (rmAbs.length === 0) {
-                            text += '  🎉 วันนี้มาครบ 100%\n';
-                          } else {
-                            rmAbs.forEach((st, idx) => {
-                              const statStr = `[มา ${st.present || 0}/${st.total || 1} วัน${st.isRisk ? ' • ⚠️ เสี่ยง' : ''}]`;
-                              text += `  ${idx + 1}. ${st.name || 'นักเรียน'} ${statStr}\n`;
-                            });
-                          }
-                        });
-                      } else {
-                        absList.forEach((st, idx) => {
-                          const statStr = `[มา ${st.present || 0}/${st.total || 1} วัน${st.isRisk ? ' • ⚠️ เสี่ยง' : ''}]`;
-                          text += `  ${idx + 1}. ${st.name || 'นักเรียน'} ${statStr}\n`;
-                        });
-                      }
-
-                      text += '━━━━━━━━━━━━━━━━━━\n' +
-                        '📍 บันทึกข้อมูลและแนบภาพถ่ายหน้าเสาธงเรียบร้อย';
-                      return text;
-                    } catch (err) {
-                      console.error('buildLineOpenChatReport error:', err);
-                      return `🚩 รายงานการเข้าแถวหน้าเสาธง\nวิทยาลัยการอาชีพด่านซ้าย\nวันที่: ${submittedSummary?.checkDate || ''}\nห้อง: ${submittedSummary?.classLevel || ''} ${submittedSummary?.department || ''}\nครู: ${submittedSummary?.teacherName || ''}\n• มา: ${submittedSummary?.presentCount || 0} คน\n• ขาด: ${submittedSummary?.absentCount || 0} คน\nสถานะ: บันทึกข้อมูลเรียบร้อย`;
-                    }
-                  };
-
-                  const handleSendLineDirect = () => {
-                    try {
-                      const reportText = buildLineOpenChatReport();
-                      if (!reportText) return;
-
-                      // 1. Always copy text to clipboard as safety buffer
-                      safeCopyToClipboard(reportText).then(() => {
-                        setIsCopiedLine(true);
-                        setTimeout(() => setIsCopiedLine(false), 3000);
-                      }).catch(() => {});
-
-                      // 2. Open LINE using universal link
-                      const shareUrl = `https://line.me/R/share?text=${encodeURIComponent(reportText)}`;
-                      
-                      // On mobile browsers, assigning directly to location opens the native app reliably without popup blocker
-                      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-                      if (isMobile) {
-                        window.location.href = shareUrl;
-                      } else {
-                        const win = window.open(shareUrl, '_blank');
-                        if (!win) window.location.href = shareUrl;
-                      }
-                    } catch (err) {
-                      console.error('handleSendLineDirect error:', err);
-                      alert('เกิดข้อผิดพลาดในการเปิด LINE: ' + err.message);
-                    }
-                  };
-
-                  const handleCopyLineReport = () => {
-                    try {
-                      const reportText = buildLineOpenChatReport();
-                      if (!reportText) return;
-
-                      safeCopyToClipboard(reportText).then(() => {
-                        setIsCopiedLine(true);
-                        setTimeout(() => setIsCopiedLine(false), 3000);
-                      }).catch(() => {
-                        // Fallback prompt for manual copy
-                        prompt('กรุณาคัดลอกข้อความด้านล่างเพื่อส่งเข้ากลุ่ม LINE:', reportText);
-                      });
-                    } catch (err) {
-                      console.error('handleCopyLineReport error:', err);
-                      alert('เกิดข้อผิดพลาดในการคัดลอก: ' + err.message);
-                    }
-                  };
-
-                  return /*#__PURE__*/_jsxs("div", {
-                    className: "space-y-2",
-                    children: [
-                      /*#__PURE__*/_jsxs("button", {
-                        type: "button",
-                        onClick: handleSendLineDirect,
-                        className: "w-full py-3 bg-[#06C755] hover:bg-[#05b34c] active:bg-[#049f43] text-white font-bold rounded-xl text-xs sm:text-sm shadow-md cursor-pointer flex items-center justify-center gap-2 transition-all",
-                        children: [
-                          /*#__PURE__*/_jsx(Icon.Message, { className: "w-4 h-4" }),
-                          "📲 ส่งรายงานเข้าแอป LINE ทันที (เปิดห้องแชท)"
-                        ]
-                      }),
-                      /*#__PURE__*/_jsxs("button", {
-                        type: "button",
-                        onClick: handleCopyLineReport,
-                        className: "w-full py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold rounded-xl text-xs shadow-2xs cursor-pointer flex items-center justify-center gap-1.5 transition-all",
-                        children: [
-                          /*#__PURE__*/_jsx(Icon.Document, { className: "w-3.5 h-3.5" }),
-                          isCopiedLine ? "✓ คัดลอกข้อความสรุปเรียบร้อยแล้ว!" : "📋 คัดลอกข้อความสรุป (สำหรับนำไปวางเอง)"
-                        ]
-                      })
-                    ]
-                  });
-                })(),<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="th">
 <head>
   <meta charset="UTF-8">
@@ -12233,96 +12094,133 @@ function TeacherCheckinModal({
               children: [
                 (() => {
                   const buildLineOpenChatReport = () => {
-                    const sum = submittedSummary;
-                    if (!sum) return '';
-                    const dateFormatted = formatThaiDateFull(sum.checkDate);
-                    const total = sum.totalStudents || 0;
-                    const present = sum.presentCount || 0;
-                    const absent = sum.absentCount || 0;
-                    const pct = total > 0 ? Math.round((present / total) * 100) : 0;
+                    try {
+                      const sum = submittedSummary;
+                      if (!sum) return '';
+                      const dateFormatted = typeof formatThaiDateFull === 'function'
+                        ? formatThaiDateFull(sum.checkDate)
+                        : (sum.checkDate || '');
+                      const total = sum.totalStudents || 0;
+                      const present = sum.presentCount || 0;
+                      const absent = sum.absentCount || 0;
+                      const pct = total > 0 ? Math.round((present / total) * 100) : 0;
 
-                    let text = '🚩 รายงานการเข้าแถวหน้าเสาธง\n' +
-                      'วิทยาลัยการอาชีพด่านซ้าย\n' +
-                      `🗓️ วันที่: ${dateFormatted}\n` +
-                      `🏫 ${sum.classLevel} ${sum.department}\n` +
-                      `ครูที่ปรึกษา: ${sum.teacherName}\n` +
-                      '━━━━━━━━━━━━━━━━━━\n' +
-                      `📊 สรุปยอด${sum.isCombined ? 'รวม' : 'วันนี้'} (ทั้งหมด ${total} คน)\n` +
-                      `• มา: ${present} คน (${pct}%)\n` +
-                      `• ขาด: ${absent} คน\n` +
-                      '━━━━━━━━━━━━━━━━━━\n' +
-                      '📋 รายชื่อนักเรียนที่ขาดวันนี้:\n';
+                      let text = '🚩 รายงานการเข้าแถวหน้าเสาธง\n' +
+                        'วิทยาลัยการอาชีพด่านซ้าย\n' +
+                        `🗓️ วันที่: ${dateFormatted}\n` +
+                        `🏫 ${sum.classLevel || ''} ${sum.department || ''}\n` +
+                        `ครูที่ปรึกษา: ${sum.teacherName || ''}\n` +
+                        '━━━━━━━━━━━━━━━━━━\n' +
+                        `📊 สรุปยอด${sum.isCombined ? 'รวม' : 'วันนี้'} (ทั้งหมด ${total} คน)\n` +
+                        `• มา: ${present} คน (${pct}%)\n` +
+                        `• ขาด: ${absent} คน\n` +
+                        '━━━━━━━━━━━━━━━━━━\n' +
+                        '📋 รายชื่อนักเรียนที่ขาดวันนี้:\n';
 
-                    const absList = sum.absentList || [];
-                    if (absList.length === 0) {
-                      text += sum.isCombined
-                        ? '🎉 วันนี้ทุกห้องมาเข้าแถวครบ 100% (ไม่มีคนขาด)\n'
-                        : '🎉 วันนี้มาเข้าแถวครบทุกคน 100% (ไม่มีคนขาด)\n';
-                    } else if (sum.isCombined && sum.teacherRooms && sum.teacherRooms.length > 1) {
-                      sum.teacherRooms.forEach(rm => {
-                        const roomLabel = `ชั้น ${rm.class_level} ${formatDeptDisplay(rm.department)}`;
-                        const rmStudents = roomStudents.filter(rs => 
-                          (rs.room_id && rm.id && rs.room_id === rm.id) ||
-                          (rs.class_level === rm.class_level && normalizeDepartmentName(rs.department) === normalizeDepartmentName(rm.department))
-                        );
-                        const rmTotal = rmStudents.length;
-                        const rmAbs = absList.filter(st => 
-                          (st.room_id && rm.id && st.room_id === rm.id) ||
-                          (st.class_level === rm.class_level && normalizeDepartmentName(st.department) === normalizeDepartmentName(rm.department))
-                        );
-                        const rmPres = Math.max(0, rmTotal - rmAbs.length);
+                      const absList = sum.absentList || [];
+                      if (absList.length === 0) {
+                        text += sum.isCombined
+                          ? '🎉 วันนี้ทุกห้องมาเข้าแถวครบ 100% (ไม่มีคนขาด)\n'
+                          : '🎉 วันนี้มาเข้าแถวครบทุกคน 100% (ไม่มีคนขาด)\n';
+                      } else if (sum.isCombined && sum.teacherRooms && sum.teacherRooms.length > 1) {
+                        sum.teacherRooms.forEach(rm => {
+                          const roomLabel = `ชั้น ${rm.class_level || ''} ${typeof formatDeptDisplay === 'function' ? formatDeptDisplay(rm.department) : (rm.department || '')}`;
+                          const rmStudents = (roomStudents || []).filter(rs => 
+                            (rs.room_id && rm.id && rs.room_id === rm.id) ||
+                            (rs.class_level === rm.class_level && (typeof normalizeDepartmentName === 'function' ? normalizeDepartmentName(rs.department) === normalizeDepartmentName(rm.department) : rs.department === rm.department))
+                          );
+                          const rmTotal = rmStudents.length;
+                          const rmAbs = absList.filter(st => 
+                            (st.room_id && rm.id && st.room_id === rm.id) ||
+                            (st.class_level === rm.class_level && (typeof normalizeDepartmentName === 'function' ? normalizeDepartmentName(st.department) === normalizeDepartmentName(rm.department) : st.department === rm.department))
+                          );
+                          const rmPres = Math.max(0, rmTotal - rmAbs.length);
 
-                        text += `\n📂 ${roomLabel} (มา ${rmPres}/${rmTotal} คน):\n`;
-                        if (rmAbs.length === 0) {
-                          text += '  🎉 วันนี้มาครบ 100%\n';
-                        } else {
-                          rmAbs.forEach((st, idx) => {
-                            const statStr = `[มา ${st.present}/${st.total} วัน${st.isRisk ? ' • ⚠️ เสี่ยง' : ''}]`;
-                            text += `  ${idx + 1}. ${st.name} ${statStr}\n`;
-                          });
-                        }
-                      });
-                    } else {
-                      absList.forEach((st, idx) => {
-                        const statStr = `[มา ${st.present}/${st.total} วัน${st.isRisk ? ' • ⚠️ เสี่ยง' : ''}]`;
-                        text += `  ${idx + 1}. ${st.name} ${statStr}\n`;
-                      });
+                          text += `\n📂 ${roomLabel} (มา ${rmPres}/${rmTotal} คน):\n`;
+                          if (rmAbs.length === 0) {
+                            text += '  🎉 วันนี้มาครบ 100%\n';
+                          } else {
+                            rmAbs.forEach((st, idx) => {
+                              const statStr = `[มา ${st.present || 0}/${st.total || 1} วัน${st.isRisk ? ' • ⚠️ เสี่ยง' : ''}]`;
+                              text += `  ${idx + 1}. ${st.name || 'นักเรียน'} ${statStr}\n`;
+                            });
+                          }
+                        });
+                      } else {
+                        absList.forEach((st, idx) => {
+                          const statStr = `[มา ${st.present || 0}/${st.total || 1} วัน${st.isRisk ? ' • ⚠️ เสี่ยง' : ''}]`;
+                          text += `  ${idx + 1}. ${st.name || 'นักเรียน'} ${statStr}\n`;
+                        });
+                      }
+
+                      text += '━━━━━━━━━━━━━━━━━━\n' +
+                        '📍 บันทึกข้อมูลและแนบภาพถ่ายหน้าเสาธงเรียบร้อย';
+                      return text;
+                    } catch (err) {
+                      console.error('buildLineOpenChatReport error:', err);
+                      return `🚩 รายงานการเข้าแถวหน้าเสาธง\nวิทยาลัยการอาชีพด่านซ้าย\nวันที่: ${submittedSummary?.checkDate || ''}\nห้อง: ${submittedSummary?.classLevel || ''} ${submittedSummary?.department || ''}\nครู: ${submittedSummary?.teacherName || ''}\n• มา: ${submittedSummary?.presentCount || 0} คน\n• ขาด: ${submittedSummary?.absentCount || 0} คน\nสถานะ: บันทึกข้อมูลเรียบร้อย`;
                     }
-
-                    text += '━━━━━━━━━━━━━━━━━━\n' +
-                      '📍 บันทึกข้อมูลและแนบภาพถ่ายหน้าเสาธงเรียบร้อย';
-                    return text;
                   };
 
-                  const handleSendLineDirect = () => {
+                  const handleSendLineDirect = async () => {
                     const reportText = buildLineOpenChatReport();
                     if (!reportText) return;
-                    navigator.clipboard.writeText(reportText).catch(() => {});
+
+                    // 1. Always copy text to clipboard as safety buffer (works everywhere)
+                    safeCopyToClipboard(reportText).then(() => {
+                      setIsCopiedLine(true);
+                      setTimeout(() => setIsCopiedLine(false), 3000);
+                    }).catch(() => {});
+
+                    // 2. Try Native Web Share API first (Production HTTPS on mobile phones)
+                    if (navigator.share) {
+                      try {
+                        await navigator.share({
+                          title: 'รายงานการเข้าแถว วก.ด่านซ้าย',
+                          text: reportText
+                        });
+                        return;
+                      } catch (shareErr) {
+                        if (shareErr.name === 'AbortError') return; // User cancelled
+                        console.warn('Native share error, falling back to LINE URL:', shareErr);
+                      }
+                    }
+
+                    // 3. Fallback: Direct LINE URL Scheme
                     const shareUrl = `https://line.me/R/share?text=${encodeURIComponent(reportText)}`;
-                    window.open(shareUrl, '_blank');
+                    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                    if (isMobile) {
+                      window.location.href = shareUrl;
+                    } else {
+                      const win = window.open(shareUrl, '_blank');
+                      if (!win) window.location.href = shareUrl;
+                    }
                   };
 
                   const handleCopyLineReport = () => {
                     const reportText = buildLineOpenChatReport();
                     if (!reportText) return;
-                    navigator.clipboard.writeText(reportText).then(() => {
+
+                    safeCopyToClipboard(reportText).then(() => {
                       setIsCopiedLine(true);
                       setTimeout(() => setIsCopiedLine(false), 3000);
                     }).catch(() => {
-                      alert(reportText);
+                      prompt('กรุณาคัดลอกข้อความด้านล่างเพื่อส่งเข้ากลุ่ม LINE:', reportText);
                     });
                   };
 
+                  const previewText = buildLineOpenChatReport();
+
                   return /*#__PURE__*/_jsxs("div", {
-                    className: "space-y-2",
+                    className: "space-y-2.5",
                     children: [
                       /*#__PURE__*/_jsxs("button", {
                         type: "button",
                         onClick: handleSendLineDirect,
-                        className: "w-full py-3 bg-[#06C755] hover:bg-[#05b34c] active:bg-[#049f43] text-white font-bold rounded-xl text-xs sm:text-sm shadow-md cursor-pointer flex items-center justify-center gap-2 transition-all",
+                        className: "w-full py-3.5 bg-[#06C755] hover:bg-[#05b34c] active:bg-[#049f43] text-white font-bold rounded-2xl text-xs sm:text-sm shadow-md cursor-pointer flex items-center justify-center gap-2 transition-all active:scale-[0.99]",
                         children: [
-                          /*#__PURE__*/_jsx(Icon.Message, { className: "w-4 h-4" }),
-                          "📲 ส่งรายงานเข้าแอป LINE ทันที (เปิดห้องแชท)"
+                          /*#__PURE__*/_jsx(Icon.Message, { className: "w-4 h-4 text-white" }),
+                          "📲 ส่งรายงานเข้าแอป LINE (เลือกกลุ่มแชท)"
                         ]
                       }),
                       /*#__PURE__*/_jsxs("button", {
@@ -12333,13 +12231,31 @@ function TeacherCheckinModal({
                           /*#__PURE__*/_jsx(Icon.Document, { className: "w-3.5 h-3.5" }),
                           isCopiedLine ? "✓ คัดลอกข้อความสรุปเรียบร้อยแล้ว!" : "📋 คัดลอกข้อความสรุป (สำหรับนำไปวางเอง)"
                         ]
+                      }),
+                      /*#__PURE__*/_jsxs("details", {
+                        className: "p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-left text-xs space-y-1.5",
+                        children: [
+                          /*#__PURE__*/_jsxs("summary", {
+                            className: "font-bold text-slate-700 cursor-pointer flex items-center justify-between select-none text-[11px]",
+                            children: [
+                              /*#__PURE__*/_jsx("span", { children: "🔍 กดดูตัวอย่างข้อความสรุปที่จะส่ง" }),
+                              /*#__PURE__*/_jsx("span", { className: "text-slate-400 text-[10px]", children: "คลิกเพื่อเปิด/ปิด" })
+                            ]
+                          }),
+                          /*#__PURE__*/_jsx("textarea", {
+                            readOnly: true,
+                            value: previewText,
+                            onClick: e => e.target.select(),
+                            className: "w-full h-32 p-2 bg-white border border-slate-200 rounded-lg text-[11px] font-mono text-slate-800 focus:outline-none custom-scroll resize-none"
+                          })
+                        ]
                       })
                     ]
                   });
-                })(),
-                /*#__PURE__*/_jsxs("button", {
-                  type: "button",
-                  onClick: () => {
+                })(),
+                /*#__PURE__*/_jsxs("button", {
+                  type: "button",
+                  onClick: () => {
                     if (onSuccessUpdate) onSuccessUpdate();
                     onClose();
                   },
