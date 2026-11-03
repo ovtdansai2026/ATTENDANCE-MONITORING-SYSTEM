@@ -10668,50 +10668,121 @@ function TeacherCheckinModal({
       let sharedPhoto = null;
       let allTermAttHistory = [];
       try {
-        for (const rm of rooms) {
-          // Fetch term daily attendance for history
-          try {
-            const { data: termRows } = await dbAssembly.from('daily_attendance')
-              .select('student_id, student_name, check_date, status, department, class_level')
-              .eq('academic_year', academicYear || '2569')
-              .eq('semester', semester || '2')
-              .eq('department', rm.department)
-              .eq('class_level', rm.class_level);
-            if (termRows && termRows.length > 0) {
-              allTermAttHistory = allTermAttHistory.concat(termRows);
+        if (checkinMode === 'assembly') {
+          // 1. Morning Assembly Mode: Query daily_attendance and assembly session
+          for (const rm of rooms) {
+            try {
+              const { data: termRows } = await dbAssembly.from('daily_attendance')
+                .select('student_id, student_name, check_date, status, department, class_level')
+                .eq('academic_year', academicYear || '2569')
+                .eq('semester', semester || '2')
+                .eq('department', rm.department)
+                .eq('class_level', rm.class_level);
+              if (termRows && termRows.length > 0) {
+                allTermAttHistory = allTermAttHistory.concat(termRows);
+              }
+            } catch (tErr) {
+              console.warn('term history fetch error:', tErr);
             }
-          } catch (tErr) {
-            console.warn('term history fetch error:', tErr);
-          }
 
-          const { data: existingAtt } = await dbAssembly.from('daily_attendance')
-            .select('*')
-            .eq('check_date', date)
-            .eq('department', rm.department)
-            .eq('class_level', rm.class_level);
-          if (existingAtt && existingAtt.length > 0) {
-            existingAtt.forEach(rec => {
-              initialMap[rec.student_id] = rec.status;
-            });
-          }
-
-          if (!sharedPhoto) {
-            const { data: sessionRows } = await dbAssembly.from('attendance_checkin_sessions')
-              .select('evidence_photo_url')
+            const { data: existingAtt } = await dbAssembly.from('daily_attendance')
+              .select('*')
               .eq('check_date', date)
               .eq('department', rm.department)
-              .eq('class_level', rm.class_level)
-              .limit(1);
-            if (sessionRows && sessionRows.length > 0 && sessionRows[0].evidence_photo_url) {
-              sharedPhoto = sessionRows[0].evidence_photo_url;
+              .eq('class_level', rm.class_level);
+            if (existingAtt && existingAtt.length > 0) {
+              existingAtt.forEach(rec => {
+                initialMap[rec.student_id] = rec.status;
+              });
+            }
+
+            if (!sharedPhoto) {
+              const { data: sessionRows } = await dbAssembly.from('attendance_checkin_sessions')
+                .select('evidence_photo_url, notes')
+                .eq('check_date', date)
+                .eq('department', rm.department)
+                .eq('class_level', rm.class_level)
+                .limit(1);
+              if (sessionRows && sessionRows.length > 0 && sessionRows[0].evidence_photo_url) {
+                let isAssembly = true;
+                if (sessionRows[0].notes) {
+                  try {
+                    const parsed = JSON.parse(sessionRows[0].notes);
+                    if (parsed.activity_type && parsed.activity_type !== 'assembly') isAssembly = false;
+                  } catch (_) {}
+                }
+                if (isAssembly) {
+                  sharedPhoto = sessionRows[0].evidence_photo_url;
+                }
+              }
+            }
+          }
+        } else if (checkinMode === 'central') {
+          // 2. Central Activity Mode: Query attendances table and central session photo ONLY
+          const actId = selectedCentralActivity ? String(selectedCentralActivity.id).toLowerCase() : null;
+          if (actId) {
+            try {
+              const { data: centralAttRows } = await dbAssembly.from('attendances')
+                .select('student_id')
+                .eq('activity_id', actId);
+              const presentSet = new Set((centralAttRows || []).map(r => String(r.student_id).trim()));
+              allCombinedStudents.forEach(s => {
+                const sId = String(s.student_id || s.id).trim();
+                initialMap[s.student_id] = (presentSet.has(sId) || presentSet.has(String(s.id).trim())) ? 'present' : 'absent';
+              });
+            } catch (attErr) {
+              console.warn('central attendance fetch error:', attErr);
+            }
+
+            for (const rm of rooms) {
+              if (!sharedPhoto) {
+                const { data: cSess } = await dbAssembly.from('attendance_checkin_sessions')
+                  .select('evidence_photo_url')
+                  .eq('department', rm.department)
+                  .eq('class_level', `${rm.class_level}#central_${actId}`)
+                  .limit(1);
+                if (cSess && cSess.length > 0 && cSess[0].evidence_photo_url) {
+                  sharedPhoto = cSess[0].evidence_photo_url;
+                }
+              }
+            }
+          }
+        } else if (checkinMode === 'club') {
+          // 3. Club Activity Mode: Query club session and club session photo ONLY
+          const sessNo = Number(clubSessionNo) || 1;
+          for (const rm of rooms) {
+            if (!sharedPhoto) {
+              const { data: clbSess } = await dbAssembly.from('attendance_checkin_sessions')
+                .select('evidence_photo_url, notes')
+                .eq('department', rm.department)
+                .eq('class_level', `${rm.class_level}#club_${sessNo}`)
+                .limit(1);
+              if (clbSess && clbSess.length > 0) {
+                if (clbSess[0].evidence_photo_url) sharedPhoto = clbSess[0].evidence_photo_url;
+                if (clbSess[0].notes) {
+                  try {
+                    const parsed = JSON.parse(clbSess[0].notes);
+                    if (Array.isArray(parsed.present_student_ids)) {
+                      const pSet = new Set(parsed.present_student_ids.map(id => String(id).trim()));
+                      allCombinedStudents.forEach(s => {
+                        const sId = String(s.student_id || s.id).trim();
+                        if (pSet.has(sId) || pSet.has(String(s.id).trim())) {
+                          initialMap[s.student_id] = 'present';
+                        }
+                      });
+                    }
+                  } catch (_) {}
+                }
+              }
             }
           }
         }
+
         if (sharedPhoto) {
           setPhotoDataUrl(sharedPhoto);
         }
       } catch (e) {
-        console.warn('Daily attendance query fallback:', e);
+        console.warn('Attendance query fallback:', e);
       }
 
       allCombinedStudents.forEach(s => {
@@ -10729,7 +10800,7 @@ function TeacherCheckinModal({
     } finally {
       setIsLoadingStudents(false);
     }
-  }, [masterStudents, studentPhotosMap, studentCodesMap]);
+  }, [masterStudents, studentPhotosMap, studentCodesMap, checkinMode, selectedCentralActivity?.id, clubSessionNo, academicYear, semester]);
 
   // Auto load students if starting directly in checkin sheet (already authenticated)
   useEffect(() => {
@@ -10737,7 +10808,7 @@ function TeacherCheckinModal({
       const activeRooms = (isAllRoomsCombined && teacherRooms.length > 1) ? teacherRooms : [selectedTeacher];
       loadRoomStudents(selectedTeacher, checkDate, activeRooms);
     }
-  }, [step, selectedTeacher?.id, checkDate, isAllRoomsCombined, teacherRooms.length]);
+  }, [step, selectedTeacher?.id, checkDate, isAllRoomsCombined, teacherRooms.length, checkinMode, selectedCentralActivity?.id, clubSessionNo]);
 
   // Handle Photo Taking
   const handlePhotoCapture = async (e) => {
@@ -11008,28 +11079,30 @@ function TeacherCheckinModal({
         }
       }
 
-      // 2. Save individual records in daily_attendance (preserves each student's exact department & class_level)
       const activeYearStr = String(academicYear || '2569');
       const activeSemStr = String(semester || '2');
 
-      const records = roomStudents.map(s => ({
-        check_date: checkDate,
-        student_id: String(s.student_id || s.id),
-        student_name: s.name,
-        department: s.department || selectedTeacher.department,
-        class_level: s.class_level || selectedTeacher.class_level,
-        teacher_name: selectedTeacher.name,
-        status: attendanceMap[s.student_id] || 'absent',
-        academic_year: activeYearStr,
-        semester: activeSemStr
-      }));
+      // 2. Only save to daily_attendance if checkinMode === 'assembly' (Never overwrite morning assembly with central/club!)
+      if (checkinMode === 'assembly') {
+        const records = roomStudents.map(s => ({
+          check_date: checkDate,
+          student_id: String(s.student_id || s.id),
+          student_name: s.name,
+          department: s.department || selectedTeacher.department,
+          class_level: s.class_level || selectedTeacher.class_level,
+          teacher_name: selectedTeacher.name,
+          status: attendanceMap[s.student_id] || 'absent',
+          academic_year: activeYearStr,
+          semester: activeSemStr
+        }));
 
-      const { error: dailyErr } = await dbAssembly.from('daily_attendance').upsert(records, {
-        onConflict: 'check_date,student_id,academic_year,semester'
-      });
-      if (dailyErr) {
-        console.error('daily_attendance upsert error:', dailyErr);
-        throw new Error('บันทึกรายชื่อนักเรียนรายวันไม่สำเร็จ: ' + (dailyErr.message || ''));
+        const { error: dailyErr } = await dbAssembly.from('daily_attendance').upsert(records, {
+          onConflict: 'check_date,student_id,academic_year,semester'
+        });
+        if (dailyErr) {
+          console.error('daily_attendance upsert error:', dailyErr);
+          throw new Error('บันทึกรายชื่อนักเรียนรายวันไม่สำเร็จ: ' + (dailyErr.message || ''));
+        }
       }
 
       const pCount = roomStudents.filter(s => attendanceMap[s.student_id] === 'present').length;
@@ -11043,7 +11116,10 @@ function TeacherCheckinModal({
           const presentStudents = roomStudents.filter(s => attendanceMap[s.student_id] === 'present');
           const attRows = presentStudents.map(s => ({
             student_id: s.id || s.student_id,
-            activity_id: actId
+            activity_id: actId,
+            status: 'present',
+            academic_year: activeYearStr,
+            semester: activeSemStr
           }));
           if (attRows.length > 0) {
             await dbAssembly.from('attendances').upsert(attRows, {
@@ -11060,22 +11136,8 @@ function TeacherCheckinModal({
         }
       }
 
-      // 3. Save Session & Photo in attendance_checkin_sessions for all managed rooms with shared photo
+      // 3. Save Session & Photo in attendance_checkin_sessions with isolated class_level per activity type
       try {
-        const sessionNotesObj = {
-          activity_type: checkinMode,
-          recorded_at: new Date().toISOString()
-        };
-        if (checkinMode === 'club') {
-          sessionNotesObj.club_name = `ชมรมวิชาชีพ${formatDeptDisplay(selectedTeacher.department)}`;
-          sessionNotesObj.activity_title = (clubActivityTitle || '').trim() || `กิจกรรมชมรมวิชาชีพ ครั้งที่ ${clubSessionNo || 1}`;
-          sessionNotesObj.session_number = Number(clubSessionNo) || 1;
-          sessionNotesObj.activity_detail = (clubActivityDescription || '').trim();
-        } else if (checkinMode === 'central') {
-          sessionNotesObj.activity_id = selectedCentralActivity?.id || null;
-          sessionNotesObj.activity_name = selectedCentralActivity?.name || selectedCentralActivity?.activity_name || null;
-        }
-
         const roomsToSave = (isAllRoomsCombined && teacherRooms.length > 1) ? teacherRooms : [selectedTeacher];
         for (const rm of roomsToSave) {
           const rmStudents = roomStudents.filter(s => (s.department === rm.department && s.class_level === rm.class_level));
@@ -11084,11 +11146,33 @@ function TeacherCheckinModal({
           const rmA = rmStudents.filter(s => (attendanceMap[s.student_id] || 'absent') === 'absent').length;
           const rmL = rmStudents.filter(s => attendanceMap[s.student_id] === 'leave').length;
 
+          let targetClassLevel = rm.class_level;
+          const sessionNotesObj = {
+            activity_type: checkinMode,
+            recorded_at: new Date().toISOString()
+          };
+
+          if (checkinMode === 'central') {
+            const actId = selectedCentralActivity ? String(selectedCentralActivity.id).toLowerCase() : 'unknown';
+            targetClassLevel = `${rm.class_level}#central_${actId}`;
+            sessionNotesObj.activity_id = actId;
+            sessionNotesObj.activity_name = selectedCentralActivity?.name || selectedCentralActivity?.activity_name || null;
+          } else if (checkinMode === 'club') {
+            const sessNo = Number(clubSessionNo) || 1;
+            targetClassLevel = `${rm.class_level}#club_${sessNo}`;
+            sessionNotesObj.club_name = `ชมรมวิชาชีพ${formatDeptDisplay(selectedTeacher.department)}`;
+            sessionNotesObj.activity_title = (clubActivityTitle || '').trim() || `กิจกรรมชมรมวิชาชีพ ครั้งที่ ${sessNo}`;
+            sessionNotesObj.session_number = sessNo;
+            sessionNotesObj.activity_detail = (clubActivityDescription || '').trim();
+            sessionNotesObj.present_student_ids = rmStudents.filter(s => attendanceMap[s.student_id] === 'present').map(s => s.student_id);
+            sessionNotesObj.absent_student_ids = rmStudents.filter(s => (attendanceMap[s.student_id] || 'absent') === 'absent').map(s => s.student_id);
+          }
+
           const sessionRecord = {
             check_date: checkDate,
             teacher_name: selectedTeacher.name,
             department: rm.department,
-            class_level: rm.class_level,
+            class_level: targetClassLevel,
             total_students: rmStudents.length,
             present_count: rmP,
             absent_count: rmA,
@@ -11103,7 +11187,7 @@ function TeacherCheckinModal({
             onConflict: 'check_date,department,class_level,academic_year,semester'
           });
           if (sessErr) {
-            console.error('attendance_checkin_sessions upsert error for room:', rm.class_level, sessErr);
+            console.error('attendance_checkin_sessions upsert error for room:', targetClassLevel, sessErr);
             await dbAssembly.from('attendance_checkin_sessions').insert([sessionRecord]).catch(e => console.warn('fallback insert:', e));
           }
         }
