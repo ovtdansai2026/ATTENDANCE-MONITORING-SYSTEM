@@ -2444,6 +2444,12 @@ function App() {
       return saved ? JSON.parse(saved) : null;
     } catch(e) { return null; }
   });
+  const [dashboardViewMode, setDashboardViewMode] = useState(() => {
+    try {
+      return sessionStorage.getItem('dashboard_view_mode') || 'classroom';
+    } catch(e) { return 'classroom'; }
+  });
+  const [teacherSelectedRoomId, setTeacherSelectedRoomId] = useState('ALL');
   const [teacherCheckinMode, setTeacherCheckinMode] = useState('assembly');
   const [masterStudents, setMasterStudents] = useState([]);
   const masterStudentsRef = useRef(masterStudents);
@@ -3811,18 +3817,51 @@ useEffect(() => {
 
   const activeClubSession = activeClubSessions[0] || null;
 
-  const teacherRoomStudentsCount = useMemo(() => {
-    if (!loggedInTeacher) return 0;
-    const normDept = normalizeDepartmentName(loggedInTeacher.department);
-    const cleanLevel = String(loggedInTeacher.class_level || '').trim();
+  // Sibling rooms managed by logged in teacher (Multi-room support)
+  const loggedInTeacherRooms = useMemo(() => {
+    if (!loggedInTeacher) return [];
+    const targetNorm = normalizeTeacherName(loggedInTeacher.name);
+    const list = (teachersList || []).filter(t => normalizeTeacherName(t.name) === targetNorm);
+    if (!list.some(r => r.id === loggedInTeacher.id)) {
+      list.unshift(loggedInTeacher);
+    }
+    return list;
+  }, [loggedInTeacher, teachersList]);
+
+  // Students scoped to teacher's room(s)
+  const teacherScopedStudents = useMemo(() => {
+    if (!loggedInTeacher) return [];
+    const roomsToMatch = (teacherSelectedRoomId === 'ALL')
+      ? loggedInTeacherRooms
+      : loggedInTeacherRooms.filter(r => r.id === teacherSelectedRoomId);
+    
+    if (roomsToMatch.length === 0) return [];
+
     return (masterStudents || []).filter(s => {
       const sDept = normalizeDepartmentName(s.dept || s.department);
-      const matchDept = sDept === normDept || sDept.includes(normDept) || normDept.includes(sDept);
       const sLvl = String(s.level || s.class_level || s.pure_level || '').trim();
-      const matchLevel = sLvl === cleanLevel || sLvl.includes(cleanLevel) || cleanLevel.includes(sLvl);
-      return matchDept && matchLevel;
-    }).length;
-  }, [loggedInTeacher, masterStudents]);
+      return roomsToMatch.some(r => {
+        const rDept = normalizeDepartmentName(r.department);
+        const rLvl = String(r.class_level || '').trim();
+        const matchDept = sDept === rDept || sDept.includes(rDept) || rDept.includes(sDept);
+        const matchLvl = sLvl === rLvl || sLvl.includes(rLvl) || rLvl.includes(sLvl);
+        return matchDept && matchLvl;
+      });
+    });
+  }, [loggedInTeacher, loggedInTeacherRooms, teacherSelectedRoomId, masterStudents]);
+
+  const teacherRoomStudentsCount = useMemo(() => {
+    if (!loggedInTeacher) return 0;
+    return teacherScopedStudents.length;
+  }, [loggedInTeacher, teacherScopedStudents]);
+
+  // Current base students for main dashboard: Classroom vs College view
+  const currentBaseStudents = useMemo(() => {
+    if (loggedInTeacher && dashboardViewMode === 'classroom') {
+      return teacherScopedStudents;
+    }
+    return activeMasterStudents;
+  }, [loggedInTeacher, dashboardViewMode, teacherScopedStudents, activeMasterStudents]);
 
   // Active Master Students (Excludes hidden class levels like internship groups)
   const activeMasterStudents = useMemo(() => {
@@ -3852,9 +3891,11 @@ useEffect(() => {
   }, [activeMasterStudents, selectedDept]);
 
   const filteredStudents = useMemo(() => {
-    return activeMasterStudents.filter(s => {
-      if (selectedDept !== 'ALL' && s.dept !== selectedDept) return false;
-      if (selectedLevel !== 'ALL' && s.level !== selectedLevel) return false;
+    return currentBaseStudents.filter(s => {
+      if (!loggedInTeacher || dashboardViewMode !== 'classroom') {
+        if (selectedDept !== 'ALL' && s.dept !== selectedDept) return false;
+        if (selectedLevel !== 'ALL' && s.level !== selectedLevel) return false;
+      }
       if (currentTab === 'RISK' && (s.isGraduated || s.isNotStarted || (s.passCount !== undefined ? s.passCount === 3 : s.percent >= 80))) return false;
       if (currentTab === 'PASS' && !s.isGraduated && (s.isNotStarted || (s.passCount !== undefined ? s.passCount < 3 : s.percent < 80))) return false;
       if (search.trim()) {
@@ -3876,7 +3917,7 @@ useEffect(() => {
       if (a.present !== b.present) return a.present - b.present;
       return (a.name || '').localeCompare(b.name || '', 'th');
     });
-  }, [activeMasterStudents, selectedDept, selectedLevel, currentTab, search]);
+  }, [currentBaseStudents, loggedInTeacher, dashboardViewMode, selectedDept, selectedLevel, currentTab, search]);
 
   const totalPages = Math.max(1, Math.ceil(filteredStudents.length / (pageSize === -1 ? (filteredStudents.length || 1) : pageSize)));
 
@@ -3886,9 +3927,9 @@ useEffect(() => {
     return filteredStudents.slice(start, start + pageSize);
   }, [filteredStudents, currentPage, pageSize]);
 
-  const totalCount = activeMasterStudents.length;
-  const riskCount = activeMasterStudents.filter(s => !s.isGraduated && !s.isNotStarted && (s.passCount !== undefined ? s.passCount < 3 : s.percent < 80)).length;
-  const passCount = activeMasterStudents.filter(s => s.isGraduated || (!s.isNotStarted && (s.passCount !== undefined ? s.passCount === 3 : s.percent >= 80))).length;
+  const totalCount = currentBaseStudents.length;
+  const riskCount = currentBaseStudents.filter(s => !s.isGraduated && !s.isNotStarted && (s.passCount !== undefined ? s.passCount < 3 : s.percent < 80)).length;
+  const passCount = currentBaseStudents.filter(s => s.isGraduated || (!s.isNotStarted && (s.passCount !== undefined ? s.passCount === 3 : s.percent >= 80))).length;
   const riskRate = totalCount ? Math.round((riskCount / totalCount) * 100) : 0;
 
   const handleExportExcel = () => {
@@ -4375,6 +4416,9 @@ useEffect(() => {
                     onClick: () => {
                       setLoggedInTeacher(null);
                       sessionStorage.removeItem('logged_in_teacher');
+                      sessionStorage.removeItem('dashboard_view_mode');
+                      setDashboardViewMode('classroom');
+                      setTeacherSelectedRoomId('ALL');
                     },
                     className: "text-slate-400 hover:text-rose-600 hover:bg-rose-50 font-semibold text-xs flex items-center gap-1.5 cursor-pointer transition-all px-3 py-1.5 rounded-xl border border-transparent hover:border-rose-200 active:scale-95",
                     children: [
@@ -4618,6 +4662,79 @@ useEffect(() => {
                     ]
                   })
                 ]
+              }),
+
+              /* Modern Segmented Switch Bar: [🏫 ห้องที่ปรึกษาของฉัน] vs [🌐 ภาพรวมทั้งวิทยาลัย] */
+              /*#__PURE__*/_jsxs("div", {
+                className: "pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2.5",
+                children: [
+                  /* Segmented Switch Buttons */
+                  /*#__PURE__*/_jsxs("div", {
+                    className: "p-1 bg-slate-100/90 rounded-2xl border border-slate-200/90 inline-flex shadow-2xs",
+                    role: "tablist",
+                    children: [
+                      /* Button 1: ห้องที่ปรึกษาของฉัน */
+                      /*#__PURE__*/_jsxs("button", {
+                        type: "button",
+                        role: "tab",
+                        "aria-selected": dashboardViewMode === 'classroom',
+                        onClick: () => {
+                          setDashboardViewMode('classroom');
+                          sessionStorage.setItem('dashboard_view_mode', 'classroom');
+                        },
+                        className: "px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 transition-all cursor-pointer " + (
+                          dashboardViewMode === 'classroom'
+                            ? "bg-emerald-600 text-white shadow-sm shadow-emerald-600/30 font-black"
+                            : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
+                        ),
+                        children: [
+                          /*#__PURE__*/_jsx(Icon.Academic, { className: "w-4 h-4 " + (dashboardViewMode === 'classroom' ? "text-white" : "text-emerald-600") }),
+                          "ห้องที่ปรึกษาของฉัน",
+                          loggedInTeacherRooms.length > 1 && /*#__PURE__*/_jsxs("span", {
+                            className: "text-[10px] px-1.5 py-0.2 rounded-full " + (dashboardViewMode === 'classroom' ? "bg-white/20 text-white" : "bg-emerald-100 text-emerald-800 font-mono"),
+                            children: [loggedInTeacherRooms.length, " ห้อง"]
+                          })
+                        ]
+                      }),
+                      /* Button 2: ภาพรวมทั้งวิทยาลัย */
+                      /*#__PURE__*/_jsxs("button", {
+                        type: "button",
+                        role: "tab",
+                        "aria-selected": dashboardViewMode === 'college',
+                        onClick: () => {
+                          setDashboardViewMode('college');
+                          sessionStorage.setItem('dashboard_view_mode', 'college');
+                        },
+                        className: "px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 transition-all cursor-pointer " + (
+                          dashboardViewMode === 'college'
+                            ? "bg-slate-900 text-white shadow-sm shadow-slate-900/30 font-black"
+                            : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
+                        ),
+                        children: [
+                          /*#__PURE__*/_jsx(Icon.Users, { className: "w-4 h-4 " + (dashboardViewMode === 'college' ? "text-white" : "text-slate-500") }),
+                          "ภาพรวมทั้งวิทยาลัย"
+                        ]
+                      })
+                    ]
+                  }),
+
+                  /* Active View Indicator Badge */
+                  /*#__PURE__*/_jsxs("div", {
+                    className: "flex items-center gap-1.5 text-xs font-semibold text-slate-500",
+                    children: [
+                      /*#__PURE__*/_jsx("span", {
+                        className: "w-2 h-2 rounded-full " + (dashboardViewMode === 'classroom' ? "bg-emerald-500 animate-pulse" : "bg-indigo-500")
+                      }),
+                      /*#__PURE__*/_jsx("span", {
+                        children: dashboardViewMode === 'classroom'
+                          ? (loggedInTeacherRooms.length > 1 && teacherSelectedRoomId === 'ALL'
+                              ? `กำลังแสดงสถิติรวมทุกห้องที่ปรึกษา (${teacherScopedStudents.length} คน)`
+                              : `กำลังแสดงสถิติห้องที่ปรึกษา (${teacherScopedStudents.length} คน)`)
+                          : `กำลังดูภาพรวมทั้งวิทยาลัย (${activeMasterStudents.length} คน)`
+                      })
+                    ]
+                  })
+                ]
               })
             ]
           })
@@ -4628,6 +4745,36 @@ useEffect(() => {
         className: "max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 flex-1 w-full space-y-4 sm:space-y-6",
         children: /*#__PURE__*/_jsxs(React.Fragment, {
           children: [
+            /* View Mode Header (Classroom vs College) */
+            loggedInTeacher && /*#__PURE__*/_jsxs("div", {
+              className: "flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1 pb-1",
+              children: [
+                /*#__PURE__*/_jsxs("div", {
+                  className: "flex items-center gap-2",
+                  children: [
+                    /*#__PURE__*/_jsx("span", {
+                      className: "w-2.5 h-2.5 rounded-full " + (dashboardViewMode === 'classroom' ? "bg-emerald-500 animate-pulse" : "bg-indigo-500")
+                    }),
+                    /*#__PURE__*/_jsx("h3", {
+                      className: "text-sm sm:text-base font-black text-slate-800 tracking-tight",
+                      children: dashboardViewMode === 'classroom'
+                        ? (loggedInTeacherRooms.length > 1 && teacherSelectedRoomId === 'ALL'
+                            ? `🏫 แดชบอร์ดห้องที่ปรึกษา: รวมทุกห้อง (${loggedInTeacherRooms.map(r => r.class_level).join(', ')}) • แผนก${formatDeptDisplay(loggedInTeacher.department)}`
+                            : `🏫 แดชบอร์ดห้องที่ปรึกษา: ${teacherSelectedRoomId !== 'ALL' ? (loggedInTeacherRooms.find(r => r.id === teacherSelectedRoomId)?.class_level || '') : (loggedInTeacher.class_level || '')} แผนก${formatDeptDisplay(loggedInTeacher.department)}`)
+                        : "🌐 แดชบอร์ดภาพรวมวิทยาลัย (ทุกแผนกวิชาและทุกระดับชั้น)"
+                    })
+                  ]
+                }),
+                /*#__PURE__*/_jsxs("div", {
+                  className: "flex items-center gap-1.5 text-xs font-bold " + (dashboardViewMode === 'classroom' ? "text-emerald-700 bg-emerald-50 border border-emerald-200" : "text-indigo-700 bg-indigo-50 border border-indigo-200") + " px-2.5 py-1 rounded-xl shadow-2xs self-start sm:self-auto",
+                  children: [
+                    /*#__PURE__*/_jsx(Icon.UserCheck, { className: "w-3.5 h-3.5" }),
+                    `ครูที่ปรึกษา: ${loggedInTeacher.name}`
+                  ]
+                })
+              ]
+            }),
+
             /*#__PURE__*/_jsxs("section", {
               className: "grid grid-cols-4 gap-1.5 sm:gap-4",
               children: isLoading ? [
@@ -4778,29 +4925,71 @@ useEffect(() => {
                       className: "w-full bg-slate-50 border border-slate-200 text-xs sm:text-sm rounded-xl px-3.5 py-2 sm:py-2.5 focus:outline-none focus:bg-white focus:border-slate-400 transition-all"
                     })
                   }),
-                  /*#__PURE__*/_jsxs("div", {
-                    className: "grid grid-cols-2 sm:grid-cols-6 sm:col-span-6 gap-2",
-                    children: [
-                      /*#__PURE__*/_jsxs("select", {
-                        value: selectedDept,
-                        onChange: e => { setSelectedDept(e.target.value); setSelectedLevel('ALL'); },
-                        className: "sm:col-span-3 bg-slate-50 border border-slate-200 text-xs sm:text-sm rounded-xl px-2.5 py-2 cursor-pointer",
-                        children: [
-                          /*#__PURE__*/_jsx("option", { value: "ALL", children: "ทุกแผนกวิชา" }),
-                          departments.map(d => /*#__PURE__*/_jsxs("option", { value: d, children: [formatDeptDisplay(d)] }, d))
-                        ]
-                      }),
-                      /*#__PURE__*/_jsxs("select", {
-                        value: selectedLevel,
-                        onChange: e => setSelectedLevel(e.target.value),
-                        className: "sm:col-span-3 bg-slate-50 border border-slate-200 text-xs sm:text-sm rounded-xl px-2.5 py-2 cursor-pointer",
-                        children: [
-                          /*#__PURE__*/_jsx("option", { value: "ALL", children: "ทุกระดับชั้น" }),
-                          levels.map(l => /*#__PURE__*/_jsx("option", { value: l, children: l }, l))
-                        ]
-                      })
-                    ]
-                  })
+                  (loggedInTeacher && dashboardViewMode === 'classroom') ? (
+                    /* Room Selector Pills for Advisor Teacher */
+                    /*#__PURE__*/_jsxs("div", {
+                      className: "sm:col-span-6 flex flex-wrap items-center gap-1.5 p-1 bg-slate-50 border border-slate-200 rounded-xl",
+                      children: [
+                        /* All Advisor Rooms */
+                        /*#__PURE__*/_jsxs("button", {
+                          type: "button",
+                          onClick: () => setTeacherSelectedRoomId('ALL'),
+                          className: "px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 " + (
+                            teacherSelectedRoomId === 'ALL'
+                              ? "bg-slate-900 text-white shadow-2xs font-black"
+                              : "text-slate-600 hover:bg-white hover:text-slate-900"
+                          ),
+                          children: [
+                            /*#__PURE__*/_jsx(Icon.Users, { className: "w-3 h-3 " + (teacherSelectedRoomId === 'ALL' ? "text-amber-400" : "text-slate-400") }),
+                            loggedInTeacherRooms.length > 1 ? `รวมทุกห้องของฉัน (${loggedInTeacherRooms.length})` : "ห้องที่ปรึกษาของฉัน"
+                          ]
+                        }),
+                        /* Individual Rooms (if 2+ rooms) */
+                        loggedInTeacherRooms.length > 1 && loggedInTeacherRooms.map(rm => {
+                          const isCurrent = teacherSelectedRoomId === rm.id;
+                          return /*#__PURE__*/_jsxs("button", {
+                            key: rm.id,
+                            type: "button",
+                            onClick: () => setTeacherSelectedRoomId(rm.id),
+                            className: "px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 " + (
+                              isCurrent
+                                ? "bg-emerald-600 text-white shadow-2xs font-black"
+                                : "text-slate-600 hover:bg-white hover:text-slate-900"
+                            ),
+                            children: [
+                              /*#__PURE__*/_jsx(Icon.Academic, { className: "w-3 h-3 " + (isCurrent ? "text-white" : "text-slate-400") }),
+                              `${rm.class_level} ${formatDeptDisplay(rm.department)}`
+                            ]
+                          }, rm.id);
+                        })
+                      ]
+                    })
+                  ) : (
+                    /* Standard Department & Class Level Dropdowns */
+                    /*#__PURE__*/_jsxs("div", {
+                      className: "grid grid-cols-2 sm:grid-cols-6 sm:col-span-6 gap-2",
+                      children: [
+                        /*#__PURE__*/_jsxs("select", {
+                          value: selectedDept,
+                          onChange: e => { setSelectedDept(e.target.value); setSelectedLevel('ALL'); },
+                          className: "sm:col-span-3 bg-slate-50 border border-slate-200 text-xs sm:text-sm rounded-xl px-2.5 py-2 cursor-pointer",
+                          children: [
+                            /*#__PURE__*/_jsx("option", { value: "ALL", children: "ทุกแผนกวิชา" }),
+                            departments.map(d => /*#__PURE__*/_jsxs("option", { value: d, children: [formatDeptDisplay(d)] }, d))
+                          ]
+                        }),
+                        /*#__PURE__*/_jsxs("select", {
+                          value: selectedLevel,
+                          onChange: e => setSelectedLevel(e.target.value),
+                          className: "sm:col-span-3 bg-slate-50 border border-slate-200 text-xs sm:text-sm rounded-xl px-2.5 py-2 cursor-pointer",
+                          children: [
+                            /*#__PURE__*/_jsx("option", { value: "ALL", children: "ทุกระดับชั้น" }),
+                            levels.map(l => /*#__PURE__*/_jsx("option", { value: l, children: l }, l))
+                          ]
+                        })
+                      ]
+                    })
+                  )
                 ]
               }),
               hiddenClassLevels && hiddenClassLevels.length > 0 && /*#__PURE__*/_jsxs("div", {
@@ -4836,7 +5025,7 @@ useEffect(() => {
                           /*#__PURE__*/_jsx("span", { className: "truncate", children: "ทั้งหมด" }),
                           /*#__PURE__*/_jsx("span", {
                             className: "px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-mono font-bold transition-colors flex-shrink-0 " + (currentTab === "ALL" ? "bg-white/20 text-white" : "bg-slate-200/80 text-slate-700"),
-                            children: isLoading ? "..." : activeMasterStudents.length
+                            children: isLoading ? "..." : currentBaseStudents.length
                           })
                         ]
                       }),
@@ -6107,8 +6296,10 @@ useEffect(() => {
         onLoginSuccess: (teacher) => {
           setLoggedInTeacher(teacher);
           sessionStorage.setItem('logged_in_teacher', JSON.stringify(teacher));
+          setDashboardViewMode('classroom');
+          sessionStorage.setItem('dashboard_view_mode', 'classroom');
+          setTeacherSelectedRoomId('ALL');
           setIsTeacherLoginModalOpen(false);
-          setIsTeacherClassroomModalOpen(true);
         },
         onClose: () => setIsTeacherLoginModalOpen(false)
       }),
