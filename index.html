@@ -6158,6 +6158,10 @@ useEffect(() => {
         allowOffHoursCheckin: allowOffHoursCheckin,
         specialHolidays: specialHolidays,
         compensatoryDays: compensatoryDays,
+        termStartDate: termStartDate,
+        termEndDate: termEndDate,
+        calendarStats: calendarStats,
+        baseTotalDays: baseTotalDays,
         checkinMode: teacherCheckinMode,
         activities: activities,
         activeCentralActivity: activeCentralActivity,
@@ -10132,6 +10136,10 @@ function TeacherCheckinModal({
   allowOffHoursCheckin = false,
   specialHolidays = [],
   compensatoryDays = [],
+  termStartDate,
+  termEndDate,
+  calendarStats,
+  baseTotalDays,
   checkinMode = 'assembly', // 'assembly' | 'central' | 'club'
   activities = [],
   activeCentralActivity = null,
@@ -10211,6 +10219,7 @@ function TeacherCheckinModal({
   const [isVerifying, setIsVerifying] = useState(false);
   const [checkDate, setCheckDate] = useState(() => initialDate || formatLocalDate(new Date()));
   const [roomStudents, setRoomStudents] = useState([]);
+  const [roomAttendanceHistory, setRoomAttendanceHistory] = useState([]);
   const [attendanceMap, setAttendanceMap] = useState({});
   const [isLoadingStudents, setIsLoadingStudents] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -10453,7 +10462,23 @@ function TeacherCheckinModal({
       const initialMap = {};
       let sharedPhoto = null;
       try {
+        let allTermAttHistory = [];
         for (const rm of rooms) {
+          // Fetch term daily attendance for history
+          try {
+            const { data: termRows } = await dbAssembly.from('daily_attendance')
+              .select('student_id, student_name, check_date, status, department, class_level')
+              .eq('academic_year', academicYear || '2569')
+              .eq('semester', semester || '2')
+              .eq('department', rm.department)
+              .eq('class_level', rm.class_level);
+            if (termRows && termRows.length > 0) {
+              allTermAttHistory = allTermAttHistory.concat(termRows);
+            }
+          } catch (tErr) {
+            console.warn('term history fetch error:', tErr);
+          }
+
           const { data: existingAtt } = await dbAssembly.from('daily_attendance')
             .select('*')
             .eq('check_date', date)
@@ -10492,6 +10517,7 @@ function TeacherCheckinModal({
 
       setRoomStudents(allCombinedStudents);
       setAttendanceMap(initialMap);
+      setRoomAttendanceHistory(allTermAttHistory);
     } catch (e) {
       console.error(e);
       alert('เกิดข้อผิดพลาดในการโหลดรายชื่อ: ' + e.message);
@@ -10885,15 +10911,68 @@ function TeacherCheckinModal({
       setSaveSuccessMsg(succMsg);
       setHasUnsavedChanges(false);
 
-      // Build absent students detail with cumulative attendance for LINE report
+      // Build absent students detail with accurate cumulative attendance for LINE report
+      const startD = termStartDate || '2026-11-02';
+      
+      // Calculate school days up to checkDate within the term
+      let schoolDaysCount = 0;
+      if (startD && checkDate >= startD) {
+        try {
+          const startDt = new Date(startD + 'T00:00:00');
+          const checkDt = new Date(checkDate + 'T00:00:00');
+          const holSet = new Set(specialHolidays || []);
+          const compSet = new Set(compensatoryDays || []);
+          const cur = new Date(startDt);
+          while (cur <= checkDt) {
+            const curStr = formatLocalDate(cur);
+            const dayOfWeek = cur.getDay();
+            const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+            let isSchoolDay = false;
+            if (isWeekend) {
+              if (compSet.has(curStr)) isSchoolDay = true;
+            } else {
+              if (!holSet.has(curStr)) isSchoolDay = true;
+            }
+            if (isSchoolDay) schoolDaysCount++;
+            cur.setDate(cur.getDate() + 1);
+          }
+        } catch (calcErr) {
+          console.warn('schoolDaysCount error:', calcErr);
+        }
+      }
+      
+      const distinctCheckDates = [...new Set([
+        ...roomAttendanceHistory.map(h => h.check_date),
+        checkDate
+      ])].filter(d => (!startD || d >= startD) && d <= checkDate);
+      
+      const elapsedDaysCount = Math.max(
+        schoolDaysCount,
+        distinctCheckDates.length,
+        1
+      );
+
       const absentList = roomStudents.filter(s => attendanceMap[s.student_id] === 'absent').map(s => {
-        const m = (masterStudents || []).find(ms => 
-          String(ms.id) === String(s.id) || 
-          String(ms.student_id) === String(s.student_id) ||
-          (ms.name && s.name && ms.name.replace(/\s+/g, '') === s.name.replace(/\s+/g, ''))
-        );
-        const curPresent = m ? (m.present || 0) : 0;
-        const curTotal = (m && m.total > 0) ? m.total : Math.max(1, (typeof calendarStats !== 'undefined' && calendarStats?.elapsedDays) || (typeof baseTotalDays !== 'undefined' && baseTotalDays) || 1);
+        // 1. Calculate past present days directly from real daily_attendance history
+        const cleanSName = (s.name || '').replace(/\s+/g, '');
+        const pastPresentCount = roomAttendanceHistory.filter(h => {
+          const idMatch = (h.student_id && s.student_id && String(h.student_id) === String(s.student_id));
+          const nameMatch = (h.student_name && cleanSName && h.student_name.replace(/\s+/g, '') === cleanSName);
+          return (idMatch || nameMatch) && (!startD || h.check_date >= startD) && h.check_date < checkDate && h.status === 'present';
+        }).length;
+
+        // 2. Fallback to masterStudents if history table was empty
+        let curPresent = pastPresentCount;
+        if (pastPresentCount === 0 && roomAttendanceHistory.length === 0) {
+          const m = (masterStudents || []).find(ms => 
+            String(ms.id) === String(s.id) || 
+            String(ms.student_id) === String(s.student_id) ||
+            (ms.name && s.name && ms.name.replace(/\s+/g, '') === cleanSName)
+          );
+          if (m && m.present > 0) curPresent = m.present;
+        }
+
+        const curTotal = elapsedDaysCount;
         const pct = curTotal > 0 ? Math.round((curPresent / curTotal) * 100) : 0;
         const isRisk = (curTotal >= 1 && pct < 80);
         return {
