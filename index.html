@@ -3381,15 +3381,31 @@ useEffect(() => {
       });
 
       // 2. Club Sessions Lookup (Pre-normalized to avoid recalculation per student)
-      const clubSessions = (sessionsRes || []).filter(s =>
-        (s.activity_type === 'club' || s.session_type === 'club') &&
-        String(s.academic_year || activeYear) === String(activeYear) &&
-        String(s.semester || activeSem) === String(activeSem)
-      ).map(cs => ({
-        ...cs,
-        normDept: normalizeDepartmentName(cs.department),
-        cLvl: String(cs.class_level || '').trim()
-      }));
+      const clubSessions = (sessionsRes || []).filter(s => {
+        let isClub = (s.activity_type === 'club' || s.session_type === 'club');
+        if (!isClub && String(s.class_level || '').includes('#club_')) isClub = true;
+        if (!isClub && s.notes) {
+          try {
+            const p = JSON.parse(s.notes);
+            if (p.activity_type === 'club') isClub = true;
+          } catch(_) {}
+        }
+        return isClub &&
+          String(s.academic_year || activeYear) === String(activeYear) &&
+          String(s.semester || activeSem) === String(activeSem);
+      }).map(cs => {
+        let parsedNotes = {};
+        if (cs.notes) {
+          try { parsedNotes = JSON.parse(cs.notes); } catch(_) {}
+        }
+        const rawLvl = String(cs.class_level || '').split('#')[0].trim();
+        return {
+          ...cs,
+          normDept: normalizeDepartmentName(cs.department),
+          cLvl: rawLvl,
+          presentStudentIds: Array.isArray(parsedNotes.present_student_ids) ? parsedNotes.present_student_ids.map(id => String(id).trim()) : null
+        };
+      });
 
       // Map daily attendance for active term (real-time calculation from daily_attendance)
       const dailyAttsList = dailyAttsRes || [];
@@ -3439,13 +3455,20 @@ useEffect(() => {
         // Real Club Activities Data (เชื่อมโยงตามแผนกและระดับชั้น)
         const normDept = normalizeDepartmentName(s.department);
         const sLvl = String(s.pure_level || '').trim();
+        const sId = String(s.id || s.student_id).trim();
         const roomClubSessions = clubSessions.filter(cs => {
           const matchDept = cs.normDept === normDept || cs.normDept.includes(normDept) || normDept.includes(cs.normDept);
           const matchLvl = !cs.cLvl || cs.cLvl === sLvl || sLvl.includes(cs.cLvl) || cs.cLvl.includes(sLvl);
           return matchDept && matchLvl;
         });
         const clubTotal = roomClubSessions.length;
-        const clubPresent = isGraduated ? clubTotal : (clubTotal > 0 ? clubTotal : 0);
+        const clubAttendedCount = roomClubSessions.filter(cs => {
+          if (Array.isArray(cs.presentStudentIds) && cs.presentStudentIds.length > 0) {
+            return cs.presentStudentIds.includes(sId) || cs.presentStudentIds.includes(String(s.student_id).trim());
+          }
+          return true;
+        }).length;
+        const clubPresent = isGraduated ? clubTotal : clubAttendedCount;
         const clubPercent = isGraduated ? 100 : (clubTotal > 0 ? Math.min(100, Math.round((clubPresent / clubTotal) * 100)) : 100);
 
         return {
@@ -6452,6 +6475,14 @@ function DashboardInlineCalendar({
   const sessionsByDate = useMemo(() => {
     const map = {};
     (sessions || []).forEach(s => {
+      // Isolating Morning Assembly sessions only (ignore central / club sessions)
+      if (String(s.class_level || '').includes('#')) return;
+      if (s.notes) {
+        try {
+          const p = JSON.parse(s.notes);
+          if (p.activity_type && p.activity_type !== 'assembly') return;
+        } catch(_) {}
+      }
       const d = s.check_date;
       if (!map[d]) map[d] = [];
       map[d].push(s);
@@ -6904,10 +6935,17 @@ function AttendanceCalendarModal({
     return calculateSchoolDaysStats(localStartDate, localEndDate, localHolidays, localCompensatory);
   }, [localStartDate, localEndDate, localHolidays, localCompensatory]);
 
-  // Group sessions by date
+  // Group sessions by date (Morning Assembly only)
   const sessionsByDate = useMemo(() => {
     const map = {};
     (sessions || []).forEach(s => {
+      if (String(s.class_level || '').includes('#')) return;
+      if (s.notes) {
+        try {
+          const p = JSON.parse(s.notes);
+          if (p.activity_type && p.activity_type !== 'assembly') return;
+        } catch(_) {}
+      }
       const d = s.check_date;
       if (!map[d]) map[d] = [];
       map[d].push(s);
@@ -12439,7 +12477,11 @@ function TeacherCheckinModal({
               children: [
                 /*#__PURE__*/_jsx("h2", {
                   className: "text-lg sm:text-2xl font-black text-slate-900 tracking-tight",
-                  children: "บันทึกการเช็คชื่อเข้าแถวสำเร็จแล้ว!"
+                  children: submittedSummary.checkinMode === 'club'
+                    ? "บันทึกกิจกรรมชมรมวิชาชีพสำเร็จแล้ว!"
+                    : (submittedSummary.checkinMode === 'central'
+                      ? "บันทึกกิจกรรมกลางสำเร็จแล้ว!"
+                      : "บันทึกการเช็คชื่อเข้าแถวสำเร็จแล้ว!")
                 }),
                 /*#__PURE__*/_jsx("p", {
                   className: "text-xs sm:text-sm text-slate-500 font-medium",
@@ -12517,7 +12559,14 @@ function TeacherCheckinModal({
                     /*#__PURE__*/_jsxs("div", {
                       className: "min-w-0",
                       children: [
-                        /*#__PURE__*/_jsx("span", { className: "font-bold text-slate-800 block truncate", children: "ภาพถ่ายหลักฐานหน้าเสาธง" }),
+                        /*#__PURE__*/_jsx("span", {
+                          className: "font-bold text-slate-800 block truncate",
+                          children: submittedSummary.checkinMode === 'club'
+                            ? "ภาพถ่ายหลักฐานกิจกรรมชมรม"
+                            : (submittedSummary.checkinMode === 'central'
+                              ? "ภาพถ่ายหลักฐานกิจกรรมกลาง"
+                              : "ภาพถ่ายหลักฐานหน้าเสาธง")
+                        }),
                         /*#__PURE__*/_jsx("span", { className: "text-[11px] text-emerald-700 font-semibold", children: "✓ แนบเข้าสู่ระบบเรียบร้อยแล้ว" })
                       ]
                     })
