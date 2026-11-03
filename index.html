@@ -10461,8 +10461,8 @@ function TeacherCheckinModal({
 
       const initialMap = {};
       let sharedPhoto = null;
+      let allTermAttHistory = [];
       try {
-        let allTermAttHistory = [];
         for (const rm of rooms) {
           // Fetch term daily attendance for history
           try {
