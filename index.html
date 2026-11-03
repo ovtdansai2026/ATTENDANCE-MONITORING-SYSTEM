@@ -12141,15 +12141,15 @@ function TeacherCheckinModal({
                             text += '  🎉 วันนี้มาครบ 100%\n';
                           } else {
                             rmAbs.forEach((st, idx) => {
-                              const statStr = `[มา ${st.present || 0}/${st.total || 1} วัน${st.isRisk ? ' • ⚠️ เสี่ยง' : ''}]`;
-                              text += `  ${idx + 1}. ${st.name || 'นักเรียน'} ${statStr}\n`;
+                              const statStr = `มา ${st.present || 0}/${st.total || 1} วัน${st.isRisk ? ' • ⚠️ เสี่ยง' : ''}`;
+                              text += `  ${idx + 1}. ${st.name || 'นักเรียน'}\n     └ ${statStr}\n`;
                             });
                           }
                         });
                       } else {
                         absList.forEach((st, idx) => {
-                          const statStr = `[มา ${st.present || 0}/${st.total || 1} วัน${st.isRisk ? ' • ⚠️ เสี่ยง' : ''}]`;
-                          text += `  ${idx + 1}. ${st.name || 'นักเรียน'} ${statStr}\n`;
+                          const statStr = `มา ${st.present || 0}/${st.total || 1} วัน${st.isRisk ? ' • ⚠️ เสี่ยง' : ''}`;
+                          text += `  ${idx + 1}. ${st.name || 'นักเรียน'}\n     └ ${statStr}\n`;
                         });
                       }
 
