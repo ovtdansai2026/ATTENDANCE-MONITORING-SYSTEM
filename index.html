@@ -3817,6 +3817,15 @@ useEffect(() => {
 
   const activeClubSession = activeClubSessions[0] || null;
 
+  // Active Master Students (Excludes hidden class levels like internship groups)
+  const activeMasterStudents = useMemo(() => {
+    if (!hiddenClassLevels || hiddenClassLevels.length === 0) return masterStudents;
+    return (masterStudents || []).filter(s => {
+      const lvl = String(s.level || s.class_level || s.pure_level || '').trim();
+      return !hiddenClassLevels.includes(lvl);
+    });
+  }, [masterStudents, hiddenClassLevels]);
+
   // Sibling rooms managed by logged in teacher (Multi-room support)
   const loggedInTeacherRooms = useMemo(() => {
     if (!loggedInTeacher) return [];
@@ -3837,7 +3846,7 @@ useEffect(() => {
     
     if (roomsToMatch.length === 0) return [];
 
-    return (masterStudents || []).filter(s => {
+    return activeMasterStudents.filter(s => {
       const sDept = normalizeDepartmentName(s.dept || s.department);
       const sLvl = String(s.level || s.class_level || s.pure_level || '').trim();
       return roomsToMatch.some(r => {
@@ -3848,7 +3857,7 @@ useEffect(() => {
         return matchDept && matchLvl;
       });
     });
-  }, [loggedInTeacher, loggedInTeacherRooms, teacherSelectedRoomId, masterStudents]);
+  }, [loggedInTeacher, loggedInTeacherRooms, teacherSelectedRoomId, activeMasterStudents]);
 
   const teacherRoomStudentsCount = useMemo(() => {
     if (!loggedInTeacher) return 0;
@@ -3862,15 +3871,6 @@ useEffect(() => {
     }
     return activeMasterStudents;
   }, [loggedInTeacher, dashboardViewMode, teacherScopedStudents, activeMasterStudents]);
-
-  // Active Master Students (Excludes hidden class levels like internship groups)
-  const activeMasterStudents = useMemo(() => {
-    if (!hiddenClassLevels || hiddenClassLevels.length === 0) return masterStudents;
-    return (masterStudents || []).filter(s => {
-      const lvl = String(s.level || s.class_level || s.pure_level || '').trim();
-      return !hiddenClassLevels.includes(lvl);
-    });
-  }, [masterStudents, hiddenClassLevels]);
 
   // Filters and Computations
   const departments = useMemo(() => {
