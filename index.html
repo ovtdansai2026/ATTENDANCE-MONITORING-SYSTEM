@@ -12343,25 +12343,6 @@ function TeacherCheckinModal({
                     /*#__PURE__*/_jsx(Icon.Check, { className: "w-4 h-4 text-emerald-400" }),
                     "เสร็จสิ้น / กลับสู่หน้าแดชบอร์ด"
                   ]
-                }),
-                teacherRooms.length > 1 && teacherRooms.some(r => r.id !== selectedTeacher?.id) && /*#__PURE__*/_jsxs("div", {
-                  className: "pt-2 text-center space-y-1.5 border-t border-slate-200",
-                  children: [
-                    /*#__PURE__*/_jsx("span", { className: "text-xs text-slate-500 font-bold block", children: "ครูมีห้องเรียนอื่นที่ต้องเช็คต่อ:" }),
-                    teacherRooms.filter(r => r.id !== selectedTeacher?.id).map(nextR => /*#__PURE__*/_jsxs("button", {
-                      key: nextR.id,
-                      type: "button",
-                      onClick: () => {
-                        setStep('checkin_sheet');
-                        handleSwitchRoom(nextR);
-                      },
-                      className: "w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm cursor-pointer flex items-center justify-center gap-1.5 transition-all",
-                      children: [
-                        /*#__PURE__*/_jsx(Icon.ArrowRight, { className: "w-3.5 h-3.5" }),
-                        `ไปเช็คห้อง ${nextR.class_level} ${formatDeptDisplay(nextR.department)} ต่อทันที`
-                      ]
-                    }, nextR.id))
-                  ]
                 })
               ]
             })
