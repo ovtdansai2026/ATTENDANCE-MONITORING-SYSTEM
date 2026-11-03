@@ -3380,8 +3380,8 @@ useEffect(() => {
         }
       });
 
-      // 2. Club Sessions Lookup (Pre-normalized to avoid recalculation per student)
-      const clubSessions = (sessionsRes || []).filter(s => {
+      // 2. Club Sessions Lookup (Pre-normalized and deduplicated per session number)
+      const rawClubSessions = (sessionsRes || []).filter(s => {
         let isClub = (s.activity_type === 'club' || s.session_type === 'club');
         if (!isClub && String(s.class_level || '').includes('#club_')) isClub = true;
         if (!isClub && s.notes) {
@@ -3393,19 +3393,30 @@ useEffect(() => {
         return isClub &&
           String(s.academic_year || activeYear) === String(activeYear) &&
           String(s.semester || activeSem) === String(activeSem);
-      }).map(cs => {
+      });
+
+      const clubSessionsMap = new Map();
+      rawClubSessions.forEach(cs => {
         let parsedNotes = {};
         if (cs.notes) {
           try { parsedNotes = JSON.parse(cs.notes); } catch(_) {}
         }
         const rawLvl = String(cs.class_level || '').split('#')[0].trim();
-        return {
-          ...cs,
-          normDept: normalizeDepartmentName(cs.department),
-          cLvl: rawLvl,
-          presentStudentIds: Array.isArray(parsedNotes.present_student_ids) ? parsedNotes.present_student_ids.map(id => String(id).trim()) : null
-        };
+        const normDept = normalizeDepartmentName(cs.department);
+        const sessNo = parsedNotes.session_number || (String(cs.class_level || '').match(/#club_(\d+)/)?.[1]) || 1;
+        const dedupKey = `${normDept}_${rawLvl}_${sessNo}`;
+        
+        if (!clubSessionsMap.has(dedupKey) || new Date(cs.created_at || cs.check_date) > new Date(clubSessionsMap.get(dedupKey).created_at || clubSessionsMap.get(dedupKey).check_date)) {
+          clubSessionsMap.set(dedupKey, {
+            ...cs,
+            normDept,
+            cLvl: rawLvl,
+            sessNo,
+            presentStudentIds: Array.isArray(parsedNotes.present_student_ids) ? parsedNotes.present_student_ids.map(id => String(id).trim()) : null
+          });
+        }
       });
+      const clubSessions = Array.from(clubSessionsMap.values());
 
       // Map daily attendance for active term (real-time calculation from daily_attendance)
       const dailyAttsList = dailyAttsRes || [];
@@ -10774,10 +10785,15 @@ function TeacherCheckinModal({
 
             for (const rm of rooms) {
               if (!sharedPhoto) {
+                const rawLevel = `${rm.class_level}#central_${actId}`;
+                const safeLevel = rawLevel.length > 50 ? `${rm.class_level}#c_${actId}`.substring(0, 50) : rawLevel;
                 const { data: cSess } = await dbAssembly.from('attendance_checkin_sessions')
                   .select('evidence_photo_url')
                   .eq('department', rm.department)
-                  .eq('class_level', `${rm.class_level}#central_${actId}`)
+                  .eq('class_level', safeLevel)
+                  .eq('academic_year', academicYear || '2569')
+                  .eq('semester', semester || '2')
+                  .order('created_at', { ascending: false })
                   .limit(1);
                 if (cSess && cSess.length > 0 && cSess[0].evidence_photo_url) {
                   sharedPhoto = cSess[0].evidence_photo_url;
@@ -10794,6 +10810,9 @@ function TeacherCheckinModal({
                 .select('evidence_photo_url, notes')
                 .eq('department', rm.department)
                 .eq('class_level', `${rm.class_level}#club_${sessNo}`)
+                .eq('academic_year', academicYear || '2569')
+                .eq('semester', semester || '2')
+                .order('created_at', { ascending: false })
                 .limit(1);
               if (clbSess && clbSess.length > 0) {
                 if (clbSess[0].evidence_photo_url) sharedPhoto = clbSess[0].evidence_photo_url;
@@ -11192,7 +11211,8 @@ function TeacherCheckinModal({
 
           if (checkinMode === 'central') {
             const actId = selectedCentralActivity ? String(selectedCentralActivity.id).toLowerCase() : 'unknown';
-            targetClassLevel = `${rm.class_level}#central_${actId}`;
+            const rawLevel = `${rm.class_level}#central_${actId}`;
+            targetClassLevel = rawLevel.length > 50 ? `${rm.class_level}#c_${actId}`.substring(0, 50) : rawLevel;
             sessionNotesObj.activity_id = actId;
             sessionNotesObj.activity_name = selectedCentralActivity?.name || selectedCentralActivity?.activity_name || null;
           } else if (checkinMode === 'club') {

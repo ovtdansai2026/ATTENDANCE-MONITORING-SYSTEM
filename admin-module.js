@@ -3177,6 +3177,14 @@ const [adminTab, setAdminTab] = useState('term'); // 'term', 'students', 'logs',
   const teacherStatsList = useMemo(() => {
     return (teachers || []).map(t => {
       const tSessions = (sessions || []).filter(s => {
+        // Morning Assembly compliance must exclude Central and Club sessions
+        if (String(s.class_level || '').includes('#')) return false;
+        if (s.notes) {
+          try {
+            const p = JSON.parse(s.notes);
+            if (p.activity_type && p.activity_type !== 'assembly') return false;
+          } catch(_) {}
+        }
         const isName = normalizeTeacherName(s.teacher_name) === normalizeTeacherName(t.name);
         if (!isName) return false;
         const sLvl = String(s.class_level || '').replace(/\s+/g, '');
@@ -5807,7 +5815,14 @@ const [adminTab, setAdminTab] = useState('term'); // 'term', 'students', 'logs',
                               /*#__PURE__*/_jsxs("div", {
                                 className: "text-xs font-bold text-slate-900 truncate flex items-center gap-1.5",
                                 children: [
-                                  s.class_level,
+                                  (() => {
+                                    const raw = String(s.class_level || '');
+                                    const baseLvl = raw.split('#')[0].trim();
+                                    let tag = '';
+                                    if (raw.includes('#central_') || raw.includes('#c_')) tag = ' (กิจกรรมกลาง)';
+                                    else if (raw.includes('#club_')) tag = ` (กิจกรรมชมรม ครั้งที่ ${raw.match(/#club_(\d+)/)?.[1] || ''})`;
+                                    return baseLvl + tag;
+                                  })(),
                                   " แผนก",
                                   s.department,
                                   /*#__PURE__*/_jsxs("span", { className: "text-slate-500 font-normal", children: ["(", s.teacher_name, ")"] })
