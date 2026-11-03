@@ -6112,182 +6112,185 @@ const [adminTab, setAdminTab] = useState('term'); // 'term', 'students', 'logs',
                       })
                     })
                   ]
+                })
+              ]
+            }),
+
+            /* ============================================================== */
+            /* TAB: จัดการข้อมูลครูที่ปรึกษา & PIN (Teacher Management Tab)     */
+            /* ============================================================== */
+            adminTab === 'teachers' && /*#__PURE__*/_jsxs("div", {
+              className: "space-y-4",
+              children: [
+                /*#__PURE__*/_jsxs("div", {
+                  className: "p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3",
+                  children: [
+                    /*#__PURE__*/_jsxs("div", {
+                      className: "flex justify-between items-center",
+                      children: [
+                        /*#__PURE__*/_jsx("h4", { className: "text-xs font-bold text-slate-800 uppercase flex items-center gap-1.5", children: [/*#__PURE__*/_jsx(Icon.Plus, { className: "w-3.5 h-3.5 text-emerald-600" }), "เพิ่มครูที่ปรึกษาประจำแผนก"] }),
+                        /*#__PURE__*/_jsx(InfoTooltip, {
+                          title: "ครูที่ปรึกษา",
+                          text: "กำหนดครูประจำแผนกและระดับชั้น และตั้งรหัส PIN ประจำห้อง 6 หลัก (เช่น 201010) สำหรับให้ครูใช้เข้าสู่ระบบเช็คชื่อ"
+                        })
+                      ]
+                    }),
+                    /*#__PURE__*/_jsxs("div", {
+                      className: "grid grid-cols-1 sm:grid-cols-4 gap-2",
+                      children: [
+                        /*#__PURE__*/_jsx("input", {
+                          type: "text",
+                          value: newTeacherName,
+                          onChange: e => setNewTeacherName(e.target.value),
+                          placeholder: "ชื่อ-นามสกุลครู...",
+                          className: "bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs sm:col-span-2 focus:outline-none focus:border-sky-400"
+                        }),
+                        /*#__PURE__*/_jsxs("select", {
+                          value: isCustomTeacherDept ? '__custom__' : newTeacherDept,
+                          onChange: e => {
+                            if (e.target.value === '__custom__') {
+                              setIsCustomTeacherDept(true);
+                              setNewTeacherDept('');
+                            } else {
+                              setIsCustomTeacherDept(false);
+                              setNewTeacherDept(e.target.value);
+                            }
+                          },
+                          className: "bg-white border border-slate-200 rounded-xl px-2.5 py-2 text-xs cursor-pointer font-medium text-slate-800",
+                          children: [
+                            availableDepartments.map(d => /*#__PURE__*/_jsx("option", { value: d, children: d }, d)),
+                            /*#__PURE__*/_jsx("option", { value: "__custom__", children: "✏️ + ระบุแผนกอื่น (พิมพ์เอง)..." })
+                          ]
+                        }),
+                        /*#__PURE__*/_jsxs("select", {
+                          value: newTeacherLevel,
+                          onChange: e => setNewTeacherLevel(e.target.value),
+                          className: "bg-white border border-slate-200 rounded-xl px-2.5 py-2 text-xs cursor-pointer",
+                          children: [
+                            /*#__PURE__*/_jsx("option", { value: "ปวช.1", children: "ปวช.1" }),
+                            /*#__PURE__*/_jsx("option", { value: "ปวช.2", children: "ปวช.2" }),
+                            /*#__PURE__*/_jsx("option", { value: "ปวช.3", children: "ปวช.3" }),
+                            /*#__PURE__*/_jsx("option", { value: "ปวส.1", children: "ปวส.1" }),
+                            /*#__PURE__*/_jsx("option", { value: "ปวส.2", children: "ปวส.2" })
+                          ]
+                        }),
+                        isCustomTeacherDept && /*#__PURE__*/_jsx("input", {
+                          type: "text",
+                          value: newTeacherDept,
+                          onChange: e => setNewTeacherDept(e.target.value),
+                          placeholder: "พิมพ์ชื่อแผนกวิชาใหม่...",
+                          className: "bg-amber-50 border border-amber-300 text-slate-900 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-amber-500 font-semibold sm:col-span-4 shadow-2xs placeholder:text-amber-400"
+                        })
+                      ]
+                    }),
+                    /*#__PURE__*/_jsxs("div", {
+                      className: "flex flex-col sm:flex-row gap-2",
+                      children: [
+                        /*#__PURE__*/_jsx("input", {
+                          type: "text",
+                          value: newTeacherPhone,
+                          onChange: e => setNewTeacherPhone(e.target.value),
+                          placeholder: "เบอร์โทรศัพท์ (ถ้ามี)...",
+                          className: "flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-sky-400"
+                        }),
+                        /*#__PURE__*/_jsx("input", {
+                          type: "text",
+                          maxLength: 6,
+                          value: newTeacherPin,
+                          onChange: e => setNewTeacherPin(e.target.value.replace(/\D/g, '').slice(0, 6)),
+                          placeholder: "รหัสห้อง 6 หลัก (เช่น 201010)...",
+                          className: "sm:w-48 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono font-bold focus:outline-none focus:border-sky-400 text-emerald-800"
+                        }),
+                        /*#__PURE__*/_jsx("button", {
+                          onClick: handleAddTeacher,
+                          disabled: savingTeacher,
+                          className: "px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold cursor-pointer disabled:opacity-50 shadow-xs whitespace-nowrap",
+                          children: savingTeacher ? 'กำลังเพิ่ม...' : '+ เพิ่มครูที่ปรึกษา'
+                        })
+                      ]
+                    })
+                  ]
                 }),
 
-                teacherSubTab === 'manage' && /*#__PURE__*/_jsxs("div", {
-                  className: "space-y-4",
+                /*#__PURE__*/_jsxs("div", {
+                  className: "space-y-2",
                   children: [
-                    /*#__PURE__*/_jsxs("div", {
-                  className: "p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3",
-                  children: [
-                    /*#__PURE__*/_jsxs("div", {
-                      className: "flex justify-between items-center",
-                      children: [
-                        /*#__PURE__*/_jsx("h4", { className: "text-xs font-bold text-slate-800 uppercase flex items-center gap-1.5", children: [/*#__PURE__*/_jsx(Icon.Plus, { className: "w-3.5 h-3.5 text-emerald-600" }), "เพิ่มครูที่ปรึกษาประจำแผนก"] }),
-                        /*#__PURE__*/_jsx(InfoTooltip, {
-                          title: "ครูที่ปรึกษา",
-                          text: "กำหนดครูประจำแผนกและระดับชั้น และตั้งรหัส PIN ประจำห้อง 6 หลัก (เช่น 201010) สำหรับให้ครูใช้เข้าสู่ระบบเช็คชื่อ"
-                        })
-                      ]
-                    }),
-                    /*#__PURE__*/_jsxs("div", {
-                      className: "grid grid-cols-1 sm:grid-cols-4 gap-2",
-                      children: [
-                        /*#__PURE__*/_jsx("input", {
-                          type: "text",
-                          value: newTeacherName,
-                          onChange: e => setNewTeacherName(e.target.value),
-                          placeholder: "ชื่อ-นามสกุลครู...",
-                          className: "bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs sm:col-span-2 focus:outline-none focus:border-sky-400"
-                        }),
-                        /*#__PURE__*/_jsxs("select", {
-                          value: isCustomTeacherDept ? '__custom__' : newTeacherDept,
-                          onChange: e => {
-                            if (e.target.value === '__custom__') {
-                              setIsCustomTeacherDept(true);
-                              setNewTeacherDept('');
-                            } else {
-                              setIsCustomTeacherDept(false);
-                              setNewTeacherDept(e.target.value);
-                            }
-                          },
-                          className: "bg-white border border-slate-200 rounded-xl px-2.5 py-2 text-xs cursor-pointer font-medium text-slate-800",
-                          children: [
-                            availableDepartments.map(d => /*#__PURE__*/_jsx("option", { value: d, children: d }, d)),
-                            /*#__PURE__*/_jsx("option", { value: "__custom__", children: "✏️ + ระบุแผนกอื่น (พิมพ์เอง)..." })
-                          ]
-                        }),
-                        /*#__PURE__*/_jsxs("select", {
-                          value: newTeacherLevel,
-                          onChange: e => setNewTeacherLevel(e.target.value),
-                          className: "bg-white border border-slate-200 rounded-xl px-2.5 py-2 text-xs cursor-pointer",
-                          children: [
-                            /*#__PURE__*/_jsx("option", { value: "ปวช.1", children: "ปวช.1" }),
-                            /*#__PURE__*/_jsx("option", { value: "ปวช.2", children: "ปวช.2" }),
-                            /*#__PURE__*/_jsx("option", { value: "ปวช.3", children: "ปวช.3" }),
-                            /*#__PURE__*/_jsx("option", { value: "ปวส.1", children: "ปวส.1" }),
-                            /*#__PURE__*/_jsx("option", { value: "ปวส.2", children: "ปวส.2" })
-                          ]
-                        }),
-                        isCustomTeacherDept && /*#__PURE__*/_jsx("input", {
-                          type: "text",
-                          value: newTeacherDept,
-                          onChange: e => setNewTeacherDept(e.target.value),
-                          placeholder: "พิมพ์ชื่อแผนกวิชาใหม่...",
-                          className: "bg-amber-50 border border-amber-300 text-slate-900 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-amber-500 font-semibold sm:col-span-4 shadow-2xs placeholder:text-amber-400"
-                        })
-                      ]
-                    }),
-                    /*#__PURE__*/_jsxs("div", {
-                      className: "flex flex-col sm:flex-row gap-2",
-                      children: [
-                        /*#__PURE__*/_jsx("input", {
-                          type: "text",
-                          value: newTeacherPhone,
-                          onChange: e => setNewTeacherPhone(e.target.value),
-                          placeholder: "เบอร์โทรศัพท์ (ถ้ามี)...",
-                          className: "flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-sky-400"
-                        }),
-                        /*#__PURE__*/_jsx("input", {
-                          type: "text",
-                          maxLength: 6,
-                          value: newTeacherPin,
-                          onChange: e => setNewTeacherPin(e.target.value.replace(/\D/g, '').slice(0, 6)),
-                          placeholder: "รหัสห้อง 6 หลัก (เช่น 201010)...",
-                          className: "sm:w-48 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono font-bold focus:outline-none focus:border-sky-400 text-emerald-800"
-                        }),
-                        /*#__PURE__*/_jsx("button", {
-                          onClick: handleAddTeacher,
-                          disabled: savingTeacher,
-                          className: "px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold cursor-pointer disabled:opacity-50 shadow-xs whitespace-nowrap",
-                          children: savingTeacher ? 'กำลังเพิ่ม...' : '+ เพิ่มครูที่ปรึกษา'
-                        })
-                      ]
-                    })
-                  ]
-                }),
-
-                /*#__PURE__*/_jsxs("div", {
-                  className: "space-y-2",
-                  children: [
-                    /*#__PURE__*/_jsx("h4", { className: "text-xs font-bold text-slate-800 uppercase flex items-center gap-1.5", children: [/*#__PURE__*/_jsx(Icon.Users, { className: "w-3.5 h-3.5 text-slate-600" }), "รายชื่อครูที่ปรึกษาในระบบ"] }),
-                    /*#__PURE__*/_jsx("div", {
-                      className: "space-y-2 max-h-64 overflow-y-auto custom-scroll pr-1",
-                      children: teachers.length === 0 ? /*#__PURE__*/_jsxs("div", {
-                        className: "p-6 bg-white rounded-xl border border-dashed border-slate-300 text-center text-slate-400 space-y-1",
-                        children: [
-                          /*#__PURE__*/_jsx(Icon.Users, { className: "w-8 h-8 mx-auto text-slate-300 mb-1" }),
-                          /*#__PURE__*/_jsx("p", { className: "text-xs font-bold text-slate-600", children: "ยังไม่มีรายชื่อครูที่ปรึกษาในระบบ" }),
-                          /*#__PURE__*/_jsx("p", { className: "text-[11px] text-slate-400", children: "คุณสามารถเพิ่มครูที่ปรึกษาประจำแผนกได้จากฟอร์มด้านบน" })
-                        ]
-                      }) : teachers.map(t => /*#__PURE__*/_jsxs("div", {
-                        className: "p-3 bg-white rounded-xl border border-slate-200 flex items-center justify-between gap-2 shadow-xs",
-                        children: [
-                          /*#__PURE__*/_jsxs("div", {
-                            className: "min-w-0 flex items-center gap-2.5",
-                            children: [
-                              /*#__PURE__*/_jsx("div", {
-                                onClick: () => onOpenTeacherPhoto && onOpenTeacherPhoto(t),
-                                title: "คลิกเพื่อดูหรือเปลี่ยนรูปถ่ายครู",
-                                className: `w-9 h-9 rounded-xl bg-sky-50 text-sky-700 border border-sky-100 flex items-center justify-center overflow-hidden flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-sky-400 transition-all select-none shadow-2xs`,
-                                children: (t.photo_url || teacherPhotosMap?.[t.id] || teacherPhotosMap?.[t.name] || teacherPhotosMap?.[t.name?.replace(/\s+/g, ' ').trim()]) ? (
-                                  /*#__PURE__*/_jsx("img", {
-                                    src: t.photo_url || teacherPhotosMap[t.id] || teacherPhotosMap[t.name] || teacherPhotosMap[t.name?.replace(/\s+/g, ' ').trim()],
-                                    alt: t.name,
-                                    className: "w-full h-full object-cover"
-                                  })
-                                ) : (
-                                  /*#__PURE__*/_jsx(Icon.Users, { className: "w-4 h-4 text-sky-600" })
-                                )
-                              }),
-                              /*#__PURE__*/_jsxs("div", {
-                                className: "min-w-0",
-                                children: [
-                                  /*#__PURE__*/_jsx("div", { className: "text-xs font-bold text-slate-900 truncate", children: t.name }),
-                                  /*#__PURE__*/_jsxs("div", {
-                                    className: "text-[11px] text-slate-500 flex items-center gap-1.5",
-                                    children: [
-                                      /*#__PURE__*/_jsx("span", { className: "font-semibold text-sky-800 bg-sky-50 px-1.5 rounded", children: t.class_level }),
-                                      /*#__PURE__*/_jsxs("span", { children: [formatDeptDisplay(t.department)] }),
-                                      t.phone && /*#__PURE__*/_jsxs("span", { className: "font-mono text-slate-400", children: ["• ", t.phone] })
-                                    ]
-                                  })
-                                ]
-                              })
-                            ]
-                          }),
-                          /*#__PURE__*/_jsxs("div", {
-                            className: "flex items-center gap-1.5 flex-shrink-0",
-                            children: [
-                              /*#__PURE__*/_jsxs("button", {
-                                onClick: () => onOpenTeacherPhoto && onOpenTeacherPhoto(t),
-                                title: "เปลี่ยนรูปถ่ายครู",
-                                className: "px-2 py-1 bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 rounded-lg text-[11px] font-semibold cursor-pointer",
-                                children: [/*#__PURE__*/_jsx(Icon.Camera, { className: "w-3 h-3 inline mr-1" }), "รูป"]
-                              }),
-                              /*#__PURE__*/_jsxs("button", {
-                                onClick: () => handleSetTeacherPin(t.id, t.name, t.department, t.class_level),
-                                title: "กำหนดรหัสประจำห้อง 6 หลัก",
-                                className: "px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-lg text-[11px] font-semibold cursor-pointer",
-                                children: [/*#__PURE__*/_jsx(Icon.Key, { className: "w-3 h-3 inline mr-1" }), "ตั้งรหัส 6 หลัก"]
-                              }),
-                              /*#__PURE__*/_jsxs("button", {
-                                onClick: () => handleDeleteTeacher(t.id, t.name),
-                                className: "px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-[11px] font-semibold cursor-pointer",
-                                children: [/*#__PURE__*/_jsx(Icon.Trash, { className: "w-3 h-3 inline mr-1" }), "ลบ"]
-                              })
-                            ]
-                          })
-                        ]
-                      }, t.id || t.name))
-                    })
-                  ]
-                })
+                    /*#__PURE__*/_jsx("h4", { className: "text-xs font-bold text-slate-800 uppercase flex items-center gap-1.5", children: [/*#__PURE__*/_jsx(Icon.Users, { className: "w-3.5 h-3.5 text-slate-600" }), "รายชื่อครูที่ปรึกษาในระบบ"] }),
+                    /*#__PURE__*/_jsx("div", {
+                      className: "space-y-2 max-h-64 overflow-y-auto custom-scroll pr-1",
+                      children: teachers.length === 0 ? /*#__PURE__*/_jsxs("div", {
+                        className: "p-6 bg-white rounded-xl border border-dashed border-slate-300 text-center text-slate-400 space-y-1",
+                        children: [
+                          /*#__PURE__*/_jsx(Icon.Users, { className: "w-8 h-8 mx-auto text-slate-300 mb-1" }),
+                          /*#__PURE__*/_jsx("p", { className: "text-xs font-bold text-slate-600", children: "ยังไม่มีรายชื่อครูที่ปรึกษาในระบบ" }),
+                          /*#__PURE__*/_jsx("p", { className: "text-[11px] text-slate-400", children: "คุณสามารถเพิ่มครูที่ปรึกษาประจำแผนกได้จากฟอร์มด้านบน" })
+                        ]
+                      }) : teachers.map(t => /*#__PURE__*/_jsxs("div", {
+                        className: "p-3 bg-white rounded-xl border border-slate-200 flex items-center justify-between gap-2 shadow-xs",
+                        children: [
+                          /*#__PURE__*/_jsxs("div", {
+                            className: "min-w-0 flex items-center gap-2.5",
+                            children: [
+                              /*#__PURE__*/_jsx("div", {
+                                onClick: () => onOpenTeacherPhoto && onOpenTeacherPhoto(t),
+                                title: "คลิกเพื่อดูหรือเปลี่ยนรูปถ่ายครู",
+                                className: `w-9 h-9 rounded-xl bg-sky-50 text-sky-700 border border-sky-100 flex items-center justify-center overflow-hidden flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-sky-400 transition-all select-none shadow-2xs`,
+                                children: (t.photo_url || teacherPhotosMap?.[t.id] || teacherPhotosMap?.[t.name] || teacherPhotosMap?.[t.name?.replace(/\s+/g, ' ').trim()]) ? (
+                                  /*#__PURE__*/_jsx("img", {
+                                    src: t.photo_url || teacherPhotosMap[t.id] || teacherPhotosMap[t.name] || teacherPhotosMap[t.name?.replace(/\s+/g, ' ').trim()],
+                                    alt: t.name,
+                                    className: "w-full h-full object-cover"
+                                  })
+                                ) : (
+                                  /*#__PURE__*/_jsx(Icon.Users, { className: "w-4 h-4 text-sky-600" })
+                                )
+                              }),
+                              /*#__PURE__*/_jsxs("div", {
+                                className: "min-w-0",
+                                children: [
+                                  /*#__PURE__*/_jsx("div", { className: "text-xs font-bold text-slate-900 truncate", children: t.name }),
+                                  /*#__PURE__*/_jsxs("div", {
+                                    className: "text-[11px] text-slate-500 flex items-center gap-1.5",
+                                    children: [
+                                      /*#__PURE__*/_jsx("span", { className: "font-semibold text-sky-800 bg-sky-50 px-1.5 rounded", children: t.class_level }),
+                                      /*#__PURE__*/_jsxs("span", { children: [formatDeptDisplay(t.department)] }),
+                                      t.phone && /*#__PURE__*/_jsxs("span", { className: "font-mono text-slate-400", children: ["• ", t.phone] })
+                                    ]
+                                  })
+                                ]
+                              })
+                            ]
+                          }),
+                          /*#__PURE__*/_jsxs("div", {
+                            className: "flex items-center gap-1.5 flex-shrink-0",
+                            children: [
+                              /*#__PURE__*/_jsxs("button", {
+                                onClick: () => onOpenTeacherPhoto && onOpenTeacherPhoto(t),
+                                title: "เปลี่ยนรูปถ่ายครู",
+                                className: "px-2 py-1 bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 rounded-lg text-[11px] font-semibold cursor-pointer",
+                                children: [/*#__PURE__*/_jsx(Icon.Camera, { className: "w-3 h-3 inline mr-1" }), "รูป"]
+                              }),
+                              /*#__PURE__*/_jsxs("button", {
+                                onClick: () => handleSetTeacherPin(t.id, t.name, t.department, t.class_level),
+                                title: "กำหนดรหัสประจำห้อง 6 หลัก",
+                                className: "px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-lg text-[11px] font-semibold cursor-pointer",
+                                children: [/*#__PURE__*/_jsx(Icon.Key, { className: "w-3 h-3 inline mr-1" }), "ตั้งรหัส 6 หลัก"]
+                              }),
+                              /*#__PURE__*/_jsxs("button", {
+                                onClick: () => handleDeleteTeacher(t.id, t.name),
+                                className: "px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-[11px] font-semibold cursor-pointer",
+                                children: [/*#__PURE__*/_jsx(Icon.Trash, { className: "w-3 h-3 inline mr-1" }), "ลบ"]
+                              })
+                            ]
+                          })
+                        ]
+                      }, t.id || t.name))
+                    })
                   ]
                 })
               ]
-            }),
-
+            }),
+
             // TAB 5: General Settings (เกณฑ์วันเข้าแถว)
             adminTab === 'general' && /*#__PURE__*/_jsxs("div", {
               className: "space-y-4",

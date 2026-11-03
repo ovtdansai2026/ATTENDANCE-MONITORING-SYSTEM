@@ -1329,7 +1329,9 @@ const Icon = window.Icon = {
   User: ({ className = "w-4 h-4" }) => /*#__PURE__*/_jsx("svg", { className, fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", strokeWidth: "2", children: /*#__PURE__*/_jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" }) }),
   UserCheck: ({ className = "w-4 h-4" }) => /*#__PURE__*/_jsxs("svg", { className, fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", strokeWidth: "2", children: [/*#__PURE__*/_jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" }), /*#__PURE__*/_jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M16 11l2 2 4-4" })] }),
   ChevronDown: ({ className = "w-4 h-4" }) => /*#__PURE__*/_jsx("svg", { className, fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", strokeWidth: "2", children: /*#__PURE__*/_jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M19 9l-7 7-7-7" }) }),
-  ChevronUp: ({ className = "w-4 h-4" }) => /*#__PURE__*/_jsx("svg", { className, fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", strokeWidth: "2", children: /*#__PURE__*/_jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M5 15l7-7 7 7" }) })
+  ChevronUp: ({ className = "w-4 h-4" }) => /*#__PURE__*/_jsx("svg", { className, fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", strokeWidth: "2", children: /*#__PURE__*/_jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M5 15l7-7 7 7" }) }),
+  Eye: ({ className = "w-4 h-4" }) => /*#__PURE__*/_jsxs("svg", { className, fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", strokeWidth: "2", children: [/*#__PURE__*/_jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M15 12a3 3 0 11-6 0 3 3 0 016 0z" }), /*#__PURE__*/_jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" })] }),
+  EyeOff: ({ className = "w-4 h-4" }) => /*#__PURE__*/_jsx("svg", { className, fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", strokeWidth: "2", children: /*#__PURE__*/_jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" }) })
 };
 
 
@@ -8814,6 +8816,7 @@ function TeacherLoginModal({
   const [deptFilter, setDeptFilter] = useState('ALL');
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState('');
+  const [showPin, setShowPin] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
 
   // Unique departments for filter pills
@@ -9199,17 +9202,27 @@ const handleKeypadPress = (val) => {
                     children: "กรอกรหัสประจำห้อง 6 หลัก"
                   }),
                   /*#__PURE__*/_jsx("div", {
-                    className: "flex items-center gap-3",
+                    className: "flex items-center gap-2",
                     children: [0, 1, 2, 3, 4, 5].map(idx => {
                       const isFilled = pinInput.length > idx;
                       return /*#__PURE__*/_jsx("div", {
-                        className: `w-4 h-4 rounded-full transition-all duration-200 ${
+                        className: `w-7 h-9 rounded-xl border flex items-center justify-center font-mono text-sm font-bold transition-all duration-200 ${
                           isFilled
-                            ? 'bg-sky-600 scale-110 shadow-xs'
-                            : 'bg-slate-200 border border-slate-300'
-                        }`
+                            ? 'bg-sky-50 border-sky-500 text-sky-800 shadow-2xs'
+                            : 'bg-slate-100 border-slate-300 text-slate-300'
+                        }`,
+                        children: isFilled ? (showPin ? pinInput[idx] : '•') : '—'
                       }, idx);
                     })
+                  }),
+                  /*#__PURE__*/_jsxs("button", {
+                    type: "button",
+                    onClick: () => setShowPin(prev => !prev),
+                    className: "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 text-[11px] font-semibold cursor-pointer transition-all select-none shadow-2xs",
+                    children: [
+                      /*#__PURE__*/_jsx(showPin ? Icon.EyeOff : Icon.Eye, { className: "w-3 h-3 text-slate-500" }),
+                      showPin ? "ซ่อนรหัส PIN" : "แสดงรหัส PIN"
+                    ]
                   }),
                   pinError && /*#__PURE__*/_jsxs("div", {
                     className: "text-xs text-rose-600 font-medium flex items-center gap-1 pt-1 animate-shake",
@@ -10216,6 +10229,7 @@ function TeacherCheckinModal({
   const [isChangePinOpen, setIsChangePinOpen] = useState(false);
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState('');
+  const [showPin, setShowPin] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [checkDate, setCheckDate] = useState(() => initialDate || formatLocalDate(new Date()));
   const [roomStudents, setRoomStudents] = useState([]);
@@ -11332,12 +11346,26 @@ function TeacherCheckinModal({
               ]
             }),
 
-            /*#__PURE__*/_jsx("div", {
-              className: "flex justify-center gap-1.5 sm:gap-2.5 my-0.5 sm:my-1",
-              children: [0, 1, 2, 3, 4, 5].map(i => /*#__PURE__*/_jsx("div", {
-                className: `w-9.5 h-12 sm:w-12 sm:h-15 rounded-xl sm:rounded-2xl border-2 flex items-center justify-center text-xl sm:text-2xl font-black transition-all ${pinInput.length > i ? 'bg-emerald-50 border-emerald-500 text-emerald-800 shadow-sm' : pinInput.length === i ? 'bg-white border-emerald-400 ring-2 ring-emerald-200 text-slate-400' : 'bg-slate-50 border-slate-300 text-slate-300'}`,
-                children: pinInput[i] || '—'
-              }, i))
+            /*#__PURE__*/_jsxs("div", {
+              className: "flex flex-col items-center gap-2 my-0.5 sm:my-1",
+              children: [
+                /*#__PURE__*/_jsx("div", {
+                  className: "flex justify-center gap-1.5 sm:gap-2.5",
+                  children: [0, 1, 2, 3, 4, 5].map(i => /*#__PURE__*/_jsx("div", {
+                    className: `w-9.5 h-12 sm:w-12 sm:h-15 rounded-xl sm:rounded-2xl border-2 flex items-center justify-center text-xl sm:text-2xl font-black transition-all ${pinInput.length > i ? 'bg-emerald-50 border-emerald-500 text-emerald-800 shadow-sm' : pinInput.length === i ? 'bg-white border-emerald-400 ring-2 ring-emerald-200 text-slate-400' : 'bg-slate-50 border-slate-300 text-slate-300'}`,
+                    children: pinInput[i] ? (showPin ? pinInput[i] : '•') : '—'
+                  }, i))
+                }),
+                /*#__PURE__*/_jsxs("button", {
+                  type: "button",
+                  onClick: () => setShowPin(prev => !prev),
+                  className: "inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 text-xs font-semibold cursor-pointer transition-all select-none shadow-2xs",
+                  children: [
+                    /*#__PURE__*/_jsx(showPin ? Icon.EyeOff : Icon.Eye, { className: "w-3.5 h-3.5 text-slate-500" }),
+                    showPin ? "ซ่อนรหัส PIN" : "แสดงรหัส PIN"
+                  ]
+                })
+              ]
             }),
 
             pinError && /*#__PURE__*/_jsx("div", {
@@ -12372,6 +12400,8 @@ function ChangePinModal({ teacher, defaultPin, onClose, onSuccess }) {
   const [oldPin, setOldPin] = useState('');
   const [newPin, setNewPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
+  const [showOld, setShowOld] = useState(false);
+  const [showNew, setShowNew] = useState(false);
   const [err, setErr] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -12498,13 +12528,26 @@ function ChangePinModal({ teacher, defaultPin, onClose, onSuccess }) {
                   className: "block text-xs font-bold text-slate-700 mb-1",
                   children: "รหัส PIN เดิม"
                 }),
-                /*#__PURE__*/_jsx("input", {
-                  type: "password",
-                  maxLength: 6,
-                  value: oldPin,
-                  onChange: e => setOldPin(e.target.value.replace(/\D/g, '')),
-                  placeholder: "••••••",
-                  className: "w-full px-3 py-1.5 sm:py-2 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none font-mono text-center tracking-widest text-base sm:text-lg font-bold"
+                /*#__PURE__*/_jsxs("div", {
+                  className: "relative",
+                  children: [
+                    /*#__PURE__*/_jsx("input", {
+                      type: showOld ? "text" : "password",
+                      maxLength: 6,
+                      value: oldPin,
+                      onChange: e => setOldPin(e.target.value.replace(/\D/g, '')),
+                      placeholder: "••••••",
+                      className: "w-full px-3 py-1.5 sm:py-2 pr-9 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none font-mono text-center tracking-widest text-base sm:text-lg font-bold"
+                    }),
+                    /*#__PURE__*/_jsx("button", {
+                      type: "button",
+                      onClick: () => setShowOld(prev => !prev),
+                      className: "absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer p-1",
+                      tabIndex: -1,
+                      title: showOld ? "ซ่อนรหัส" : "แสดงรหัส",
+                      children: /*#__PURE__*/_jsx(showOld ? Icon.EyeOff : Icon.Eye, { className: "w-4 h-4" })
+                    })
+                  ]
                 })
               ]
             }),
@@ -12514,13 +12557,26 @@ function ChangePinModal({ teacher, defaultPin, onClose, onSuccess }) {
                   className: "block text-xs font-bold text-slate-700 mb-1",
                   children: "รหัส PIN ใหม่ (ตัวเลข 6 หลัก)"
                 }),
-                /*#__PURE__*/_jsx("input", {
-                  type: "password",
-                  maxLength: 6,
-                  value: newPin,
-                  onChange: e => setNewPin(e.target.value.replace(/\D/g, '')),
-                  placeholder: "ตัวเลข 6 หลัก",
-                  className: "w-full px-3 py-1.5 sm:py-2 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none font-mono text-center tracking-widest text-base sm:text-lg font-bold"
+                /*#__PURE__*/_jsxs("div", {
+                  className: "relative",
+                  children: [
+                    /*#__PURE__*/_jsx("input", {
+                      type: showNew ? "text" : "password",
+                      maxLength: 6,
+                      value: newPin,
+                      onChange: e => setNewPin(e.target.value.replace(/\D/g, '')),
+                      placeholder: "ตัวเลข 6 หลัก",
+                      className: "w-full px-3 py-1.5 sm:py-2 pr-9 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none font-mono text-center tracking-widest text-base sm:text-lg font-bold"
+                    }),
+                    /*#__PURE__*/_jsx("button", {
+                      type: "button",
+                      onClick: () => setShowNew(prev => !prev),
+                      className: "absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer p-1",
+                      tabIndex: -1,
+                      title: showNew ? "ซ่อนรหัส" : "แสดงรหัส",
+                      children: /*#__PURE__*/_jsx(showNew ? Icon.EyeOff : Icon.Eye, { className: "w-4 h-4" })
+                    })
+                  ]
                 })
               ]
             }),
@@ -12530,13 +12586,26 @@ function ChangePinModal({ teacher, defaultPin, onClose, onSuccess }) {
                   className: "block text-xs font-bold text-slate-700 mb-1",
                   children: "ยืนยันรหัส PIN ใหม่"
                 }),
-                /*#__PURE__*/_jsx("input", {
-                  type: "password",
-                  maxLength: 6,
-                  value: confirmPin,
-                  onChange: e => setConfirmPin(e.target.value.replace(/\D/g, '')),
-                  placeholder: "พิมพ์ซ้ำอีกครั้ง",
-                  className: "w-full px-3 py-1.5 sm:py-2 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none font-mono text-center tracking-widest text-base sm:text-lg font-bold"
+                /*#__PURE__*/_jsxs("div", {
+                  className: "relative",
+                  children: [
+                    /*#__PURE__*/_jsx("input", {
+                      type: showNew ? "text" : "password",
+                      maxLength: 6,
+                      value: confirmPin,
+                      onChange: e => setConfirmPin(e.target.value.replace(/\D/g, '')),
+                      placeholder: "พิมพ์ซ้ำอีกครั้ง",
+                      className: "w-full px-3 py-1.5 sm:py-2 pr-9 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none font-mono text-center tracking-widest text-base sm:text-lg font-bold"
+                    }),
+                    /*#__PURE__*/_jsx("button", {
+                      type: "button",
+                      onClick: () => setShowNew(prev => !prev),
+                      className: "absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer p-1",
+                      tabIndex: -1,
+                      title: showNew ? "ซ่อนรหัส" : "แสดงรหัส",
+                      children: /*#__PURE__*/_jsx(showNew ? Icon.EyeOff : Icon.Eye, { className: "w-4 h-4" })
+                    })
+                  ]
                 })
               ]
             })
@@ -12722,6 +12791,7 @@ function AdminPasswordModal({ onClose, onSuccess }) {
   }, []);
 
   const [val, setVal] = useState('');
+  const [showPass, setShowPass] = useState(false);
   const handleLogin = async () => {
     if (!val) return alert('กรุณากรอกรหัสผ่าน');
     try {
@@ -12755,13 +12825,26 @@ function AdminPasswordModal({ onClose, onSuccess }) {
       children: [
         /*#__PURE__*/_jsx("h3", { className: "text-base font-bold text-slate-900 flex items-center gap-2", children: [/*#__PURE__*/_jsx(Icon.Lock, { className: "w-4 h-4 text-amber-600" }), "สิทธิ์ผู้ดูแลระบบ"] }),
         /*#__PURE__*/_jsx("p", { className: "text-xs text-slate-500", children: "กรุณากรอกรหัสผ่านเพื่อเข้าสู่โหมดจัดการระบบ" }),
-        /*#__PURE__*/_jsx("input", {
-          type: "password",
-          value: val,
-          onChange: e => setVal(e.target.value),
-          onKeyDown: e => e.key === 'Enter' && handleLogin(),
-          placeholder: "รหัสผ่านแอดมิน...",
-          className: "w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:bg-white focus:border-slate-400"
+        /*#__PURE__*/_jsxs("div", {
+          className: "relative",
+          children: [
+            /*#__PURE__*/_jsx("input", {
+              type: showPass ? "text" : "password",
+              value: val,
+              onChange: e => setVal(e.target.value),
+              onKeyDown: e => e.key === 'Enter' && handleLogin(),
+              placeholder: "รหัสผ่านแอดมิน...",
+              className: "w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 pr-10 text-sm focus:outline-none focus:bg-white focus:border-slate-400 font-medium"
+            }),
+            /*#__PURE__*/_jsx("button", {
+              type: "button",
+              onClick: () => setShowPass(prev => !prev),
+              className: "absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-slate-700 cursor-pointer rounded-lg hover:bg-slate-200/50 transition-colors",
+              tabIndex: -1,
+              title: showPass ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน",
+              children: /*#__PURE__*/_jsx(showPass ? Icon.EyeOff : Icon.Eye, { className: "w-4 h-4" })
+            })
+          ]
         }),
         /*#__PURE__*/_jsxs("div", {
           className: "flex gap-2",
