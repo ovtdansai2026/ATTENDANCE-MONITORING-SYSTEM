@@ -3132,8 +3132,12 @@ function doPost(e) {
     var jsonFileName = "database_backup_" + thaiDateStr + ".json";
     dailyFolder.createFile(jsonFileName, JSON.stringify(payload, null, 2), MimeType.PLAIN_TEXT);
 
-    // 5. สกัดภาพถ่ายหลักฐานหน้าเสาธงทั้งหมดออกมาเป็นไฟล์ .jpg จริง
+    // 5. สกัดภาพถ่ายหลักฐานทุกกิจกรรม (หน้าเสาธง, กิจกรรมกลาง, ชมรม) ออกมาเป็นไฟล์ .jpg จริง
     var photoCount = 0;
+    var assemblyPhotoCount = 0;
+    var centralPhotoCount = 0;
+    var clubPhotoCount = 0;
+
     if (Array.isArray(payload.sessions)) {
       payload.sessions.forEach(function(s) {
         if (s.evidence_photo_url && s.evidence_photo_url.indexOf('data:image') === 0) {
@@ -3141,9 +3145,22 @@ function doPost(e) {
           if (parts.length === 2) {
             var base64Data = parts[1];
             var cleanDept = (s.department || "แผนก").replace(/[/\\\\?%*:|"<>]/g, "_");
-            var cleanLvl = (s.class_level || "").replace(/[/\\\\?%*:|"<>]/g, "_");
+            var rawLvl = (s.class_level || "");
             var cleanTeacher = (s.teacher_name || "").replace(/\\s+/g, "_").replace(/[/\\\\?%*:|"<>]/g, "_");
-            var photoName = thaiDateStr + "_" + cleanDept + "_" + cleanLvl + "_" + cleanTeacher + ".jpg";
+
+            var actTag = "หน้าเสาธง";
+            if (rawLvl.indexOf("central") >= 0 || (s.notes && s.notes.indexOf("central") >= 0)) {
+              actTag = "กิจกรรมกลาง";
+              centralPhotoCount++;
+            } else if (rawLvl.indexOf("club") >= 0 || (s.notes && s.notes.indexOf("club") >= 0)) {
+              actTag = "ชมรม";
+              clubPhotoCount++;
+            } else {
+              assemblyPhotoCount++;
+            }
+
+            var cleanLvl = rawLvl.replace(/#central_[^]*/g, "").replace(/#club_[^]*/g, "").replace(/[/\\\\?%*:|"<>]/g, "_");
+            var photoName = thaiDateStr + "_[" + actTag + "]_" + cleanDept + "_" + (cleanLvl || "รวม") + "_" + cleanTeacher + ".jpg";
 
             var decoded = Utilities.base64Decode(base64Data);
             var blob = Utilities.newBlob(decoded, MimeType.JPEG, photoName);
@@ -3169,14 +3186,17 @@ function doPost(e) {
     // 7. ส่งอีเมลแจ้งเตือนรายงานผลไปยัง 2 บัญชีอีเมล
     if (targetEmails && targetEmails.length > 0) {
       var emailList = Array.isArray(targetEmails) ? targetEmails.join(",") : String(targetEmails);
-      var emailSubject = (usedPct >= 85 ? "⚠️ [Drive ใกล้เต็ม] " : "✅ ") + "สำรองข้อมูลเข้าแถวประจำวันที่ " + thaiDateStr + " สำเร็จ (วก.ด่านซ้าย)";
+      var emailSubject = (usedPct >= 85 ? "⚠️ [Drive ใกล้เต็ม] " : "✅ ") + "สำรองข้อมูลเข้าแถว/กิจกรรมประจำวันที่ " + thaiDateStr + " สำเร็จ (วก.ด่านซ้าย)";
       var emailBody = "เรียน ผู้ดูแลระบบและงานพัฒนากิจกรรมนักเรียนนักศึกษา\\n\\n" +
-        "ระบบติดตามการเข้าแถว วทยาลัยการอาชีพด่านซ้าย ได้สำรองข้อมูลประจำวันขึ้น Google Drive เรียบร้อยแล้ว:\\n\\n" +
+        "ระบบติดตามการเข้าแถวและกิจกรรม วทยาลัยการอาชีพด่านซ้าย ได้สำรองข้อมูลขึ้น Google Drive เรียบร้อยแล้ว:\\n\\n" +
         "• ประจำวันที่: " + thaiDateStr + " (ปีการศึกษา " + academicYear + " เทอม " + semester + ")\\n" +
         "• โฟลเดอร์ใน Drive: " + rootFolderName + " > " + termFolderName + " > " + dailyFolderName + "\\n" +
         "• ไฟล์ข้อมูลฐานข้อมูล: " + jsonFileName + "\\n" +
-        "• สกัดภาพถ่ายหลักฐาน: " + photoCount + " ไฟล์ (.jpg)\\n" +
-        "• สถิตินักเรียน: มา " + (payload.present_count || 0) + " คน | ขาด " + (payload.absent_count || 0) + " คน | ลา " + (payload.leave_count || 0) + " คน\\n" +
+        "• สกัดภาพถ่ายหลักฐานทั้งหมด: " + photoCount + " ไฟล์ (.jpg)\\n" +
+        "   - 📸 ภาพเข้าแถวหน้าเสาธง: " + assemblyPhotoCount + " ภาพ\\n" +
+        "   - 📸 ภาพกิจกรรมกลาง: " + centralPhotoCount + " ภาพ\\n" +
+        "   - 📸 ภาพกิจกรรมชมรม: " + clubPhotoCount + " ภาพ\\n" +
+        "• สถิตินักเรียนหน้าเสาธง: มา " + (payload.present_count || 0) + " คน | ขาด " + (payload.absent_count || 0) + " คน | ลา " + (payload.leave_count || 0) + " คน\\n" +
         "• สถานะพื้นที่ Google Drive: ใช้ไป " + usedPct + "% (" + usedMb + " MB / " + limitMb + " MB)\\n" +
         quotaAlertText + "\\n" +
         "ลิงก์เปิดโฟลเดอร์ Google Drive: " + dailyFolder.getUrl() + "\\n\\n" +
@@ -3246,7 +3266,7 @@ function dailyAutoBackupTrigger() {
     var dailyData = [];
     try { dailyData = JSON.parse(dailyRes.getContentText()) || []; } catch (_) {}
 
-    // 2. ดึงข้อมูล attendance_checkin_sessions ของวันนี้
+    // 2. ดึงข้อมูล attendance_checkin_sessions ของวันนี้ (รวมหน้าเสาธง กิจกรรมกลาง และชมรม)
     var sessionsRes = UrlFetchApp.fetch(SUPABASE_URL + "/rest/v1/attendance_checkin_sessions?check_date=eq." + todayStr, {
       method: "get",
       headers: headers,
@@ -3255,8 +3275,17 @@ function dailyAutoBackupTrigger() {
     var sessionsData = [];
     try { sessionsData = JSON.parse(sessionsRes.getContentText()) || []; } catch (_) {}
 
+    // 3. ดึงข้อมูลกิจกรรมกลางและบันทึกการเช็คชื่อกิจกรรม
+    var actRes = UrlFetchApp.fetch(SUPABASE_URL + "/rest/v1/activities?select=*", { method: "get", headers: headers, muteHttpExceptions: true });
+    var actData = [];
+    try { actData = JSON.parse(actRes.getContentText()) || []; } catch (_) {}
+
+    var attRes = UrlFetchApp.fetch(SUPABASE_URL + "/rest/v1/attendances?select=*", { method: "get", headers: headers, muteHttpExceptions: true });
+    var attData = [];
+    try { attData = JSON.parse(attRes.getContentText()) || []; } catch (_) {}
+
     if (dailyData.length === 0 && sessionsData.length === 0) {
-      Logger.log("วันนี้ (" + todayStr + ") ยังไม่มีข้อมูลการเข้าแถว ข้ามการสำรองข้อมูล");
+      Logger.log("วันนี้ (" + todayStr + ") ยังไม่มีข้อมูลการเข้าแถวหรือกิจกรรม ข้ามการสำรองข้อมูล");
       return;
     }
 
@@ -3269,6 +3298,8 @@ function dailyAutoBackupTrigger() {
           target_emails: emailList,
           daily_records: dailyData,
           sessions: sessionsData,
+          activities: actData,
+          attendances: attData,
           present_count: dailyData.filter(function(d) { return d.status === "present"; }).length,
           absent_count: dailyData.filter(function(d) { return d.status === "absent"; }).length,
           leave_count: dailyData.filter(function(d) { return d.status === "leave"; }).length
@@ -3343,9 +3374,11 @@ function dailyAutoBackupTrigger() {
     setIsPushingDrive(true);
     try {
       const todayStr = formatLocalDate(new Date());
-      const [dailyRes, sessionsRes] = await Promise.all([
+      const [dailyRes, sessionsRes, actRes, attRes] = await Promise.all([
         dbAssembly.from('daily_attendance').select('*').eq('check_date', todayStr).then(r => r.data || []),
-        dbAssembly.from('attendance_checkin_sessions').select('*').eq('check_date', todayStr).then(r => r.data || [])
+        dbAssembly.from('attendance_checkin_sessions').select('*').eq('check_date', todayStr).then(r => r.data || []),
+        dbAssembly.from('activities').select('*').then(r => r.data || []),
+        dbAssembly.from('attendances').select('*').then(r => r.data || [])
       ]);
       const emailArr = driveBackupEmails.split(',').map(e => e.trim()).filter(Boolean);
       const payload = {
@@ -3355,6 +3388,8 @@ function dailyAutoBackupTrigger() {
         target_emails: emailArr,
         daily_records: dailyRes,
         sessions: sessionsRes,
+        activities: actRes,
+        attendances: attRes,
         present_count: dailyRes.filter(d => d.status === 'present').length,
         absent_count: dailyRes.filter(d => d.status === 'absent').length,
         leave_count: dailyRes.filter(d => d.status === 'leave').length
@@ -3430,9 +3465,11 @@ function dailyAutoBackupTrigger() {
           text: `กำลังสำรองวันที่ ${d} (${i + 1}/${sortedDates.length})...`
         });
 
-        const [dayDaily, daySessions] = await Promise.all([
+        const [dayDaily, daySessions, actRes, attRes] = await Promise.all([
           dbAssembly.from('daily_attendance').select('*').eq('check_date', d).then(r => r.data || []),
-          dbAssembly.from('attendance_checkin_sessions').select('*').eq('check_date', d).then(r => r.data || [])
+          dbAssembly.from('attendance_checkin_sessions').select('*').eq('check_date', d).then(r => r.data || []),
+          dbAssembly.from('activities').select('*').then(r => r.data || []),
+          dbAssembly.from('attendances').select('*').then(r => r.data || [])
         ]);
 
         const payload = {
@@ -3442,6 +3479,8 @@ function dailyAutoBackupTrigger() {
           target_emails: (i === sortedDates.length - 1) ? emailArr : [],
           daily_records: dayDaily,
           sessions: daySessions,
+          activities: actRes,
+          attendances: attRes,
           present_count: dayDaily.filter(x => x.status === 'present').length,
           absent_count: dayDaily.filter(x => x.status === 'absent').length,
           leave_count: dayDaily.filter(x => x.status === 'leave').length
@@ -3480,9 +3519,11 @@ function dailyAutoBackupTrigger() {
       if (savedDate === todayStr) return;
 
       try {
-        const [dailyRes, sessionsRes] = await Promise.all([
+        const [dailyRes, sessionsRes, actRes, attRes] = await Promise.all([
           dbAssembly.from('daily_attendance').select('*').eq('check_date', todayStr).then(r => r.data || []),
-          dbAssembly.from('attendance_checkin_sessions').select('*').eq('check_date', todayStr).then(r => r.data || [])
+          dbAssembly.from('attendance_checkin_sessions').select('*').eq('check_date', todayStr).then(r => r.data || []),
+          dbAssembly.from('activities').select('*').then(r => r.data || []),
+          dbAssembly.from('attendances').select('*').then(r => r.data || [])
         ]);
         if (dailyRes.length === 0 && sessionsRes.length === 0) return;
         const emailArr = driveBackupEmails.split(',').map(e => e.trim()).filter(Boolean);
@@ -3493,6 +3534,8 @@ function dailyAutoBackupTrigger() {
           target_emails: emailArr,
           daily_records: dailyRes,
           sessions: sessionsRes,
+          activities: actRes,
+          attendances: attRes,
           present_count: dailyRes.filter(d => d.status === 'present').length,
           absent_count: dailyRes.filter(d => d.status === 'absent').length,
           leave_count: dailyRes.filter(d => d.status === 'leave').length
@@ -3531,14 +3574,18 @@ function dailyAutoBackupTrigger() {
         sessionsRes,
         teachersRes,
         settingsRes,
-        rulesRes
+        rulesRes,
+        activitiesRes,
+        attendancesRes
       ] = await Promise.all([
         fetchAllRows(dbAssembly, 'attendance_summary', '*').catch(() => []),
         fetchAllRows(dbAssembly, 'daily_attendance', '*').catch(() => []),
         fetchAllRows(dbAssembly, 'attendance_checkin_sessions', '*').catch(() => []),
         fetchAllRows(dbAssembly, 'teachers', '*').catch(() => []),
         fetchAllRows(dbAssembly, 'system_settings', '*').catch(() => []),
-        fetchAllRows(dbAssembly, 'system_rules', '*').catch(() => [])
+        fetchAllRows(dbAssembly, 'system_rules', '*').catch(() => []),
+        fetchAllRows(dbAssembly, 'activities', '*').catch(() => []),
+        fetchAllRows(dbAssembly, 'attendances', '*').catch(() => [])
       ]);
 
       const backupObj = {
@@ -3559,7 +3606,9 @@ function dailyAutoBackupTrigger() {
           attendance_checkin_sessions: sessionsRes || [],
           teachers: teachersRes || [],
           system_settings: settingsRes || [],
-          system_rules: rulesRes || []
+          system_rules: rulesRes || [],
+          activities: activitiesRes || [],
+          attendances: attendancesRes || []
         }
       };
 
@@ -3719,6 +3768,21 @@ function dailyAutoBackupTrigger() {
         for (let i = 0; i < d.teachers.length; i += 50) {
           const chunk = d.teachers.slice(i, i + 50);
           await dbAssembly.from('teachers').upsert(chunk, { onConflict: 'id' });
+        }
+      }
+
+      // 6. Restore activities
+      if (d.activities && d.activities.length > 0) {
+        for (let i = 0; i < d.activities.length; i += 50) {
+          const chunk = d.activities.slice(i, i + 50);
+          await dbAssembly.from('activities').upsert(chunk, { onConflict: 'id' });
+        }
+      }
+      // 7. Restore attendances
+      if (d.attendances && d.attendances.length > 0) {
+        for (let i = 0; i < d.attendances.length; i += 50) {
+          const chunk = d.attendances.slice(i, i + 50);
+          await dbAssembly.from('attendances').upsert(chunk, { onConflict: 'student_id,activity_id' });
         }
       }
 
