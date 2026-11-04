@@ -3090,9 +3090,19 @@ useEffect(() => {
         const normName = normalizeTeacherName(currentTeacher.name);
         const matching = (teachersList || []).filter(t => normalizeTeacherName(t.name) === normName);
         const deptsSet = new Set();
-        if (currentTeacher.department) deptsSet.add(currentTeacher.department);
-        matching.forEach(t => { if (t.department) deptsSet.add(t.department); });
-        targetDepts = Array.from(deptsSet);
+        const addDeptVariants = (d) => {
+          if (!d) return;
+          deptsSet.add(d);
+          const norm = normalizeDepartmentName(d);
+          if (norm) {
+            deptsSet.add(norm);
+            deptsSet.add('แผนก' + norm);
+            deptsSet.add('แผนกวิชา' + norm);
+          }
+        };
+        addDeptVariants(currentTeacher.department);
+        matching.forEach(t => addDeptVariants(t.department));
+        targetDepts = Array.from(deptsSet).filter(Boolean);
         isTeacherScopedDataRef.current = true;
       } else {
         isTeacherScopedDataRef.current = false;
@@ -4005,21 +4015,21 @@ useEffect(() => {
   }, [teachersList, isSandboxMode, isTeacherTesting]);
 
   const displayDailyAttendance = useMemo(() => {
-    if (isSandboxMode) return dailyAttendanceRecords;
+    if (isSandboxMode || isTeacherTesting) return dailyAttendanceRecords;
     return (dailyAttendanceRecords || []).filter(r => {
       const d = normalizeDepartmentName(r.department || '');
       return d !== 'ทดสอบระบบ';
     });
-  }, [dailyAttendanceRecords, isSandboxMode]);
+  }, [dailyAttendanceRecords, isSandboxMode, isTeacherTesting]);
 
   const displayCheckinSessions = useMemo(() => {
-    if (isSandboxMode) return checkinSessions;
+    if (isSandboxMode || isTeacherTesting) return checkinSessions;
     return (checkinSessions || []).filter(s => {
       const d = normalizeDepartmentName(s.department || '');
       const t = s.teacher_name || '';
       return d !== 'ทดสอบระบบ' && !t.includes('ทดสอบ');
     });
-  }, [checkinSessions, isSandboxMode]);
+  }, [checkinSessions, isSandboxMode, isTeacherTesting]);
 
   // Active Master Students (Excludes hidden class levels and sandbox mock students when mode is OFF)
   const activeMasterStudents = useMemo(() => {
@@ -10605,19 +10615,36 @@ function TeacherClassroomManagerModal({
                         /*#__PURE__*/_jsxs("div", {
                           className: "flex items-center gap-2 flex-shrink-0",
                           children: [
-                            /* Attendance percent badge */
-                            /*#__PURE__*/_jsxs("span", {
-                              className: `px-2.5 py-1 rounded-xl text-xs font-bold font-mono border hidden sm:inline-block ${
-                                isGraduated 
-                                  ? 'bg-purple-50 text-purple-700 border-purple-200'
-                                  : pct >= 80 
-                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                  : pct >= 70
-                                  ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                  : 'bg-rose-50 text-rose-700 border-rose-200'
-                              }`,
+                            /* Attendance percent badge & 3 activities status */
+                            /*#__PURE__*/_jsxs("div", {
+                              className: "flex flex-col items-end gap-0.5",
                               children: [
-                                isGraduated ? 'จบแล้ว' : `เข้าแถว ${pct}% (${s.present || 0}/${s.total || 65} วัน)`
+                                /*#__PURE__*/_jsx("span", {
+                                  className: `px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-xl text-[11px] sm:text-xs font-bold font-mono border inline-block ${
+                                    isGraduated 
+                                      ? 'bg-purple-50 text-purple-700 border-purple-200'
+                                      : pct >= 80 
+                                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                      : pct >= 70
+                                      ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                      : 'bg-rose-50 text-rose-700 border-rose-200'
+                                  }`,
+                                  children: isGraduated ? 'จบแล้ว' : `เข้าแถว ${pct}% (${s.present || 0}/${s.total || 65} วัน)`
+                                }),
+                                !isGraduated && /*#__PURE__*/_jsxs("div", {
+                                  className: "flex items-center gap-1.5 text-[10px] font-mono",
+                                  children: [
+                                    /*#__PURE__*/_jsx("span", {
+                                      className: (s.centralTotal > 0 && (s.centralPercent || 0) >= 80) ? "text-indigo-600 font-bold" : "text-slate-400",
+                                      children: `กลาง: ${s.centralTotal > 0 ? (s.centralPercent || 0) + '%' : '-'}`
+                                    }),
+                                    /*#__PURE__*/_jsx("span", { className: "text-slate-300", children: "•" }),
+                                    /*#__PURE__*/_jsx("span", {
+                                      className: (s.passCount === 3) ? "text-emerald-600 font-black" : "text-rose-500 font-bold",
+                                      children: `${s.passCount !== undefined ? s.passCount : (pct >= 80 ? 1 : 0)}/3`
+                                    })
+                                  ]
+                                })
                               ]
                             }),
 
@@ -10948,8 +10975,8 @@ function TeacherCheckinModal({
             student_id: id,
             student_code: studentCode,
             name: name,
-            department: s.dept || rm.department,
-            class_level: s.level || rm.class_level,
+            department: rm.department,
+            class_level: rm.class_level,
             room_id: rm.id,
             room_label: roomLabel,
             photoUrl: photo
@@ -10959,9 +10986,10 @@ function TeacherCheckinModal({
         // 2. หากยังไม่พบในหน่วยความจำ ให้ดึงจากตาราง attendance_summary
         if (students.length === 0) {
           try {
+            const depts = Array.from(new Set([rm.department, normDept, 'แผนก' + normDept])).filter(Boolean);
             const { data, error } = await dbAssembly.from('attendance_summary')
               .select('id, student_name, department, pure_level')
-              .eq('department', rm.department)
+              .in('department', depts)
               .eq('pure_level', rm.class_level);
             if (!error && data && data.length > 0) {
               students = data.map(s => {
@@ -10983,8 +11011,8 @@ function TeacherCheckinModal({
                   student_id: id,
                   student_code: studentCode,
                   name: name,
-                  department: s.department || rm.department,
-                  class_level: s.pure_level || rm.class_level,
+                  department: rm.department,
+                  class_level: rm.class_level,
                   room_id: rm.id,
                   room_label: roomLabel,
                   photoUrl: photo
@@ -11022,35 +11050,38 @@ function TeacherCheckinModal({
         if (checkinMode === 'assembly') {
           // ⚡ PARALLEL FETCH: รันทุกห้องพร้อมกันในรอบเดียว (ลดเวลารอจาก 5-10 วิ เหลือ 200ms)
           const [dailyAttResults, sessionResults, termHistResults] = await Promise.all([
-            Promise.all(rooms.map(rm =>
-              dbAssembly.from('daily_attendance')
+            Promise.all(rooms.map(rm => {
+              const depts = Array.from(new Set([rm.department, normalizeDepartmentName(rm.department), 'แผนก' + normalizeDepartmentName(rm.department)])).filter(Boolean);
+              return dbAssembly.from('daily_attendance')
                 .select('*')
                 .eq('check_date', date)
-                .eq('department', rm.department)
+                .in('department', depts)
                 .eq('class_level', rm.class_level)
                 .then(r => r.data || [])
-                .catch(() => [])
-            )),
-            Promise.all(rooms.map(rm =>
-              dbAssembly.from('attendance_checkin_sessions')
+                .catch(() => []);
+            })),
+            Promise.all(rooms.map(rm => {
+              const depts = Array.from(new Set([rm.department, normalizeDepartmentName(rm.department), 'แผนก' + normalizeDepartmentName(rm.department)])).filter(Boolean);
+              return dbAssembly.from('attendance_checkin_sessions')
                 .select('evidence_photo_url, notes')
                 .eq('check_date', date)
-                .eq('department', rm.department)
+                .in('department', depts)
                 .eq('class_level', rm.class_level)
                 .limit(1)
                 .then(r => r.data || [])
-                .catch(() => [])
-            )),
-            Promise.all(rooms.map(rm =>
-              dbAssembly.from('daily_attendance')
+                .catch(() => []);
+            })),
+            Promise.all(rooms.map(rm => {
+              const depts = Array.from(new Set([rm.department, normalizeDepartmentName(rm.department), 'แผนก' + normalizeDepartmentName(rm.department)])).filter(Boolean);
+              return dbAssembly.from('daily_attendance')
                 .select('student_id, student_name, check_date, status, department, class_level')
                 .eq('academic_year', academicYear || '2569')
                 .eq('semester', semester || '2')
-                .eq('department', rm.department)
+                .in('department', depts)
                 .eq('class_level', rm.class_level)
                 .then(r => r.data || [])
-                .catch(() => [])
-            ))
+                .catch(() => []);
+            }))
           ]);
 
           dailyAttResults.forEach(rows => {
@@ -11090,11 +11121,12 @@ function TeacherCheckinModal({
                 .then(r => r.data || [])
                 .catch(() => []),
               Promise.all(rooms.map(rm => {
+                const depts = Array.from(new Set([rm.department, normalizeDepartmentName(rm.department), 'แผนก' + normalizeDepartmentName(rm.department)])).filter(Boolean);
                 const rawLevel = `${rm.class_level}#central_${actId}`;
                 const safeLevel = rawLevel.length > 50 ? `${rm.class_level}#c_${actId}`.substring(0, 50) : rawLevel;
                 return dbAssembly.from('attendance_checkin_sessions')
                   .select('evidence_photo_url')
-                  .eq('department', rm.department)
+                  .in('department', depts)
                   .eq('class_level', safeLevel)
                   .eq('academic_year', academicYear || '2569')
                   .eq('semester', semester || '2')
@@ -11120,18 +11152,19 @@ function TeacherCheckinModal({
         } else if (checkinMode === 'club') {
           // Club Activity Mode: Parallel room query
           const sessNo = Number(clubSessionNo) || 1;
-          const sessionResults = await Promise.all(rooms.map(rm =>
-            dbAssembly.from('attendance_checkin_sessions')
+          const sessionResults = await Promise.all(rooms.map(rm => {
+            const depts = Array.from(new Set([rm.department, normalizeDepartmentName(rm.department), 'แผนก' + normalizeDepartmentName(rm.department)])).filter(Boolean);
+            return dbAssembly.from('attendance_checkin_sessions')
               .select('evidence_photo_url, notes')
-              .eq('department', rm.department)
+              .in('department', depts)
               .eq('class_level', `${rm.class_level}#club_${sessNo}`)
               .eq('academic_year', academicYear || '2569')
               .eq('semester', semester || '2')
               .order('created_at', { ascending: false })
               .limit(1)
               .then(r => r.data || [])
-              .catch(() => [])
-          ));
+              .catch(() => []);
+          }));
 
           sessionResults.forEach(rows => {
             if (rows.length > 0) {
@@ -11522,7 +11555,16 @@ function TeacherCheckinModal({
       try {
         const roomsToSave = (isAllRoomsCombined && teacherRooms.length > 1) ? teacherRooms : [selectedTeacher];
         for (const rm of roomsToSave) {
-          const rmStudents = roomStudents.filter(s => (s.department === rm.department && s.class_level === rm.class_level));
+          const rmDeptNorm = normalizeDepartmentName(rm.department || '');
+          const rmLvl = String(rm.class_level || '').trim();
+          const matchedStudents = roomStudents.filter(s => {
+            const sd = normalizeDepartmentName(s.department || s.dept || '');
+            const sl = String(s.class_level || s.level || '').trim();
+            const matchDept = (sd === rmDeptNorm || sd.includes(rmDeptNorm) || rmDeptNorm.includes(sd));
+            const matchLvl = (sl === rmLvl || sl.includes(rmLvl) || rmLvl.includes(sl));
+            return matchDept && matchLvl;
+          });
+          const rmStudents = (matchedStudents.length > 0) ? matchedStudents : ((roomsToSave.length === 1) ? roomStudents : []);
           if (rmStudents.length === 0) continue;
           const rmP = rmStudents.filter(s => attendanceMap[s.student_id] === 'present').length;
           const rmA = rmStudents.filter(s => (attendanceMap[s.student_id] || 'absent') === 'absent').length;
