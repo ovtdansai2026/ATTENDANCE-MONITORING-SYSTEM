@@ -23,6 +23,33 @@
       var cleanUrl = window.location.origin + window.location.pathname + '?_t=' + Date.now();
       window.location.replace(cleanUrl);
     };
+    // 3. Fully Automatic Silent Update Check (No teacher action required!)
+    // When the app opens or resumes, it sends a tiny HEAD request to check ETag/Last-Modified.
+    // If a newer version is deployed, it silently reloads to the latest build automatically.
+    (function() {
+      function checkAutoUpdate() {
+        if (!navigator.onLine) return;
+        fetch(window.location.pathname + '?_chk=' + Date.now(), { method: 'HEAD', cache: 'no-store' })
+          .then(function(res) {
+            var etag = res.headers.get('ETag') || res.headers.get('Last-Modified');
+            if (etag) {
+              var lastEtag = localStorage.getItem('app_installed_etag');
+              if (!lastEtag) {
+                localStorage.setItem('app_installed_etag', etag);
+              } else if (lastEtag !== etag) {
+                localStorage.setItem('app_installed_etag', etag);
+                localStorage.removeItem('app_cached_students');
+                window.location.replace(window.location.origin + window.location.pathname + '?_v=' + Date.now());
+              }
+            }
+          }).catch(function() {});
+      }
+      setTimeout(checkAutoUpdate, 1500);
+      window.addEventListener('focus', checkAutoUpdate);
+      document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'visible') checkAutoUpdate();
+      });
+    })();
   </script>
   <link class="custom-favicon" rel="icon" type="image/png" href="logo.png">
   <meta name="theme-color" content="#ffffff">
