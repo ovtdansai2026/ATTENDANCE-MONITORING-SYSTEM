@@ -3054,6 +3054,14 @@ const [adminTab, setAdminTab] = useState('term'); // 'term', 'students', 'logs',
  * ==============================================================================
  */
 
+function doGet(e) {
+  return ContentService.createTextOutput(JSON.stringify({
+    success: true,
+    message: "ระบบสำรองข้อมูล Google Drive วิทยาลัยการอาชีพด่านซ้าย พร้อมใช้งาน (Ready)",
+    timestamp: new Date().toISOString()
+  })).setMimeType(ContentService.MimeType.JSON);
+}
+
 function doPost(e) {
   try {
     if (!e || !e.postData || !e.postData.contents) {
@@ -3069,6 +3077,14 @@ function doPost(e) {
     var semester = payload.semester || "2";
     var targetEmails = payload.target_emails || [];
     var isTestPing = Boolean(payload.is_test_ping);
+
+    // จดจำอีเมลไว้ในระบบเพื่อใช้กับระบบสำรองอัตโนมัติรายวัน
+    if (targetEmails && targetEmails.length > 0) {
+      try {
+        var emailStr = Array.isArray(targetEmails) ? targetEmails.join(",") : String(targetEmails);
+        PropertiesService.getScriptProperties().setProperty("BACKUP_EMAILS", emailStr);
+      } catch (_) {}
+    }
 
     // 1. ตรวจสอบหรือสร้างโฟลเดอร์หลักใน Google Drive
     var rootFolderName = "วก.ด่านซ้าย_สำรองข้อมูลเข้าแถวราชการ";
@@ -3189,8 +3205,82 @@ function doPost(e) {
   }
 }
 
-function doGet(e) {
-  return ContentService.createTextOutput("ระบบสำรองข้อมูล Google Drive - วิทยาลัยการอาชีพด่านซ้าย พร้อมใช้งาน (Ready)");
+/**
+ * ⏰ ระบบสำรองข้อมูลอัตโนมัติรายวันหลังเข้าแถว (Time-driven Trigger):
+ * ฟังก์ชันนี้สามารถตั้งเวลาให้ Google Cloud รันอัตโนมัติทุกวันเวลา 09:00 - 10:00 น.
+ * โดยจะดึงข้อมูลการเข้าแถวและรูปถ่ายหน้าเสาธงจริงจาก Supabase บันทึกลง Drive และส่งอีเมลแจ้งเตือน
+ * แม้ว่าจะไม่มีใครเปิดหน้าเว็บเลยก็ตาม!
+ * 
+ * 📋 วิธีเปิดใช้งานทริกเกอร์เวลา 09:00 น. ใน Apps Script (ทำครั้งเดียว):
+ * 1. เมนูด้านซ้าย กดไอคอนรูปนาฬิกา ⏰ "ทริกเกอร์" (Triggers)
+ * 2. กดปุ่มขวาล่าง "+ เพิ่มทริกเกอร์" (+ Add Trigger)
+ * 3. เลือกฟังก์ชันที่จะเรียกใช้: dailyAutoBackupTrigger
+ * 4. เลือกการทำให้ใช้งานได้: Head
+ * 5. แหล่งที่มาของเหตุการณ์: ตามเวลา (Time-driven)
+ * 6. ประเภทของทริกเกอร์: ตัวจับเวลาตามวัน (Day timer)
+ * 7. ช่วงเวลาของวัน: 9:00 น. ถึง 10:00 น. (หรือ 8:00 ถึง 9:00 น.)
+ * 8. กด "บันทึก" (Save)
+ */
+function dailyAutoBackupTrigger() {
+  var SUPABASE_URL = "https://fpbgujzhrzsasmqbxncj.supabase.co";
+  var SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwYmd1anpocnpzYXNtcWJ4bmNqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3MzI3NTUsImV4cCI6MjEwNTMwODc1NX0.ggrCO-hHJeD74syDeSdL2HI45vGfyNkl8v5C9gdS6KI";
+
+  var todayStr = Utilities.formatDate(new Date(), "GMT+7", "yyyy-MM-dd");
+
+  var props = PropertiesService.getScriptProperties();
+  var savedEmails = props.getProperty("BACKUP_EMAILS") || "";
+  var emailList = savedEmails ? savedEmails.split(",") : [];
+
+  var headers = {
+    "apikey": SUPABASE_KEY,
+    "Authorization": "Bearer " + SUPABASE_KEY
+  };
+
+  try {
+    // 1. ดึงข้อมูล daily_attendance ของวันนี้
+    var dailyRes = UrlFetchApp.fetch(SUPABASE_URL + "/rest/v1/daily_attendance?check_date=eq." + todayStr, {
+      method: "get",
+      headers: headers,
+      muteHttpExceptions: true
+    });
+    var dailyData = [];
+    try { dailyData = JSON.parse(dailyRes.getContentText()) || []; } catch (_) {}
+
+    // 2. ดึงข้อมูล attendance_checkin_sessions ของวันนี้
+    var sessionsRes = UrlFetchApp.fetch(SUPABASE_URL + "/rest/v1/attendance_checkin_sessions?check_date=eq." + todayStr, {
+      method: "get",
+      headers: headers,
+      muteHttpExceptions: true
+    });
+    var sessionsData = [];
+    try { sessionsData = JSON.parse(sessionsRes.getContentText()) || []; } catch (_) {}
+
+    if (dailyData.length === 0 && sessionsData.length === 0) {
+      Logger.log("วันนี้ (" + todayStr + ") ยังไม่มีข้อมูลการเข้าแถว ข้ามการสำรองข้อมูล");
+      return;
+    }
+
+    var fakeEvent = {
+      postData: {
+        contents: JSON.stringify({
+          date: todayStr,
+          academic_year: "2569",
+          semester: "2",
+          target_emails: emailList,
+          daily_records: dailyData,
+          sessions: sessionsData,
+          present_count: dailyData.filter(function(d) { return d.status === "present"; }).length,
+          absent_count: dailyData.filter(function(d) { return d.status === "absent"; }).length,
+          leave_count: dailyData.filter(function(d) { return d.status === "leave"; }).length
+        })
+      }
+    };
+
+    var output = doPost(fakeEvent);
+    Logger.log("✅ ผลการสำรองข้อมูลอัตโนมัติ: " + output.getContent());
+  } catch (err) {
+    Logger.log("❌ เกิดข้อผิดพลาดใน dailyAutoBackupTrigger: " + err.toString());
+  }
 }
 `;
     if (navigator.clipboard && navigator.clipboard.writeText) {
