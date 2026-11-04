@@ -4306,6 +4306,78 @@ function doGet(e) {
     }
   };
 
+    // Edit Teacher State & Handlers
+  const [editingTeacherTarget, setEditingTeacherTarget] = useState(null);
+  const [editTeacherName, setEditTeacherName] = useState('');
+  const [editTeacherDept, setEditTeacherDept] = useState('');
+  const [editTeacherLevel, setEditTeacherLevel] = useState('ปวช.1');
+  const [editTeacherPhone, setEditTeacherPhone] = useState('');
+  const [editTeacherSyncHistory, setEditTeacherSyncHistory] = useState(true);
+  const [isSavingTeacherEdit, setIsSavingTeacherEdit] = useState(false);
+
+  const handleStartEditTeacher = (t) => {
+    setEditingTeacherTarget(t);
+    setEditTeacherName(t.name || '');
+    setEditTeacherDept(t.department || '');
+    setEditTeacherLevel(t.class_level || 'ปวช.1');
+    setEditTeacherPhone(t.phone || '');
+    setEditTeacherSyncHistory(true);
+  };
+
+  const handleSaveTeacherEdit = async () => {
+    if (!editingTeacherTarget) return;
+    const cleanName = editTeacherName.trim();
+    if (!cleanName) return alert('กรุณาระบุชื่อ-นามสกุลครู');
+    const cleanDept = normalizeDepartmentName(editTeacherDept);
+    if (!cleanDept || cleanDept === 'ทั่วไป') return alert('กรุณาระบุหรือเลือกแผนกวิชา');
+    const cleanLevel = editTeacherLevel.trim();
+    const cleanPhone = editTeacherPhone.trim();
+    const oldName = editingTeacherTarget.name;
+    const teacherId = editingTeacherTarget.id;
+
+    setIsSavingTeacherEdit(true);
+    try {
+      // 1. Update teachers table
+      const { error: tErr } = await dbAssembly.from('teachers').update({
+        name: cleanName,
+        department: cleanDept,
+        class_level: cleanLevel,
+        phone: cleanPhone
+      }).eq('id', teacherId);
+      if (tErr) throw tErr;
+
+      // 2. Sync history if name changed and sync requested
+      if (editTeacherSyncHistory && oldName && oldName !== cleanName) {
+        try {
+          await Promise.all([
+            dbAssembly.from('daily_attendance').update({ teacher_name: cleanName }).eq('teacher_name', oldName),
+            dbAssembly.from('attendance_checkin_sessions').update({ teacher_name: cleanName }).eq('teacher_name', oldName)
+          ]);
+        } catch (syncErr) {
+          console.warn('Sync historical teacher name warning:', syncErr);
+        }
+      }
+
+      // 3. Update local state
+      setTeachers(prev => prev.map(t => t.id === teacherId ? {
+        ...t,
+        name: cleanName,
+        department: cleanDept,
+        class_level: cleanLevel,
+        phone: cleanPhone
+      } : t));
+
+      if (onUpdateTeachers) onUpdateTeachers();
+      setEditingTeacherTarget(null);
+      alert(`✅ แก้ไขข้อมูลครู "${cleanName}" เรียบร้อยแล้ว${editTeacherSyncHistory && oldName !== cleanName ? '\n• อัปเดตประวัติการเช็คชื่อย้อนหลังทั้งหมดให้เป็นชื่อใหม่เรียบร้อย' : ''}`);
+    } catch (err) {
+      console.error('Save teacher edit error:', err);
+      alert('ล้มเหลวในการบันทึก: ' + (err.message || err));
+    } finally {
+      setIsSavingTeacherEdit(false);
+    }
+  };
+
   const handleDeleteTeacher = async (teacherId, teacherName) => {
     if (!confirm(`ต้องการลบครู "${teacherName}" ออกจากระบบหรือไม่?`)) return;
     try {
@@ -6689,6 +6761,12 @@ function doGet(e) {
                                 children: [/*#__PURE__*/_jsx(Icon.Key, { className: "w-3 h-3 inline mr-1" }), "ตั้งรหัส 6 หลัก"]
                               }),
                               /*#__PURE__*/_jsxs("button", {
+                                onClick: () => handleStartEditTeacher(t),
+                                title: "แก้ไขข้อมูลครู (ชื่อ, แผนก, ชั้นปี, เบอร์โทร)",
+                                className: "px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-lg text-[11px] font-semibold cursor-pointer",
+                                children: [/*#__PURE__*/_jsx(Icon.Edit, { className: "w-3 h-3 inline mr-1" }), "แก้ไข"]
+                              }),
+                              /*#__PURE__*/_jsxs("button", {
                                 onClick: () => handleDeleteTeacher(t.id, t.name),
                                 className: "px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-[11px] font-semibold cursor-pointer",
                                 children: [/*#__PURE__*/_jsx(Icon.Trash, { className: "w-3 h-3 inline mr-1" }), "ลบ"]
@@ -6697,7 +6775,162 @@ function doGet(e) {
                           })
                         ]
                       }, t.id || t.name))
-                    })
+                    }),
+                /* Edit Teacher Modal */
+                editingTeacherTarget && /*#__PURE__*/_jsx("div", {
+                  className: "fixed inset-0 z-[9999] bg-black/80 flex items-center justify-center p-4 backdrop-blur-xs",
+                  onClick: () => !isSavingTeacherEdit && setEditingTeacherTarget(null),
+                  children: /*#__PURE__*/_jsxs("div", {
+                    className: "bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl p-5 sm:p-6 space-y-4 border border-slate-100",
+                    onClick: e => e.stopPropagation(),
+                    children: [
+                      /* Header */
+                      /*#__PURE__*/_jsxs("div", {
+                        className: "flex justify-between items-center border-b border-slate-100 pb-3",
+                        children: [
+                          /*#__PURE__*/_jsxs("div", {
+                            className: "flex items-center gap-2",
+                            children: [
+                              /*#__PURE__*/_jsx("div", {
+                                className: "w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center",
+                                children: /*#__PURE__*/_jsx(Icon.Edit, { className: "w-4 h-4" })
+                              }),
+                              /*#__PURE__*/_jsx("h3", {
+                                className: "text-sm sm:text-base font-bold text-slate-900",
+                                children: "แก้ไขข้อมูลครูที่ปรึกษา"
+                              })
+                            ]
+                          }),
+                          /*#__PURE__*/_jsx("button", {
+                            type: "button",
+                            onClick: () => setEditingTeacherTarget(null),
+                            disabled: isSavingTeacherEdit,
+                            className: "text-slate-400 hover:text-slate-700 text-sm font-bold cursor-pointer",
+                            children: "✕"
+                          })
+                        ]
+                      }),
+
+                      /* Form */
+                      /*#__PURE__*/_jsxs("div", {
+                        className: "space-y-3",
+                        children: [
+                          /* Name */
+                          /*#__PURE__*/_jsxs("div", {
+                            className: "space-y-1",
+                            children: [
+                              /*#__PURE__*/_jsx("label", { className: "text-xs font-bold text-slate-700", children: "ชื่อ-นามสกุลครู" }),
+                              /*#__PURE__*/_jsx("input", {
+                                type: "text",
+                                value: editTeacherName,
+                                onChange: e => setEditTeacherName(e.target.value),
+                                placeholder: "เช่น นายสมชาย  ใจดี",
+                                className: "w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 font-medium focus:outline-none focus:border-sky-500 focus:bg-white"
+                              })
+                            ]
+                          }),
+
+                          /* Dept */
+                          /*#__PURE__*/_jsxs("div", {
+                            className: "space-y-1",
+                            children: [
+                              /*#__PURE__*/_jsx("label", { className: "text-xs font-bold text-slate-700", children: "แผนกวิชา" }),
+                              /*#__PURE__*/_jsx("select", {
+                                value: editTeacherDept,
+                                onChange: e => setEditTeacherDept(e.target.value),
+                                className: "w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 font-medium focus:outline-none focus:border-sky-500 focus:bg-white",
+                                children: [
+                                  'ช่างกลโรงงาน',
+                                  'ช่างยนต์',
+                                  'ช่างไฟฟ้ากำลัง',
+                                  'ช่างอิเล็กทรอนิกส์',
+                                  'การบัญชี',
+                                  'การตลาด',
+                                  'อาหารและโภชนาการ',
+                                  'เทคโนโลยีธุรกิจดิจิทัล',
+                                  'การโรงแรม'
+                                ].map(d => /*#__PURE__*/_jsx("option", { key: d, value: d, children: formatDeptDisplay(d) }, d))
+                              })
+                            ]
+                          }),
+
+                          /* Level */
+                          /*#__PURE__*/_jsxs("div", {
+                            className: "space-y-1",
+                            children: [
+                              /*#__PURE__*/_jsx("label", { className: "text-xs font-bold text-slate-700", children: "ระดับชั้นปี" }),
+                              /*#__PURE__*/_jsx("select", {
+                                value: editTeacherLevel,
+                                onChange: e => setEditTeacherLevel(e.target.value),
+                                className: "w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 font-medium focus:outline-none focus:border-sky-500 focus:bg-white",
+                                children: ['ปวช.1', 'ปวช.2', 'ปวช.3', 'ปวส.1', 'ปวส.2'].map(lvl => /*#__PURE__*/_jsx("option", { key: lvl, value: lvl, children: lvl }, lvl))
+                              })
+                            ]
+                          }),
+
+                          /* Phone */
+                          /*#__PURE__*/_jsxs("div", {
+                            className: "space-y-1",
+                            children: [
+                              /*#__PURE__*/_jsx("label", { className: "text-xs font-bold text-slate-700", children: "เบอร์โทรศัพท์" }),
+                              /*#__PURE__*/_jsx("input", {
+                                type: "text",
+                                value: editTeacherPhone,
+                                onChange: e => setEditTeacherPhone(e.target.value),
+                                placeholder: "เช่น 0812345678 (เว้นว่างได้)",
+                                className: "w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 font-mono focus:outline-none focus:border-sky-500 focus:bg-white"
+                              })
+                            ]
+                          }),
+
+                          /* Sync history checkbox */
+                          /*#__PURE__*/_jsxs("label", {
+                            className: "flex items-start gap-2 p-2.5 bg-sky-50 border border-sky-100 rounded-xl cursor-pointer select-none",
+                            children: [
+                              /*#__PURE__*/_jsx("input", {
+                                type: "checkbox",
+                                checked: editTeacherSyncHistory,
+                                onChange: e => setEditTeacherSyncHistory(e.target.checked),
+                                className: "mt-0.5 rounded text-sky-600 focus:ring-sky-500"
+                              }),
+                              /*#__PURE__*/_jsxs("div", {
+                                className: "text-[11px] text-slate-700",
+                                children: [
+                                  /*#__PURE__*/_jsx("span", { className: "font-bold text-sky-900 block", children: "อัปเดตประวัติการเช็คชื่อเดิมทั้งหมดในระบบด้วย (แนะนำ)" }),
+                                  "ซิงค์ชื่อใหม่นี้ไปยังตาราง daily_attendance และ sessions ย้อนหลัง เพื่อให้สถิติและเปอร์เซ็นต์สะสมของครูไม่หลุดหาย"
+                                ]
+                              })
+                            ]
+                          })
+                        ]
+                      }),
+
+                      /* Buttons */
+                      /*#__PURE__*/_jsxs("div", {
+                        className: "flex gap-2 pt-2",
+                        children: [
+                          /*#__PURE__*/_jsx("button", {
+                            type: "button",
+                            onClick: () => setEditingTeacherTarget(null),
+                            disabled: isSavingTeacherEdit,
+                            className: "flex-1 py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer transition-all",
+                            children: "ยกเลิก"
+                          }),
+                          /*#__PURE__*/_jsxs("button", {
+                            type: "button",
+                            onClick: handleSaveTeacherEdit,
+                            disabled: isSavingTeacherEdit,
+                            className: "flex-1 py-2.5 px-4 bg-amber-600 hover:bg-amber-700 active:bg-amber-800 disabled:bg-slate-300 text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer flex items-center justify-center gap-1.5 transition-all",
+                            children: [
+                              isSavingTeacherEdit ? /*#__PURE__*/_jsx(Icon.Spin, { className: "w-3.5 h-3.5 text-white" }) : /*#__PURE__*/_jsx(Icon.Save, { className: "w-3.5 h-3.5 text-white" }),
+                              isSavingTeacherEdit ? "กำลังบันทึก..." : "บันทึกข้อมูลครู"
+                            ]
+                          })
+                        ]
+                      })
+                    ]
+                  })
+                })
                   ]
                 })
               ]
