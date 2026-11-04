@@ -3993,14 +3993,16 @@ useEffect(() => {
   const activeClubSession = activeClubSessions[0] || null;
 
   // Sandbox (Test Mode) Filtered Records
+  const isTeacherTesting = Boolean(loggedInTeacher && (normalizeDepartmentName(loggedInTeacher.department || '') === 'ทดสอบระบบ' || (loggedInTeacher.name || '').includes('ทดสอบ')));
+
   const displayTeachers = useMemo(() => {
-    if (isSandboxMode) return teachersList;
+    if (isSandboxMode || isTeacherTesting) return teachersList;
     return (teachersList || []).filter(t => {
       const d = normalizeDepartmentName(t.department || '');
       const n = t.name || '';
       return d !== 'ทดสอบระบบ' && !n.includes('ทดสอบ');
     });
-  }, [teachersList, isSandboxMode]);
+  }, [teachersList, isSandboxMode, isTeacherTesting]);
 
   const displayDailyAttendance = useMemo(() => {
     if (isSandboxMode) return dailyAttendanceRecords;
@@ -4022,7 +4024,7 @@ useEffect(() => {
   // Active Master Students (Excludes hidden class levels and sandbox mock students when mode is OFF)
   const activeMasterStudents = useMemo(() => {
     let list = masterStudents || [];
-    if (!isSandboxMode) {
+    if (!isSandboxMode && !isTeacherTesting) {
       list = list.filter(s => {
         const d = normalizeDepartmentName(s.dept || s.department || '');
         const sid = Number(s.id || s.student_id);
@@ -4035,7 +4037,7 @@ useEffect(() => {
       const lvl = String(s.level || s.class_level || s.pure_level || '').trim();
       return !hiddenClassLevels.includes(lvl);
     });
-  }, [masterStudents, hiddenClassLevels, isSandboxMode]);
+  }, [masterStudents, hiddenClassLevels, isSandboxMode, isTeacherTesting]);
 
   // Sibling rooms managed by logged in teacher (Multi-room support)
   const loggedInTeacherRooms = useMemo(() => {
@@ -6614,7 +6616,7 @@ useEffect(() => {
 
       // Teacher Login Modal (Advisor Authentication Only)
       isTeacherLoginModalOpen && /*#__PURE__*/_jsx(TeacherLoginModal, {
-        teachers: displayTeachers,
+        teachers: teachersList,
         teacherPhotosMap: teacherPhotosMap,
         onOpenTeacherPhoto: (t) => setPhotoModalTeacher(t),
         masterStudents: masterStudents,
@@ -6624,6 +6626,10 @@ useEffect(() => {
           setDashboardViewMode('classroom');
           localStorage.setItem('dashboard_view_mode', 'classroom'); sessionStorage.setItem('dashboard_view_mode', 'classroom');
           setTeacherSelectedRoomId('ALL');
+          if (normalizeDepartmentName(teacher.department) === 'ทดสอบระบบ' || (teacher.name || '').includes('ทดสอบ')) {
+            setIsSandboxMode(true);
+            localStorage.setItem('system_sandbox_mode', 'true');
+          }
           setIsTeacherLoginModalOpen(false);
         },
         onClose: () => setIsTeacherLoginModalOpen(false)
@@ -6638,7 +6644,7 @@ useEffect(() => {
           setLoggedInTeacher(newTeacher);
           localStorage.setItem('logged_in_teacher', JSON.stringify(newTeacher)); sessionStorage.setItem('logged_in_teacher', JSON.stringify(newTeacher));
         },
-        teachers: displayTeachers,
+        teachers: teachersList,
         masterStudents: masterStudents,
         academicYear: currentAcademicYear,
         semester: currentSemester,
@@ -6661,7 +6667,7 @@ useEffect(() => {
 
       // Teacher Daily Check-in Modal (with Camera / Evidence Photo)
       isTeacherCheckinModalOpen && /*#__PURE__*/_jsx(TeacherCheckinModal, {
-        teachers: displayTeachers,
+        teachers: teachersList,
         teacherPhotosMap: teacherPhotosMap,
         studentPhotosMap: studentPhotosMap,
         studentCodesMap: studentCodesMap,
