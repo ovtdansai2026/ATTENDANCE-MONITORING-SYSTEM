@@ -3225,7 +3225,15 @@ function doGet(e) {
         alert('⚠️ ได้รับการตอบกลับแต่เกิดข้อผิดพลาด: ' + (res?.error || JSON.stringify(res)));
       }
     } catch (err) {
-      alert('เกิดข้อผิดพลาดในการเชื่อมต่อ: ' + (err.message || err) + '\n\nคำแนะนำ: กรุณาตรวจสอบว่าตอน Deploy ใน Google Apps Script ได้เลือก "ใครมีสิทธิ์เข้าถึง: ทุกคน (Anyone)" หรือยังครับ');
+      alert('⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ Google Drive:\n\n' +
+        'สาเหตุหลัก (403 Forbidden / CORS):\n' +
+        'Google ไม่อนุญาตให้เชื่อมต่อ เนื่องจากใน Google Apps Script ยังไม่ได้ตั้ง "ใครมีสิทธิ์เข้าถึง" เป็น "ทุกคน (Anyone)"\n\n' +
+        'วิธีแก้ไขด่วน (30 วินาที โดยไม่ต้องเปลี่ยน URL ใหม่):\n' +
+        '1. ใน Google Apps Script กดปุ่ม "ทำให้ใช้งานได้" (Deploy) > "จัดการการทำให้ใช้งานได้" (Manage deployments)\n' +
+        '2. กดไอคอนรูปดินสอ ✏️ (แก้ไข)\n' +
+        '3. ช่อง "ใครมีสิทธิ์เข้าถึง" (Who has access) ให้เลือกเป็น "ทุกคน" (Anyone)\n' +
+        '4. ช่อง "เวอร์ชัน" ให้เลือก "เวอร์ชันใหม่"\n' +
+        '5. กด "ทำให้ใช้งานได้" แล้วกลับมากดทดสอบใหม่อีกครั้งครับ');
     } finally {
       setIsTestingDrive(false);
     }
@@ -3268,7 +3276,8 @@ function doGet(e) {
         alert('ข้อผิดพลาดจาก Google Drive: ' + (res?.error || ''));
       }
     } catch (err) {
-      alert('เกิดข้อผิดพลาดในการส่งข้อมูล: ' + (err.message || err));
+      alert('⚠️ เกิดข้อผิดพลาดในการส่งข้อมูลขึ้น Google Drive:\n\n' + (err.message || err) +
+        '\n\nคำแนะนำ: กรุณาตรวจสอบว่าใน Google Apps Script ได้ตั้ง "ใครมีสิทธิ์เข้าถึง: ทุกคน (Anyone)" หรือยังครับ');
     } finally {
       setIsPushingDrive(false);
     }

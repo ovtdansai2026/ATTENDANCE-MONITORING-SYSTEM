@@ -20,6 +20,14 @@
  * ==============================================================================
  */
 
+function doGet(e) {
+  return ContentService.createTextOutput(JSON.stringify({
+    success: true,
+    message: "ระบบสำรองข้อมูล Google Drive วิทยาลัยการอาชีพด่านซ้าย พร้อมใช้งาน (Ready)",
+    timestamp: new Date().toISOString()
+  })).setMimeType(ContentService.MimeType.JSON);
+}
+
 function doPost(e) {
   try {
     if (!e || !e.postData || !e.postData.contents) {
