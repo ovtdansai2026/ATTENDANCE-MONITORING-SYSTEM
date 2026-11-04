@@ -2629,6 +2629,28 @@ function App() {
   };
 
 
+  // Sandbox (Test Mode) State
+  const [isSandboxMode, setIsSandboxMode] = useState(() => {
+    return localStorage.getItem('system_sandbox_mode') === 'true';
+  });
+
+  useEffect(() => {
+    const handleStorage = (e) => {
+      if (e.key === 'system_sandbox_mode') {
+        setIsSandboxMode(e.newValue === 'true');
+      }
+    };
+    const handleCustom = (e) => {
+      setIsSandboxMode(Boolean(e.detail));
+    };
+    window.addEventListener('storage', handleStorage);
+    window.addEventListener('sandbox_mode_changed', handleCustom);
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('sandbox_mode_changed', handleCustom);
+    };
+  }, []);
+
   // Teacher Attendance & Directory State
   const [teachersList, setTeachersList] = useState([]);
   const [isAdvisorModalOpen, setIsAdvisorModalOpen] = useState(false);
@@ -2959,9 +2981,9 @@ useEffect(() => {
 
       try {
         const report = generateDailyLineReport({
-          masterStudents,
-          sessions: checkinSessions,
-        dailyAttendance: dailyAttendanceRecords,
+          masterStudents: activeMasterStudents,
+          sessions: displayCheckinSessions,
+          dailyAttendance: displayDailyAttendance,
           academicYear: currentAcademicYear,
           semester: currentSemester,
           customNote: lineSettings.customNote,
@@ -3939,14 +3961,50 @@ useEffect(() => {
 
   const activeClubSession = activeClubSessions[0] || null;
 
-  // Active Master Students (Excludes hidden class levels like internship groups)
+  // Sandbox (Test Mode) Filtered Records
+  const displayTeachers = useMemo(() => {
+    if (isSandboxMode) return teachersList;
+    return (teachersList || []).filter(t => {
+      const d = normalizeDepartmentName(t.department || '');
+      const n = t.name || '';
+      return d !== 'ทดสอบระบบ' && !n.includes('ทดสอบ');
+    });
+  }, [teachersList, isSandboxMode]);
+
+  const displayDailyAttendance = useMemo(() => {
+    if (isSandboxMode) return dailyAttendanceRecords;
+    return (dailyAttendanceRecords || []).filter(r => {
+      const d = normalizeDepartmentName(r.department || '');
+      return d !== 'ทดสอบระบบ';
+    });
+  }, [dailyAttendanceRecords, isSandboxMode]);
+
+  const displayCheckinSessions = useMemo(() => {
+    if (isSandboxMode) return checkinSessions;
+    return (checkinSessions || []).filter(s => {
+      const d = normalizeDepartmentName(s.department || '');
+      const t = s.teacher_name || '';
+      return d !== 'ทดสอบระบบ' && !t.includes('ทดสอบ');
+    });
+  }, [checkinSessions, isSandboxMode]);
+
+  // Active Master Students (Excludes hidden class levels and sandbox mock students when mode is OFF)
   const activeMasterStudents = useMemo(() => {
-    if (!hiddenClassLevels || hiddenClassLevels.length === 0) return masterStudents;
-    return (masterStudents || []).filter(s => {
+    let list = masterStudents || [];
+    if (!isSandboxMode) {
+      list = list.filter(s => {
+        const d = normalizeDepartmentName(s.dept || s.department || '');
+        const sid = Number(s.id || s.student_id);
+        const name = s.name || s.student_name || '';
+        return d !== 'ทดสอบระบบ' && sid < 99000 && !name.includes('ทดสอบ');
+      });
+    }
+    if (!hiddenClassLevels || hiddenClassLevels.length === 0) return list;
+    return list.filter(s => {
       const lvl = String(s.level || s.class_level || s.pure_level || '').trim();
       return !hiddenClassLevels.includes(lvl);
     });
-  }, [masterStudents, hiddenClassLevels]);
+  }, [masterStudents, hiddenClassLevels, isSandboxMode]);
 
   // Sibling rooms managed by logged in teacher (Multi-room support)
   const loggedInTeacherRooms = useMemo(() => {
@@ -3998,9 +4056,9 @@ useEffect(() => {
   const departments = useMemo(() => {
     const s = new Set();
     activeMasterStudents.forEach(st => st.dept && s.add(normalizeDepartmentName(st.dept)));
-    (teachersList || []).forEach(t => t.department && s.add(normalizeDepartmentName(t.department)));
+    (displayTeachers || []).forEach(t => t.department && s.add(normalizeDepartmentName(t.department)));
     return Array.from(s).filter(d => d && d !== 'ทั่วไป').sort((a, b) => a.localeCompare(b, 'th'));
-  }, [activeMasterStudents, teachersList]);
+  }, [activeMasterStudents, displayTeachers]);
 
   const levels = useMemo(() => {
     const s = new Set();
@@ -4385,6 +4443,88 @@ useEffect(() => {
         })
       })
     }),
+
+      /* Sandbox Mode Active Banner (Displays when Sandbox Mode is ON) */
+      isSandboxMode && /*#__PURE__*/_jsx("div", {
+        className: "max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-4 pb-0 w-full animate-fade-in",
+        children: /*#__PURE__*/_jsxs("div", {
+          className: "relative overflow-hidden rounded-2xl sm:rounded-3xl p-3.5 sm:p-4 bg-gradient-to-r from-amber-600 via-orange-600 to-rose-600 text-white shadow-lg border border-amber-400/40 flex flex-col sm:flex-row items-center justify-between gap-3",
+          children: [
+            /* Ambient background glow */
+            /*#__PURE__*/_jsx("div", { className: "absolute -right-10 -bottom-10 w-32 h-32 rounded-full bg-white/10 blur-xl pointer-events-none" }),
+            /* Left side: Icon & Title */
+            /*#__PURE__*/_jsxs("div", {
+              className: "flex items-center gap-3 relative z-10 w-full sm:w-auto",
+              children: [
+                /*#__PURE__*/_jsx("div", {
+                  className: "w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-xs flex items-center justify-center flex-shrink-0 text-xl shadow-inner border border-white/30",
+                  children: "🧪"
+                }),
+                /*#__PURE__*/_jsxs("div", {
+                  className: "min-w-0 flex-1",
+                  children: [
+                    /*#__PURE__*/_jsxs("div", {
+                      className: "flex items-center gap-2 flex-wrap",
+                      children: [
+                        /*#__PURE__*/_jsx("h4", {
+                          className: "text-sm sm:text-base font-black text-white tracking-tight",
+                          children: "กำลังเปิดใช้งานโหมดทดสอบระบบ (Sandbox Mode)"
+                        }),
+                        /*#__PURE__*/_jsx("span", {
+                          className: "text-[10px] bg-white/25 text-white font-black px-2 py-0.5 rounded-full border border-white/40 tracking-wider",
+                          children: "TESTING"
+                        })
+                      ]
+                    }),
+                    /*#__PURE__*/_jsx("p", {
+                      className: "text-xs text-amber-100 font-medium truncate sm:whitespace-normal",
+                      children: "ครูทดสอบระบบ (Sandbox) • แผนกทดสอบระบบ (ปวช.1 & ปวช.2) • PIN: 123456 • ข้อมูลจะไม่กระทบสถิติจริง"
+                    })
+                  ]
+                })
+              ]
+            }),
+            /* Right side: Action Buttons */
+            /*#__PURE__*/_jsxs("div", {
+              className: "flex items-center gap-2 relative z-10 w-full sm:w-auto justify-end shrink-0",
+              children: [
+                /* Quick test checkin */
+                /*#__PURE__*/_jsxs("button", {
+                  onClick: () => {
+                    const testTeacher = (teachersList || []).find(t => normalizeDepartmentName(t.department) === 'ทดสอบระบบ' || (t.name || '').includes('ทดสอบ'));
+                    if (testTeacher) {
+                      setSelectedTeacherForCheckin(testTeacher);
+                      setSelectedDateForCheckin(formatLocalDate(new Date()));
+                      setIsTeacherCheckinModalOpen(true);
+                    } else {
+                      alert('ไม่พบข้อมูลครูทดสอบ กรุณาเปิดแท็บ "โหมดทดสอบระบบ" ในหน้าแอดมิน เพื่อซ่อมแซมข้อมูล');
+                    }
+                  },
+                  className: "px-3.5 py-2 rounded-xl bg-white hover:bg-amber-50 text-orange-900 font-bold text-xs shadow-md transition-all active:scale-95 cursor-pointer flex items-center gap-1.5",
+                  children: [
+                    /*#__PURE__*/_jsx("span", { children: "🚀" }),
+                    /*#__PURE__*/_jsx("span", { children: "เช็คชื่อครูทดสอบ" })
+                  ]
+                }),
+                /* Turn off sandbox */
+                /*#__PURE__*/_jsxs("button", {
+                  onClick: () => {
+                    setIsSandboxMode(false);
+                    localStorage.setItem('system_sandbox_mode', 'false');
+                    window.dispatchEvent(new CustomEvent('sandbox_mode_changed', { detail: false }));
+                  },
+                  className: "px-3 py-2 rounded-xl bg-black/30 hover:bg-black/40 text-white font-bold text-xs border border-white/30 transition-all active:scale-95 cursor-pointer flex items-center gap-1",
+                  title: "ปิดโหมดทดสอบและซ่อนข้อมูลทดสอบทั้งหมด",
+                  children: [
+                    /*#__PURE__*/_jsx("span", { children: "✕" }),
+                    /*#__PURE__*/_jsx("span", { children: "ปิดโหมดทดสอบ" })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      }),
 
       /* Top Banner: Teacher Session State & 3 Checkin Action Buttons */
       /*#__PURE__*/_jsx("div", {
@@ -5046,9 +5186,9 @@ useEffect(() => {
             specialHolidays: specialHolidays,
             compensatoryDays: compensatoryDays,
             holidayReasons: holidayReasons,
-            sessions: checkinSessions,
-        dailyAttendance: dailyAttendanceRecords,
-            teachers: teachersList,
+            sessions: displayCheckinSessions,
+            dailyAttendance: displayDailyAttendance,
+            teachers: displayTeachers,
             isAdminLoggedIn: isAdminLoggedIn,
             isLoading: isLoading,
             onSaveCalendarSettings: handleCalendarSettingsUpdated,
@@ -6348,8 +6488,8 @@ useEffect(() => {
         onOpenTeacherPhoto: (t) => setPhotoModalTeacher(t),
         onUpdateTeachers: () => fetchTeachers(),
         onUpdateStudents: () => reloadData(),
-        sessions: checkinSessions,
-        dailyAttendance: dailyAttendanceRecords,
+        sessions: displayCheckinSessions,
+        dailyAttendance: displayDailyAttendance,
         lineSettings: lineSettings,
         onSaveLineSettings: handleSaveLineSettings,
         allowOffHoursCheckin: allowOffHoursCheckin,
@@ -6357,6 +6497,21 @@ useEffect(() => {
         masterStudents: masterStudents,
         hiddenClassLevels: hiddenClassLevels,
         onSaveHiddenClassLevels: handleSaveHiddenClassLevels,
+        isSandboxMode: isSandboxMode,
+        onToggleSandbox: (val) => {
+          setIsSandboxMode(val);
+          localStorage.setItem('system_sandbox_mode', val ? 'true' : 'false');
+          window.dispatchEvent(new CustomEvent('sandbox_mode_changed', { detail: val }));
+        },
+        onSelectTestTeacherCheckin: (teacher) => {
+          setIsAdminPanelOpen(false);
+          setIsSandboxMode(true);
+          localStorage.setItem('system_sandbox_mode', 'true');
+          window.dispatchEvent(new CustomEvent('sandbox_mode_changed', { detail: true }));
+          setSelectedTeacherForCheckin(teacher);
+          setSelectedDateForCheckin(formatLocalDate(new Date()));
+          setIsTeacherCheckinModalOpen(true);
+        },
         onLogout: () => {
           sessionStorage.removeItem('admin_session_token');
           setIsAdminLoggedIn(false);
@@ -6368,9 +6523,9 @@ useEffect(() => {
 
       // Calendar View Modal
       isCalendarModalOpen && /*#__PURE__*/_jsx(AttendanceCalendarModal, {
-        teachers: teachersList,
-        sessions: checkinSessions,
-        dailyAttendance: dailyAttendanceRecords,
+        teachers: displayTeachers,
+        sessions: displayCheckinSessions,
+        dailyAttendance: displayDailyAttendance,
         academicYear: currentAcademicYear,
         semester: currentSemester,
         isAdminLoggedIn: isAdminLoggedIn,
@@ -6412,7 +6567,7 @@ useEffect(() => {
 
       // Advisor Directory Modal
       isAdvisorModalOpen && /*#__PURE__*/_jsx(AdvisorDirectoryModal, {
-        teachers: teachersList,
+        teachers: displayTeachers,
         teacherPhotosMap: teacherPhotosMap,
         onOpenTeacherPhoto: isAdminLoggedIn ? (t) => setPhotoModalTeacher(t) : null,
         academicYear: currentAcademicYear,
@@ -6438,7 +6593,7 @@ useEffect(() => {
 
       // Teacher Login Modal (Advisor Authentication Only)
       isTeacherLoginModalOpen && /*#__PURE__*/_jsx(TeacherLoginModal, {
-        teachers: teachersList,
+        teachers: displayTeachers,
         teacherPhotosMap: teacherPhotosMap,
         onOpenTeacherPhoto: (t) => setPhotoModalTeacher(t),
         masterStudents: masterStudents,
@@ -6462,7 +6617,7 @@ useEffect(() => {
           setLoggedInTeacher(newTeacher);
           localStorage.setItem('logged_in_teacher', JSON.stringify(newTeacher)); sessionStorage.setItem('logged_in_teacher', JSON.stringify(newTeacher));
         },
-        teachers: teachersList,
+        teachers: displayTeachers,
         masterStudents: masterStudents,
         academicYear: currentAcademicYear,
         semester: currentSemester,
@@ -6485,7 +6640,7 @@ useEffect(() => {
 
       // Teacher Daily Check-in Modal (with Camera / Evidence Photo)
       isTeacherCheckinModalOpen && /*#__PURE__*/_jsx(TeacherCheckinModal, {
-        teachers: teachersList,
+        teachers: displayTeachers,
         teacherPhotosMap: teacherPhotosMap,
         studentPhotosMap: studentPhotosMap,
         studentCodesMap: studentCodesMap,
@@ -12631,8 +12786,8 @@ function TeacherCheckinModal({
               ]
             })
           ]
-        }),
-
+        }),
+
         // STEP 4: Success View (Unambiguous, Crystal Clear Feedback)
         step === 'success_summary' && submittedSummary && /*#__PURE__*/_jsxs("div", {
           className: "p-4 sm:p-8 flex-1 overflow-y-auto custom-scroll flex flex-col items-center justify-center text-center space-y-4 sm:space-y-6 bg-slate-50",
@@ -13415,6 +13570,7 @@ window.StudentPhotoInput = StudentPhotoInput;
 window.hashPassword = hashPassword;
 window.getDefaultTeacherPin = getDefaultTeacherPin;
 window.formatThaiDateFull = formatThaiDateFull;
+window.sha256Pure = sha256Pure;
 
 // ==========================================
 // 🛡️ SECURE ADMIN MODULE LOADER BRIDGE

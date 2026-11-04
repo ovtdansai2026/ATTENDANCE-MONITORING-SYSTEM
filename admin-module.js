@@ -18,6 +18,9 @@
       if (prop === 'Sparkles') {
         return ({ className = "w-4 h-4" }) => /*#__PURE__*/_jsx("svg", { className, fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", strokeWidth: "2", children: /*#__PURE__*/_jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" }) });
       }
+      if (prop === 'Flask' || prop === 'TestTube') {
+        return ({ className = "w-4 h-4" }) => /*#__PURE__*/_jsx("svg", { className, fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", strokeWidth: "2", children: /*#__PURE__*/_jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" }) });
+      }
       return ({ className = "w-4 h-4" }) => /*#__PURE__*/_jsx("svg", { className, fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", strokeWidth: "2" });
     }
   });
@@ -2666,6 +2669,408 @@ function AdminRecheckTab({
 }
 
 // ==========================================
+// TAB: Sandbox (โหมดทดสอบระบบ - Sandbox Mode)
+// ==========================================
+function AdminSandboxTab({
+  isSandboxMode = false,
+  onToggleSandbox,
+  teachersList = [],
+  onSelectTestTeacherCheckin,
+  onUpdateTeachers,
+  onUpdateStudents,
+  reloadData
+}) {
+  const [isClearing, setIsClearing] = useState(false);
+  const [isRepairing, setIsRepairing] = useState(false);
+  const [testStats, setTestStats] = useState({
+    dailyRecords: 0,
+    checkinSessions: 0,
+    testStudentsCount: 0
+  });
+  const [loadingStats, setLoadingStats] = useState(false);
+
+  const fetchSandboxStats = useCallback(async () => {
+    setLoadingStats(true);
+    try {
+      const [dailyRes, sessionsRes, studentsRes] = await Promise.all([
+        dbAssembly.from('daily_attendance').select('id', { count: 'exact', head: true }).or('department.eq.แผนกทดสอบระบบ,department.eq.ทดสอบระบบ'),
+        dbAssembly.from('attendance_checkin_sessions').select('id', { count: 'exact', head: true }).or('department.eq.แผนกทดสอบระบบ,department.eq.ทดสอบระบบ'),
+        dbAssembly.from('attendance_summary').select('id', { count: 'exact', head: true }).gte('id', 99000).lte('id', 99999)
+      ]);
+      setTestStats({
+        dailyRecords: dailyRes.count || 0,
+        checkinSessions: sessionsRes.count || 0,
+        testStudentsCount: studentsRes.count || 0
+      });
+    } catch (e) {
+      console.warn('Sandbox stats warning:', e);
+    } finally {
+      setLoadingStats(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchSandboxStats();
+  }, [fetchSandboxStats]);
+
+  const handleClearHistory = async () => {
+    const confirmed = window.confirm(
+      '⚠️ ยืนยันการล้างประวัติการเช็คชื่อของ "แผนกทดสอบระบบ"?\n\n' +
+      '• ระบบจะลบประวัติการเช็คชื่อแถวหน้าเสาธง, รูปถ่ายเช็คชื่อ และสถิติที่บันทึกโดยครูทดสอบ\n' +
+      '• ข้อมูลนักเรียนและครูจริงจะไม่ได้รับผลกระทบใดๆ ทั้งสิ้น 100%'
+    );
+    if (!confirmed) return;
+
+    setIsClearing(true);
+    try {
+      await Promise.all([
+        dbAssembly.from('daily_attendance').delete().or('department.eq.แผนกทดสอบระบบ,department.eq.ทดสอบระบบ'),
+        dbAssembly.from('attendance_checkin_sessions').delete().or('department.eq.แผนกทดสอบระบบ,department.eq.ทดสอบระบบ')
+      ]);
+
+      const testIds = [99101, 99102, 99103, 99104, 99105, 99201, 99202, 99203, 99204, 99205];
+      try {
+        await dbAssembly.from('attendances').delete().in('student_id', testIds);
+        await dbAssembly.from('attendance_summary').update({
+          present_days: 0,
+          total_days: 0,
+          percent: 100,
+          status: 'PASS'
+        }).in('id', testIds);
+      } catch (_) {}
+
+      alert('🧹 ล้างประวัติการเช็คชื่อทดสอบเรียบร้อยแล้ว!\nระบบพร้อมสำหรับการทดสอบรอบถัดไป');
+      await fetchSandboxStats();
+      if (onUpdateStudents) onUpdateStudents();
+      if (reloadData) reloadData();
+    } catch (err) {
+      console.error(err);
+      alert('ล้างข้อมูลล้มเหลว: ' + err.message);
+    } finally {
+      setIsClearing(false);
+    }
+  };
+
+  const handleRepairData = async () => {
+    setIsRepairing(true);
+    try {
+      const PIN_123456_HASH = '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92';
+      const testTeachersData = [
+        { name: 'ครูทดสอบระบบ (Sandbox)', department: 'แผนกทดสอบระบบ', class_level: 'ปวช.1', pin_hash: PIN_123456_HASH, phone: '000-000-0000', academic_year: '2569', semester: '2' },
+        { name: 'ครูทดสอบระบบ (Sandbox)', department: 'แผนกทดสอบระบบ', class_level: 'ปวช.2', pin_hash: PIN_123456_HASH, phone: '000-000-0000', academic_year: '2569', semester: '2' }
+      ];
+      const testStudentsData = [
+        { id: 99101, student_name: 'นายทดสอบ หนึ่ง (ปวช.1)', pure_level: 'ปวช.1', department: 'แผนกทดสอบระบบ', academic_year: '2569', semester: '2', present_days: 0, total_days: 0, percent: 100, status: 'PASS' },
+        { id: 99102, student_name: 'นายทดสอบ สอง (ปวช.1)', pure_level: 'ปวช.1', department: 'แผนกทดสอบระบบ', academic_year: '2569', semester: '2', present_days: 0, total_days: 0, percent: 100, status: 'PASS' },
+        { id: 99103, student_name: 'นางสาวทดสอบ สาม (ปวช.1)', pure_level: 'ปวช.1', department: 'แผนกทดสอบระบบ', academic_year: '2569', semester: '2', present_days: 0, total_days: 0, percent: 100, status: 'PASS' },
+        { id: 99104, student_name: 'นายทดสอบ สี่ (ปวช.1)', pure_level: 'ปวช.1', department: 'แผนกทดสอบระบบ', academic_year: '2569', semester: '2', present_days: 0, total_days: 0, percent: 100, status: 'PASS' },
+        { id: 99105, student_name: 'นางสาวทดสอบ ห้า (ปวช.1)', pure_level: 'ปวช.1', department: 'แผนกทดสอบระบบ', academic_year: '2569', semester: '2', present_days: 0, total_days: 0, percent: 100, status: 'PASS' },
+        { id: 99201, student_name: 'นายทดสอบ หก (ปวช.2)', pure_level: 'ปวช.2', department: 'แผนกทดสอบระบบ', academic_year: '2569', semester: '2', present_days: 0, total_days: 0, percent: 100, status: 'PASS' },
+        { id: 99202, student_name: 'นางสาวทดสอบ เจ็ด (ปวช.2)', pure_level: 'ปวช.2', department: 'แผนกทดสอบระบบ', academic_year: '2569', semester: '2', present_days: 0, total_days: 0, percent: 100, status: 'PASS' },
+        { id: 99203, student_name: 'นายทดสอบ แปด (ปวช.2)', pure_level: 'ปวช.2', department: 'แผนกทดสอบระบบ', academic_year: '2569', semester: '2', present_days: 0, total_days: 0, percent: 100, status: 'PASS' },
+        { id: 99204, student_name: 'นายทดสอบ เก้า (ปวช.2)', pure_level: 'ปวช.2', department: 'แผนกทดสอบระบบ', academic_year: '2569', semester: '2', present_days: 0, total_days: 0, percent: 100, status: 'PASS' },
+        { id: 99205, student_name: 'นางสาวทดสอบ สิบ (ปวช.2)', pure_level: 'ปวช.2', department: 'แผนกทดสอบระบบ', academic_year: '2569', semester: '2', present_days: 0, total_days: 0, percent: 100, status: 'PASS' }
+      ];
+
+      const { data: existingTeachers } = await dbAssembly.from('teachers').select('id, name, department').eq('department', 'แผนกทดสอบระบบ');
+      if (!existingTeachers || existingTeachers.length === 0) {
+        await dbAssembly.from('teachers').insert(testTeachersData);
+      } else {
+        await dbAssembly.from('teachers').update({ pin_hash: PIN_123456_HASH }).eq('department', 'แผนกทดสอบระบบ');
+      }
+
+      await dbAssembly.from('attendance_summary').upsert(testStudentsData, { onConflict: 'id' });
+
+      alert('✨ ตรวจสอบและซ่อมแซมข้อมูลทดสอบสำเร็จ!\n• ครูทดสอบ: ครูทดสอบระบบ (Sandbox)\n• PIN 6 หลัก: 123456\n• นักเรียนทดสอบ: 10 คน (ปวช.1 และ ปวช.2)');
+      await fetchSandboxStats();
+      if (onUpdateTeachers) onUpdateTeachers();
+      if (onUpdateStudents) onUpdateStudents();
+      if (reloadData) reloadData();
+    } catch (err) {
+      console.error(err);
+      alert('ซ่อมแซมล้มเหลว: ' + err.message);
+    } finally {
+      setIsRepairing(false);
+    }
+  };
+
+  const handleDirectCheckin = () => {
+    if (!isSandboxMode && onToggleSandbox) {
+      onToggleSandbox(true);
+    }
+    const testTeacher = (teachersList || []).find(t => normalizeDepartmentName(t.department) === 'ทดสอบระบบ' || (t.name || '').includes('ทดสอบ')) || {
+      name: 'ครูทดสอบระบบ (Sandbox)',
+      department: 'แผนกทดสอบระบบ',
+      class_level: 'ปวช.1'
+    };
+    if (onSelectTestTeacherCheckin) {
+      onSelectTestTeacherCheckin(testTeacher);
+    }
+  };
+
+  return /*#__PURE__*/_jsxs("div", {
+    className: "space-y-5 max-w-3xl mx-auto py-2",
+    children: [
+      /* Master Switch Card */
+      /*#__PURE__*/_jsxs("div", {
+        className: `p-5 sm:p-6 rounded-3xl border transition-all ${isSandboxMode ? 'bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-rose-500/10 border-amber-300 shadow-md' : 'bg-slate-50 border-slate-200'}`,
+        children: [
+          /*#__PURE__*/_jsxs("div", {
+            className: "flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4",
+            children: [
+              /* Left */
+              /*#__PURE__*/_jsxs("div", {
+                className: "flex items-start gap-3.5",
+                children: [
+                  /*#__PURE__*/_jsx("div", {
+                    className: `w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 text-2xl shadow-sm ${isSandboxMode ? 'bg-amber-500 text-white' : 'bg-slate-200 text-slate-500'}`,
+                    children: "🧪"
+                  }),
+                  /*#__PURE__*/_jsxs("div", {
+                    children: [
+                      /*#__PURE__*/_jsxs("div", {
+                        className: "flex items-center gap-2",
+                        children: [
+                          /*#__PURE__*/_jsx("h3", {
+                            className: "text-base font-black text-slate-800",
+                            children: "เปิดใช้งานโหมดทดสอบระบบ (Sandbox Mode)"
+                          }),
+                          /*#__PURE__*/_jsx("span", {
+                            className: `text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${isSandboxMode ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-slate-200 text-slate-600'}`,
+                            children: isSandboxMode ? "เปิดอยู่ (ACTIVE)" : "ปิดอยู่ (OFF)"
+                          })
+                        ]
+                      }),
+                      /*#__PURE__*/_jsx("p", {
+                        className: "text-xs text-slate-500 mt-1 leading-relaxed",
+                        children: isSandboxMode
+                          ? "ครูทดสอบระบบ (Sandbox) และนักเรียนทดสอบ 2 ชั้นปี (ปวช.1 และ ปวช.2) กำลังแสดงในระบบเพื่อการทดสอบ"
+                          : "เมื่อปิดโหมดนี้ ข้อมูลทดสอบทั้งหมดจะถูกซ่อนออกจากหน้าแดชบอร์ด รายงาน LINE และสถิติวิทยาลัยโดยเด็ดขาด 100%"
+                      })
+                    ]
+                  })
+                ]
+              }),
+              /* Toggle Switch */
+              /*#__PURE__*/_jsxs("button", {
+                type: "button",
+                onClick: () => onToggleSandbox && onToggleSandbox(!isSandboxMode),
+                className: `relative inline-flex h-7 w-14 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isSandboxMode ? 'bg-amber-500' : 'bg-slate-300'}`,
+                children: [
+                  /*#__PURE__*/_jsx("span", {
+                    className: `pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${isSandboxMode ? 'translate-x-7' : 'translate-x-0'}`
+                  })
+                ]
+              })
+            ]
+          })
+        ]
+      }),
+
+      /* Credentials & Room Info Card */
+      /*#__PURE__*/_jsxs("div", {
+        className: "bg-white p-5 rounded-3xl border border-slate-200 shadow-xs space-y-4",
+        children: [
+          /*#__PURE__*/_jsxs("div", {
+            className: "flex items-center justify-between border-b border-slate-100 pb-3",
+            children: [
+              /*#__PURE__*/_jsxs("h4", {
+                className: "text-sm font-bold text-slate-800 flex items-center gap-2",
+                children: [
+                  /*#__PURE__*/_jsx("span", { children: "🔑" }),
+                  "ข้อมูลบัญชีสำหรับทดสอบการเช็คชื่อ"
+                ]
+              }),
+              /*#__PURE__*/_jsx("span", {
+                className: "text-[11px] font-mono font-bold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-lg border border-indigo-200",
+                children: "PIN: 123456 (6 หลัก)"
+              })
+            ]
+          }),
+
+          /* Details Grid */
+          /*#__PURE__*/_jsxs("div", {
+            className: "grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs",
+            children: [
+              /* Box 1 */
+              /*#__PURE__*/_jsxs("div", {
+                className: "p-3.5 bg-slate-50 rounded-2xl border border-slate-100 space-y-1.5",
+                children: [
+                  /*#__PURE__*/_jsx("span", { className: "text-slate-400 font-bold block text-[11px]", children: "ครูที่ปรึกษาประจำแผนก" }),
+                  /*#__PURE__*/_jsx("div", { className: "text-sm font-black text-slate-800", children: "ครูทดสอบระบบ (Sandbox)" }),
+                  /*#__PURE__*/_jsx("div", { className: "text-slate-600", children: "แผนกวิชา: แผนกทดสอบระบบ" })
+                ]
+              }),
+              /* Box 2 */
+              /*#__PURE__*/_jsxs("div", {
+                className: "p-3.5 bg-slate-50 rounded-2xl border border-slate-100 space-y-1.5",
+                children: [
+                  /*#__PURE__*/_jsx("span", { className: "text-slate-400 font-bold block text-[11px]", children: "รหัสผ่าน PIN (6 หลัก)" }),
+                  /*#__PURE__*/_jsxs("div", {
+                    className: "flex items-center gap-2",
+                    children: [
+                      /*#__PURE__*/_jsx("code", { className: "text-base font-black font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200", children: "123456" }),
+                      /*#__PURE__*/_jsx("span", { className: "text-[11px] text-slate-400", children: "(ใช้ได้ทั้ง 2 ห้อง)" })
+                    ]
+                  }),
+                  /*#__PURE__*/_jsx("div", { className: "text-slate-500 text-[11px]", children: "รองรับการกดจากปุ่มหน้าจอและแป้นพิมพ์ตัวเลข" })
+                ]
+              })
+            ]
+          }),
+
+          /* Class Rooms & Students Grid */
+          /*#__PURE__*/_jsxs("div", {
+            className: "grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1",
+            children: [
+              /* Room 1: ปวช.1 */
+              /*#__PURE__*/_jsxs("div", {
+                className: "p-3 bg-amber-50/70 border border-amber-200/80 rounded-2xl space-y-1.5",
+                children: [
+                  /*#__PURE__*/_jsxs("div", {
+                    className: "flex items-center justify-between",
+                    children: [
+                      /*#__PURE__*/_jsx("span", { className: "font-black text-amber-900 text-xs", children: "🏫 ห้องเรียน ปวช.1" }),
+                      /*#__PURE__*/_jsx("span", { className: "text-[10px] font-bold bg-amber-200/70 text-amber-800 px-1.5 py-0.2 rounded-md", children: "5 คน" })
+                    ]
+                  }),
+                  /*#__PURE__*/_jsxs("ul", {
+                    className: "text-[11px] text-slate-600 space-y-0.5 font-mono",
+                    children: [
+                      /*#__PURE__*/_jsx("li", { children: "• 99101 : นายทดสอบ หนึ่ง (ปวช.1)" }),
+                      /*#__PURE__*/_jsx("li", { children: "• 99102 : นายทดสอบ สอง (ปวช.1)" }),
+                      /*#__PURE__*/_jsx("li", { children: "• 99103 : นางสาวทดสอบ สาม (ปวช.1)" }),
+                      /*#__PURE__*/_jsx("li", { children: "• 99104 : นายทดสอบ สี่ (ปวช.1)" }),
+                      /*#__PURE__*/_jsx("li", { children: "• 99105 : นางสาวทดสอบ ห้า (ปวช.1)" })
+                    ]
+                  })
+                ]
+              }),
+              /* Room 2: ปวช.2 */
+              /*#__PURE__*/_jsxs("div", {
+                className: "p-3 bg-indigo-50/70 border border-indigo-200/80 rounded-2xl space-y-1.5",
+                children: [
+                  /*#__PURE__*/_jsxs("div", {
+                    className: "flex items-center justify-between",
+                    children: [
+                      /*#__PURE__*/_jsx("span", { className: "font-black text-indigo-900 text-xs", children: "🏫 ห้องเรียน ปวช.2" }),
+                      /*#__PURE__*/_jsx("span", { className: "text-[10px] font-bold bg-indigo-200/70 text-indigo-800 px-1.5 py-0.2 rounded-md", children: "5 คน" })
+                    ]
+                  }),
+                  /*#__PURE__*/_jsxs("ul", {
+                    className: "text-[11px] text-slate-600 space-y-0.5 font-mono",
+                    children: [
+                      /*#__PURE__*/_jsx("li", { children: "• 99201 : นายทดสอบ หก (ปวช.2)" }),
+                      /*#__PURE__*/_jsx("li", { children: "• 99202 : นางสาวทดสอบ เจ็ด (ปวช.2)" }),
+                      /*#__PURE__*/_jsx("li", { children: "• 99203 : นายทดสอบ แปด (ปวช.2)" }),
+                      /*#__PURE__*/_jsx("li", { children: "• 99204 : นายทดสอบ เก้า (ปวช.2)" }),
+                      /*#__PURE__*/_jsx("li", { children: "• 99205 : นางสาวทดสอบ สิบ (ปวช.2)" })
+                    ]
+                  })
+                ]
+              })
+            ]
+          })
+        ]
+      }),
+
+      /* Actions Card */
+      /*#__PURE__*/_jsxs("div", {
+        className: "bg-white p-5 rounded-3xl border border-slate-200 shadow-xs space-y-3.5",
+        children: [
+          /*#__PURE__*/_jsx("h4", {
+            className: "text-sm font-bold text-slate-800",
+            children: "⚡ คำสั่งจัดการและทดสอบด่วน"
+          }),
+          /*#__PURE__*/_jsxs("div", {
+            className: "grid grid-cols-1 sm:grid-cols-3 gap-2.5",
+            children: [
+              /* Button 1: Direct Check-in */
+              /*#__PURE__*/_jsxs("button", {
+                type: "button",
+                onClick: handleDirectCheckin,
+                className: "p-3.5 rounded-2xl bg-gradient-to-br from-indigo-600 to-sky-600 hover:from-indigo-700 hover:to-sky-700 active:scale-98 text-white font-bold text-xs shadow-md transition-all flex flex-col items-center justify-center gap-1.5 text-center cursor-pointer",
+                children: [
+                  /*#__PURE__*/_jsx("span", { className: "text-xl", children: "🚀" }),
+                  /*#__PURE__*/_jsx("span", { children: "เปิดเช็คชื่อครูทดสอบทันที" }),
+                  /*#__PURE__*/_jsx("span", { className: "text-[10px] text-white/80 font-normal", children: "สลับไปหน้าเช็คชื่อพร้อม PIN" })
+                ]
+              }),
+              /* Button 2: Clear Test History */
+              /*#__PURE__*/_jsxs("button", {
+                type: "button",
+                disabled: isClearing,
+                onClick: handleClearHistory,
+                className: "p-3.5 rounded-2xl bg-rose-50 hover:bg-rose-100 active:scale-98 text-rose-800 border border-rose-200 font-bold text-xs shadow-xs transition-all flex flex-col items-center justify-center gap-1.5 text-center cursor-pointer disabled:opacity-50",
+                children: [
+                  /*#__PURE__*/_jsx("span", { className: "text-xl", children: isClearing ? "⏳" : "🧹" }),
+                  /*#__PURE__*/_jsx("span", { children: isClearing ? "กำลังล้าง..." : "ล้างประวัติการเช็คชื่อทดสอบ" }),
+                  /*#__PURE__*/_jsx("span", { className: "text-[10px] text-rose-600 font-normal", children: "ลบเฉพาะประวัติแผนกทดสอบ" })
+                ]
+              }),
+              /* Button 3: Repair Data */
+              /*#__PURE__*/_jsxs("button", {
+                type: "button",
+                disabled: isRepairing,
+                onClick: handleRepairData,
+                className: "p-3.5 rounded-2xl bg-emerald-50 hover:bg-emerald-100 active:scale-98 text-emerald-800 border border-emerald-200 font-bold text-xs shadow-xs transition-all flex flex-col items-center justify-center gap-1.5 text-center cursor-pointer disabled:opacity-50",
+                children: [
+                  /*#__PURE__*/_jsx("span", { className: "text-xl", children: isRepairing ? "⏳" : "✨" }),
+                  /*#__PURE__*/_jsx("span", { children: isRepairing ? "กำลังซ่อมแซม..." : "ซ่อมแซมข้อมูลทดสอบ" }),
+                  /*#__PURE__*/_jsx("span", { className: "text-[10px] text-emerald-600 font-normal", children: "รีเซ็ต PIN: 123456 & นร. 10 คน" })
+                ]
+              })
+            ]
+          }),
+
+          /* Stats Badge Summary */
+          /*#__PURE__*/_jsxs("div", {
+            className: "pt-2 flex items-center justify-between text-[11px] text-slate-500 border-t border-slate-100",
+            children: [
+              /*#__PURE__*/_jsxs("span", {
+                children: [
+                  "สถิติทดสอบปัจจุบัน: ",
+                  /*#__PURE__*/_jsxs("strong", { className: "text-slate-700", children: [testStats.dailyRecords, " บันทึกวัน"] }),
+                  " • ",
+                  /*#__PURE__*/_jsxs("strong", { className: "text-slate-700", children: [testStats.checkinSessions, " เซสชัน"] }),
+                  " • ",
+                  /*#__PURE__*/_jsxs("strong", { className: "text-slate-700", children: [testStats.testStudentsCount, " นักเรียน"] })
+                ]
+              }),
+              /*#__PURE__*/_jsxs("button", {
+                type: "button",
+                onClick: fetchSandboxStats,
+                disabled: loadingStats,
+                className: "text-indigo-600 hover:text-indigo-800 font-bold cursor-pointer underline",
+                children: loadingStats ? "กำลังรีเฟรช..." : "รีเฟรชสถิติ"
+              })
+            ]
+          })
+        ]
+      }),
+
+      /* Protection Note Box */
+      /*#__PURE__*/_jsxs("div", {
+        className: "p-4 bg-sky-50 rounded-2xl border border-sky-200 text-xs text-sky-900 space-y-1",
+        children: [
+          /*#__PURE__*/_jsxs("div", {
+            className: "font-bold flex items-center gap-1.5 text-sky-950",
+            children: [
+              /*#__PURE__*/_jsx("span", { children: "🛡️" }),
+              "ระบบปกป้องสถิติจริงของวิทยาลัย (Statistical Isolation Guarantee)"
+            ]
+          }),
+          /*#__PURE__*/_jsx("p", {
+            className: "text-sky-800/90 leading-relaxed",
+            children: "ระบบแยกข้อมูลของแผนกทดสอบออกจากฐานข้อมูลสถิติของวิทยาลัยอย่างสมบูรณ์ เมื่อปิดโหมดทดสอบ ระบบจะกรองรหัสแผนก 'ทดสอบระบบ' และรหัสนักเรียน 99xxx ออกจากการคำนวณร้อยละการมาแถว, การแจ้งเตือน LINE ประจำวัน, และรายงานผลของวิทยาลัย 100%"
+          })
+        ]
+      })
+    ]
+  });
+}
+
+// ==========================================
 // MODAL: Admin Panel (Expanded with Logs & Drive)
 // ==========================================
 function AdminPanelModal({
@@ -2711,6 +3116,9 @@ function AdminPanelModal({
   activities = [],
   openCentralActivityIds = [],
   onUpdateOpenCentralActivities,
+  isSandboxMode = false,
+  onToggleSandbox,
+  onSelectTestTeacherCheckin,
   onLogout,
   reloadData,
   onClose
@@ -4889,6 +5297,10 @@ function dailyAutoBackupTrigger() {
     recheck: {
       title: "จัดการกิจกรรมกลางของวิทยาลัย",
       subtitle: "สร้างและกำหนดกิจกรรมกลางสำหรับภาคเรียนนี้ เพื่อให้ครูที่ปรึกษาเช็คชื่อเข้าร่วม"
+    },
+    sandbox: {
+      title: "โหมดทดสอบระบบ (Sandbox Mode)",
+      subtitle: "ทดสอบการเช็คชื่อ บันทึกภาพ และสำรองข้อมูล โดยแยกออกจากสถิติจริงของวิทยาลัย 100%"
     }
   };
 
@@ -4999,6 +5411,11 @@ function dailyAutoBackupTrigger() {
                   onClick: () => setAdminTab("clubs"),
                   className: "px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 shrink-0 " + (adminTab === "clubs" ? "bg-amber-600 text-white shadow-md shadow-amber-950/60 ring-1 ring-amber-300/40" : "bg-white/10 text-amber-100 hover:bg-white/15"),
                   children: [/*#__PURE__*/_jsx(Icon.Award, { className: "w-3.5 h-3.5" }), "กิจกรรมชมรม"]
+                }),
+                /*#__PURE__*/_jsxs("button", {
+                  onClick: () => setAdminTab("sandbox"),
+                  className: "px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 shrink-0 " + (adminTab === "sandbox" ? "bg-amber-500 text-white shadow-md shadow-amber-950/60 ring-1 ring-amber-300/40" : "bg-white/10 text-amber-200 hover:bg-white/15"),
+                  children: [/*#__PURE__*/_jsx(Icon.Flask, { className: "w-3.5 h-3.5" }), "ทดสอบระบบ"]
                 })
               ]
             }),
@@ -5062,6 +5479,11 @@ function dailyAutoBackupTrigger() {
                   onClick: () => setAdminTab('clubs'),
                   className: `px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${adminTab === 'clubs' ? 'bg-white text-amber-900 shadow-sm' : 'text-amber-200 hover:text-white hover:bg-white/10'}`,
                   children: [/*#__PURE__*/_jsx(Icon.Award, { className: "w-3.5 h-3.5" }), "จัดการกิจกรรมชมรม"]
+                }),
+                /*#__PURE__*/_jsxs("button", {
+                  onClick: () => setAdminTab('sandbox'),
+                  className: `px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${adminTab === 'sandbox' ? 'bg-amber-500 text-white shadow-sm ring-1 ring-amber-300' : 'text-amber-200 hover:text-white hover:bg-white/10'}`,
+                  children: [/*#__PURE__*/_jsx(Icon.Flask, { className: "w-3.5 h-3.5" }), "โหมดทดสอบ"]
                 })
               ]
             }),
@@ -5226,6 +5648,35 @@ function dailyAutoBackupTrigger() {
                             /*#__PURE__*/_jsx(Icon.Award, { className: `w-4 h-4 ${adminTab === 'clubs' ? 'text-white' : 'text-amber-300'}` }),
                             /*#__PURE__*/_jsx("span", { children: "จัดการกิจกรรมชมรม" })
                           ]
+                        })
+                      ]
+                    })
+                  ]
+                }),
+
+                /* Group: โหมดทดสอบระบบ */
+                /*#__PURE__*/_jsxs("div", {
+                  className: "pt-2 space-y-1",
+                  children: [
+                    /*#__PURE__*/_jsx("div", {
+                      className: "px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-300/80",
+                      children: "🧪 เครื่องมือทดสอบ"
+                    }),
+                    /*#__PURE__*/_jsxs("button", {
+                      type: "button",
+                      onClick: () => setAdminTab('sandbox'),
+                      className: `w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-all ${adminTab === 'sandbox' ? 'bg-amber-500 text-white font-bold border border-amber-300 shadow-md backdrop-blur-xs' : 'text-amber-100/90 hover:text-white hover:bg-white/10'}`,
+                      children: [
+                        /*#__PURE__*/_jsxs("div", {
+                          className: "flex items-center gap-2.5",
+                          children: [
+                            /*#__PURE__*/_jsx(Icon.Flask, { className: `w-4 h-4 ${adminTab === 'sandbox' ? 'text-white' : 'text-amber-300'}` }),
+                            /*#__PURE__*/_jsx("span", { children: "โหมดทดสอบ (Sandbox)" })
+                          ]
+                        }),
+                        isSandboxMode && /*#__PURE__*/_jsx("span", {
+                          className: "w-2 h-2 rounded-full bg-amber-300 animate-pulse",
+                          title: "เปิดใช้งานอยู่"
                         })
                       ]
                     })
@@ -7927,6 +8378,16 @@ function dailyAutoBackupTrigger() {
               academicYear: adminYear,
               semester: adminSem,
               onRefreshParent: reloadData || onUpdateStudents
+            }),
+
+            adminTab === 'sandbox' && /*#__PURE__*/_jsx(AdminSandboxTab, {
+              isSandboxMode: isSandboxMode,
+              onToggleSandbox: onToggleSandbox,
+              teachersList: teachersList,
+              onSelectTestTeacherCheckin: onSelectTestTeacherCheckin,
+              onUpdateTeachers: onUpdateTeachers,
+              onUpdateStudents: onUpdateStudents,
+              reloadData: reloadData
             })
           ]
         })
