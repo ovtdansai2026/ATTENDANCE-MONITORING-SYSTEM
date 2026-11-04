@@ -3015,6 +3015,11 @@ const [adminTab, setAdminTab] = useState('term'); // 'term', 'students', 'logs',
   });
   const [isTestingDrive, setIsTestingDrive] = useState(false);
   const [isPushingDrive, setIsPushingDrive] = useState(false);
+  const [isBatchSyncing, setIsBatchSyncing] = useState(false);
+  const [batchSyncProgress, setBatchSyncProgress] = useState(null);
+  const [lastDriveBackupDate, setLastDriveBackupDate] = useState(() => {
+    try { return localStorage.getItem('last_auto_drive_backup_date') || ''; } catch(_) { return ''; }
+  });
   const [isCopiedGas, setIsCopiedGas] = useState(false);
 
   const handleSaveDriveSettings = (url, emails) => {
@@ -3271,6 +3276,7 @@ function doGet(e) {
       });
       const res = await resp.json();
       if (res && res.success) {
+        try { localStorage.setItem('last_auto_drive_backup_date', todayStr); setLastDriveBackupDate(todayStr); } catch (_) {}
         alert(`✅ ส่งข้อมูลสำรองประจำวันที่ ${todayStr} ขึ้น Google Drive สำเร็จ!\n\n• สกัดภาพถ่ายจริง: ${res.photos_count || 0} ภาพ\n• ส่งอีเมลรายงานเข้า 2 บัญชีเมลเรียบร้อยแล้วครับ`);
       } else {
         alert('ข้อผิดพลาดจาก Google Drive: ' + (res?.error || ''));
@@ -3282,6 +3288,144 @@ function doGet(e) {
       setIsPushingDrive(false);
     }
   };
+
+  // สำรองประวัติย้อนหลังทั้งหมดขึ้น Google Drive (Batch Sync ส่งทีละวัน ป้องกันไฟล์ใหญ่เกินกำหนด)
+  const handleBatchSyncAllDatesToDrive = async () => {
+    const cleanUrl = (driveWebhookUrl || '').trim();
+    if (!cleanUrl) {
+      alert('⚠️ กรุณาระบุ Google Apps Script Webhook URL ก่อนครับ');
+      return;
+    }
+
+    setIsBatchSyncing(true);
+    setBatchSyncProgress({ text: 'กำลังตรวจนับประวัติวันที่ทั้งหมดจากฐานข้อมูล...', current: 0, total: 0 });
+    try {
+      const [sessionsRes, dailyRes] = await Promise.all([
+        dbAssembly.from('attendance_checkin_sessions').select('check_date').order('check_date', { ascending: true }),
+        dbAssembly.from('daily_attendance').select('check_date').order('check_date', { ascending: true })
+      ]);
+      const dateSet = new Set();
+      (sessionsRes.data || []).forEach(r => r.check_date && dateSet.add(r.check_date));
+      (dailyRes.data || []).forEach(r => r.check_date && dateSet.add(r.check_date));
+      const sortedDates = [...dateSet].sort();
+
+      if (sortedDates.length === 0) {
+        alert('ℹ️ ยังไม่มีประวัติการเช็คชื่อในระบบที่ต้องสำรองครับ');
+        setIsBatchSyncing(false);
+        setBatchSyncProgress(null);
+        return;
+      }
+
+      const confirmed = window.confirm(
+        `📦 พบประวัติการเข้าแถวทั้งหมด ${sortedDates.length} วัน\n\n` +
+        `ระบบจะทำการสำรองข้อมูลและภาพถ่ายขึ้น Google Drive แยกตามวันทีละวัน (Batch Sync) เพื่อความรวดเร็วและป้องกันขนาดไฟล์เกินกำหนดของ Google Apps Script\n\n` +
+        `ต้องการเริ่มการสำรองข้อมูลย้อนหลังทั้งหมดหรือไม่?`
+      );
+      if (!confirmed) {
+        setIsBatchSyncing(false);
+        setBatchSyncProgress(null);
+        return;
+      }
+
+      const emailArr = driveBackupEmails.split(',').map(e => e.trim()).filter(Boolean);
+      let successCount = 0;
+      let totalPhotos = 0;
+
+      for (let i = 0; i < sortedDates.length; i++) {
+        const d = sortedDates[i];
+        setBatchSyncProgress({
+          current: i + 1,
+          total: sortedDates.length,
+          date: d,
+          text: `กำลังสำรองวันที่ ${d} (${i + 1}/${sortedDates.length})...`
+        });
+
+        const [dayDaily, daySessions] = await Promise.all([
+          dbAssembly.from('daily_attendance').select('*').eq('check_date', d).then(r => r.data || []),
+          dbAssembly.from('attendance_checkin_sessions').select('*').eq('check_date', d).then(r => r.data || [])
+        ]);
+
+        const payload = {
+          date: d,
+          academic_year: academicYear || '2569',
+          semester: semester || '2',
+          target_emails: (i === sortedDates.length - 1) ? emailArr : [],
+          daily_records: dayDaily,
+          sessions: daySessions,
+          present_count: dayDaily.filter(x => x.status === 'present').length,
+          absent_count: dayDaily.filter(x => x.status === 'absent').length,
+          leave_count: dayDaily.filter(x => x.status === 'leave').length
+        };
+
+        const resp = await fetch(cleanUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload)
+        });
+        const res = await resp.json().catch(() => ({}));
+        if (res && res.success) {
+          successCount++;
+          totalPhotos += (res.photos_count || 0);
+        }
+      }
+
+      alert(`🎉 สำรองประวัติย้อนหลังทั้งหมดขึ้น Google Drive สำเร็จครบถ้วน!\n\n• สำรองสำเร็จ: ${successCount} จาก ${sortedDates.length} วัน\n• สกัดภาพถ่ายจริงรวม: ${totalPhotos} ภาพ\n• สร้างโฟลเดอร์แยกตามวันใน Drive เรียบร้อยแล้วครับ`);
+    } catch (err) {
+      alert('⚠️ เกิดข้อผิดพลาดในการสำรองข้อมูลย้อนหลัง: ' + (err.message || err));
+    } finally {
+      setIsBatchSyncing(false);
+      setBatchSyncProgress(null);
+    }
+  };
+
+  // ระบบสำรองข้อมูลอัตโนมัติรายวันหลังเข้าแถว (ทำงานเมื่อเปิดระบบหลัง 09:00 น. หากวันนี้ยังไม่ได้สำรอง)
+  useEffect(() => {
+    const checkAutoDriveBackup = async () => {
+      const cleanUrl = (driveWebhookUrl || '').trim();
+      if (!cleanUrl) return;
+      const todayStr = formatLocalDate(new Date());
+      const now = new Date();
+      if (now.getHours() < 9) return;
+      const savedDate = localStorage.getItem('last_auto_drive_backup_date');
+      if (savedDate === todayStr) return;
+
+      try {
+        const [dailyRes, sessionsRes] = await Promise.all([
+          dbAssembly.from('daily_attendance').select('*').eq('check_date', todayStr).then(r => r.data || []),
+          dbAssembly.from('attendance_checkin_sessions').select('*').eq('check_date', todayStr).then(r => r.data || [])
+        ]);
+        if (dailyRes.length === 0 && sessionsRes.length === 0) return;
+        const emailArr = driveBackupEmails.split(',').map(e => e.trim()).filter(Boolean);
+        const payload = {
+          date: todayStr,
+          academic_year: academicYear || '2569',
+          semester: semester || '2',
+          target_emails: emailArr,
+          daily_records: dailyRes,
+          sessions: sessionsRes,
+          present_count: dailyRes.filter(d => d.status === 'present').length,
+          absent_count: dailyRes.filter(d => d.status === 'absent').length,
+          leave_count: dailyRes.filter(d => d.status === 'leave').length
+        };
+        const resp = await fetch(cleanUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload)
+        });
+        const res = await resp.json().catch(() => ({}));
+        if (res && res.success) {
+          try {
+            localStorage.setItem('last_auto_drive_backup_date', todayStr);
+            setLastDriveBackupDate(todayStr);
+          } catch (_) {}
+          console.log('[Auto-Drive-Backup] Automatically pushed daily backup to Drive for', todayStr);
+        }
+      } catch (e) {
+        console.warn('[Auto-Drive-Backup] Notice:', e.message);
+      }
+    };
+    checkAutoDriveBackup();
+  }, [driveWebhookUrl, driveBackupEmails, academicYear, semester]);
 
   // Full Backup & Restore State & Handlers
   const [isExportingBackup, setIsExportingBackup] = useState(false);
@@ -7385,6 +7529,56 @@ function doGet(e) {
                       ]
                     }),
 
+                    /* Automated Backup Status & Progress */
+                    /*#__PURE__*/_jsxs("div", {
+                      className: "flex flex-wrap items-center justify-between gap-2 p-3 bg-white/90 border border-sky-100 rounded-2xl text-xs",
+                      children: [
+                        /*#__PURE__*/_jsxs("div", {
+                          className: "flex items-center gap-2",
+                          children: [
+                            /*#__PURE__*/_jsx("span", {
+                              className: "w-2.5 h-2.5 rounded-full " + (lastDriveBackupDate === formatLocalDate(new Date()) ? "bg-emerald-500 animate-pulse" : (new Date().getHours() < 9 ? "bg-amber-400" : "bg-rose-400"))
+                            }),
+                            /*#__PURE__*/_jsxs("span", {
+                              className: "font-bold text-slate-800",
+                              children: [
+                                "สถานะสำรองข้อมูลวันนี้ (",
+                                formatLocalDate(new Date()),
+                                "): ",
+                                lastDriveBackupDate === formatLocalDate(new Date())
+                                  ? "สำรองขึ้น Drive เรียบร้อยแล้ว ✅"
+                                  : (new Date().getHours() < 9 ? "รอเวลา 09:00 น. (ระบบจะสำรองให้อัตโนมัติหลังเข้าแถว) ⏳" : "ยังไม่ได้สำรองข้อมูลของวันนี้ (กดปุ่มสำรองทันทีด้านล่าง)")
+                              ]
+                            })
+                          ]
+                        }),
+                        /*#__PURE__*/_jsx("span", {
+                          className: "text-[11px] text-slate-500 bg-sky-50 px-2 py-0.5 rounded-lg border border-sky-200",
+                          children: "⏰ สำรองอัตโนมัติรายวันหลัง 09:00 น."
+                        })
+                      ]
+                    }),
+
+                    batchSyncProgress && /*#__PURE__*/_jsxs("div", {
+                      className: "p-3.5 bg-indigo-50 border border-indigo-200 rounded-2xl space-y-2 text-xs text-indigo-900",
+                      children: [
+                        /*#__PURE__*/_jsxs("div", {
+                          className: "flex justify-between font-bold",
+                          children: [
+                            /*#__PURE__*/_jsx("span", { children: batchSyncProgress.text }),
+                            batchSyncProgress.total > 0 && /*#__PURE__*/_jsxs("span", { children: [Math.round((batchSyncProgress.current / batchSyncProgress.total) * 100), "%"] })
+                          ]
+                        }),
+                        batchSyncProgress.total > 0 && /*#__PURE__*/_jsx("div", {
+                          className: "w-full h-2.5 bg-indigo-200/60 rounded-full overflow-hidden",
+                          children: /*#__PURE__*/_jsx("div", {
+                            className: "h-full bg-indigo-600 transition-all duration-300 rounded-full",
+                            style: { width: `${Math.round((batchSyncProgress.current / batchSyncProgress.total) * 100)}%` }
+                          })
+                        })
+                      ]
+                    }),
+
                     /* Action Buttons */
                     /*#__PURE__*/_jsxs("div", {
                       className: "flex flex-wrap gap-2 pt-1",
@@ -7416,6 +7610,17 @@ function doGet(e) {
                           children: [
                             isPushingDrive ? /*#__PURE__*/_jsx(Icon.Spin, { className: "w-3.5 h-3.5 text-white" }) : /*#__PURE__*/_jsx(Icon.Cloud, { className: "w-3.5 h-3.5 text-white" }),
                             isPushingDrive ? "กำลังส่งข้อมูลขึ้น Drive..." : "🚀 สำรองข้อมูลวันนี้ขึ้น Google Drive ทันที"
+                          ]
+                        })
+                        ,
+                        /*#__PURE__*/_jsxs("button", {
+                          type: "button",
+                          onClick: handleBatchSyncAllDatesToDrive,
+                          disabled: isTestingDrive || isPushingDrive || isBatchSyncing,
+                          className: "px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white rounded-xl text-xs font-bold shadow-2xs flex items-center gap-1.5 transition-all cursor-pointer",
+                          children: [
+                            isBatchSyncing ? /*#__PURE__*/_jsx(Icon.Spin, { className: "w-3.5 h-3.5 text-white" }) : /*#__PURE__*/_jsx(Icon.Upload, { className: "w-3.5 h-3.5 text-white" }),
+                            isBatchSyncing ? "กำลังสำรองประวัติย้อนหลัง..." : "📦 สำรองประวัติทั้งหมดขึ้น Drive (ครั้งแรก / Batch Sync)"
                           ]
                         })
                       ]
