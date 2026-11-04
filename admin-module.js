@@ -8,7 +8,19 @@
   const _Fragment = window._Fragment || (window.React && window.React.Fragment);
   const _jsx = window._jsx || function(type, props, key) { const p = Object.assign({}, props); if (key !== undefined) p.key = key; const children = p.children; delete p.children; if (children === undefined) return React.createElement(type, p); if (Array.isArray(children)) return React.createElement(type, p, ...children); return React.createElement(type, p, children); };
   const _jsxs = window._jsxs || _jsx;
-  const Icon = window.Icon || {};
+  const rawIcon = window.Icon || {};
+  const Icon = new Proxy(rawIcon, {
+    get(target, prop) {
+      if (prop in target) return target[prop];
+      if (prop === 'Cloud') {
+        return ({ className = "w-4 h-4" }) => /*#__PURE__*/_jsx("svg", { className, fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", strokeWidth: "2", children: /*#__PURE__*/_jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 00-9.78 2.096A4.001 4.001 0 003 15z" }) });
+      }
+      if (prop === 'Sparkles') {
+        return ({ className = "w-4 h-4" }) => /*#__PURE__*/_jsx("svg", { className, fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", strokeWidth: "2", children: /*#__PURE__*/_jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" }) });
+      }
+      return ({ className = "w-4 h-4" }) => /*#__PURE__*/_jsx("svg", { className, fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", strokeWidth: "2" });
+    }
+  });
   const dbAssembly = window.dbAssembly;
   const dbReCheckFallback = window.dbReCheckFallback;
   const generateDailyLineReport = window.generateDailyLineReport;
