@@ -4003,14 +4003,18 @@ useEffect(() => {
   const activeClubSession = activeClubSessions[0] || null;
 
   // Sandbox (Test Mode) Filtered Records
-  const isTeacherTesting = Boolean(loggedInTeacher && (normalizeDepartmentName(loggedInTeacher.department || '') === 'ทดสอบระบบ' || (loggedInTeacher.name || '').includes('ทดสอบ')));
+  const isTeacherTesting = Boolean(loggedInTeacher && (
+    normalizeDepartmentName(loggedInTeacher.department || '') === 'ทดสอบระบบ' || 
+    (loggedInTeacher.name || '').includes('ทดสอบ') ||
+    (loggedInTeacher.name || '').toLowerCase() === 'admin'
+  ));
 
   const displayTeachers = useMemo(() => {
     if (isSandboxMode || isTeacherTesting) return teachersList;
     return (teachersList || []).filter(t => {
       const d = normalizeDepartmentName(t.department || '');
-      const n = t.name || '';
-      return d !== 'ทดสอบระบบ' && !n.includes('ทดสอบ');
+      const n = (t.name || '').toLowerCase();
+      return d !== 'ทดสอบระบบ' && !n.includes('ทดสอบ') && n !== 'admin';
     });
   }, [teachersList, isSandboxMode, isTeacherTesting]);
 
@@ -4026,8 +4030,8 @@ useEffect(() => {
     if (isSandboxMode || isTeacherTesting) return checkinSessions;
     return (checkinSessions || []).filter(s => {
       const d = normalizeDepartmentName(s.department || '');
-      const t = s.teacher_name || '';
-      return d !== 'ทดสอบระบบ' && !t.includes('ทดสอบ');
+      const t = (s.teacher_name || '').toLowerCase();
+      return d !== 'ทดสอบระบบ' && !t.includes('ทดสอบ') && t !== 'admin';
     });
   }, [checkinSessions, isSandboxMode, isTeacherTesting]);
 
@@ -4521,7 +4525,7 @@ useEffect(() => {
                     }),
                     /*#__PURE__*/_jsx("p", {
                       className: "text-xs text-amber-100 font-medium truncate sm:whitespace-normal",
-                      children: "ครูทดสอบระบบ (Sandbox) • แผนกทดสอบระบบ (ปวช.1 & ปวช.2) • PIN: 123456 • ข้อมูลจะไม่กระทบสถิติจริง"
+                      children: "โหมดทดสอบระบบ (Sandbox Mode) • บัญชี: admin • แผนกทดสอบระบบ (ปวช.1 & ปวช.2) • PIN: 112233 • ข้อมูลจะไม่กระทบสถิติจริง"
                     })
                   ]
                 })
@@ -4534,7 +4538,11 @@ useEffect(() => {
                 /* Quick test checkin */
                 /*#__PURE__*/_jsxs("button", {
                   onClick: () => {
-                    const testTeacher = (teachersList || []).find(t => normalizeDepartmentName(t.department) === 'ทดสอบระบบ' || (t.name || '').includes('ทดสอบ'));
+                    const testTeacher = (teachersList || []).find(t => 
+                      normalizeDepartmentName(t.department) === 'ทดสอบระบบ' || 
+                      (t.name || '').includes('ทดสอบ') ||
+                      (t.name || '').toLowerCase() === 'admin'
+                    );
                     if (testTeacher) {
                       setSelectedTeacherForCheckin(testTeacher);
                       setSelectedDateForCheckin(formatLocalDate(new Date()));
@@ -6636,7 +6644,11 @@ useEffect(() => {
           setDashboardViewMode('classroom');
           localStorage.setItem('dashboard_view_mode', 'classroom'); sessionStorage.setItem('dashboard_view_mode', 'classroom');
           setTeacherSelectedRoomId('ALL');
-          if (normalizeDepartmentName(teacher.department) === 'ทดสอบระบบ' || (teacher.name || '').includes('ทดสอบ')) {
+          if (
+            normalizeDepartmentName(teacher.department) === 'ทดสอบระบบ' || 
+            (teacher.name || '').includes('ทดสอบ') ||
+            (teacher.name || '').toLowerCase() === 'admin'
+          ) {
             setIsSandboxMode(true);
             localStorage.setItem('system_sandbox_mode', 'true');
           }

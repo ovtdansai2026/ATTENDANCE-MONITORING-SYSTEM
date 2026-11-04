@@ -2754,10 +2754,10 @@ function AdminSandboxTab({
   const handleRepairData = async () => {
     setIsRepairing(true);
     try {
-      const PIN_123456_HASH = '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92';
+      const PIN_112233_HASH = 'e0bc60c82713f64ef8a57c0c40d02ce24fd0141d5cc3086259c19b1e62a62bea';
       const testTeachersData = [
-        { name: 'ครูทดสอบระบบ (Sandbox)', department: 'แผนกทดสอบระบบ', class_level: 'ปวช.1', pin_hash: PIN_123456_HASH, phone: '000-000-0000', academic_year: '2569', semester: '2' },
-        { name: 'ครูทดสอบระบบ (Sandbox)', department: 'แผนกทดสอบระบบ', class_level: 'ปวช.2', pin_hash: PIN_123456_HASH, phone: '000-000-0000', academic_year: '2569', semester: '2' }
+        { name: 'admin', department: 'แผนกทดสอบระบบ', class_level: 'ปวช.1', pin_hash: PIN_112233_HASH, phone: '000-000-0000', academic_year: '2569', semester: '2' },
+        { name: 'admin', department: 'แผนกทดสอบระบบ', class_level: 'ปวช.2', pin_hash: PIN_112233_HASH, phone: '000-000-0000', academic_year: '2569', semester: '2' }
       ];
       const testStudentsData = [
         { id: 99101, student_name: 'นายทดสอบ หนึ่ง (ปวช.1)', pure_level: 'ปวช.1', department: 'แผนกทดสอบระบบ', academic_year: '2569', semester: '2', present_days: 0, total_days: 0, percent: 100, status: 'PASS' },
@@ -2776,12 +2776,12 @@ function AdminSandboxTab({
       if (!existingTeachers || existingTeachers.length === 0) {
         await dbAssembly.from('teachers').insert(testTeachersData);
       } else {
-        await dbAssembly.from('teachers').update({ pin_hash: PIN_123456_HASH }).eq('department', 'แผนกทดสอบระบบ');
+        await dbAssembly.from('teachers').update({ name: 'admin', pin_hash: PIN_112233_HASH }).eq('department', 'แผนกทดสอบระบบ');
       }
 
       await dbAssembly.from('attendance_summary').upsert(testStudentsData, { onConflict: 'id' });
 
-      alert('✨ ตรวจสอบและซ่อมแซมข้อมูลทดสอบสำเร็จ!\n• ครูทดสอบ: ครูทดสอบระบบ (Sandbox)\n• PIN 6 หลัก: 123456\n• นักเรียนทดสอบ: 10 คน (ปวช.1 และ ปวช.2)');
+      alert('✨ ตรวจสอบและซ่อมแซมข้อมูลทดสอบสำเร็จ!\n• บัญชีทดสอบ: admin\n• PIN 6 หลัก: 112233\n• นักเรียนทดสอบ: 10 คน (ปวช.1 และ ปวช.2)');
       await fetchSandboxStats();
       if (onUpdateTeachers) onUpdateTeachers();
       if (onUpdateStudents) onUpdateStudents();
@@ -2798,8 +2798,12 @@ function AdminSandboxTab({
     if (!isSandboxMode && onToggleSandbox) {
       onToggleSandbox(true);
     }
-    const testTeacher = (teachersList || []).find(t => normalizeDepartmentName(t.department) === 'ทดสอบระบบ' || (t.name || '').includes('ทดสอบ')) || {
-      name: 'ครูทดสอบระบบ (Sandbox)',
+    const testTeacher = (teachersList || []).find(t => 
+      normalizeDepartmentName(t.department) === 'ทดสอบระบบ' || 
+      (t.name || '').includes('ทดสอบ') ||
+      (t.name || '').toLowerCase() === 'admin'
+    ) || {
+      name: 'admin',
       department: 'แผนกทดสอบระบบ',
       class_level: 'ปวช.1'
     };
@@ -2883,7 +2887,7 @@ function AdminSandboxTab({
               }),
               /*#__PURE__*/_jsx("span", {
                 className: "text-[11px] font-mono font-bold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-lg border border-indigo-200",
-                children: "PIN: 123456 (6 หลัก)"
+                children: "PIN: 112233 (6 หลัก)"
               })
             ]
           }),
@@ -2896,8 +2900,8 @@ function AdminSandboxTab({
               /*#__PURE__*/_jsxs("div", {
                 className: "p-3.5 bg-slate-50 rounded-2xl border border-slate-100 space-y-1.5",
                 children: [
-                  /*#__PURE__*/_jsx("span", { className: "text-slate-400 font-bold block text-[11px]", children: "ครูที่ปรึกษาประจำแผนก" }),
-                  /*#__PURE__*/_jsx("div", { className: "text-sm font-black text-slate-800", children: "ครูทดสอบระบบ (Sandbox)" }),
+                  /*#__PURE__*/_jsx("span", { className: "text-slate-400 font-bold block text-[11px]", children: "ครูที่ปรึกษา / บัญชีทดสอบ" }),
+                  /*#__PURE__*/_jsx("div", { className: "text-sm font-black text-slate-800", children: "admin" }),
                   /*#__PURE__*/_jsx("div", { className: "text-slate-600", children: "แผนกวิชา: แผนกทดสอบระบบ" })
                 ]
               }),
@@ -2909,7 +2913,7 @@ function AdminSandboxTab({
                   /*#__PURE__*/_jsxs("div", {
                     className: "flex items-center gap-2",
                     children: [
-                      /*#__PURE__*/_jsx("code", { className: "text-base font-black font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200", children: "123456" }),
+                      /*#__PURE__*/_jsx("code", { className: "text-base font-black font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200", children: "112233" }),
                       /*#__PURE__*/_jsx("span", { className: "text-[11px] text-slate-400", children: "(ใช้ได้ทั้ง 2 ห้อง)" })
                     ]
                   }),
@@ -3017,7 +3021,7 @@ function AdminSandboxTab({
                 children: [
                   /*#__PURE__*/_jsx("span", { className: "text-xl", children: isRepairing ? "⏳" : "✨" }),
                   /*#__PURE__*/_jsx("span", { children: isRepairing ? "กำลังซ่อมแซม..." : "ซ่อมแซมข้อมูลทดสอบ" }),
-                  /*#__PURE__*/_jsx("span", { className: "text-[10px] text-emerald-600 font-normal", children: "รีเซ็ต PIN: 123456 & นร. 10 คน" })
+                  /*#__PURE__*/_jsx("span", { className: "text-[10px] text-emerald-600 font-normal", children: "รีเซ็ต PIN: 112233 & นร. 10 คน" })
                 ]
               })
             ]
