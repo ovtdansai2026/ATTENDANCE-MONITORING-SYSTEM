@@ -63,6 +63,7 @@
   <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <script src="https://code.responsivevoice.org/responsivevoice.js?key=free"></script>
   <script src="stickman-bot.js"></script>
 
@@ -2505,6 +2506,7 @@ function App() {
     } catch(e) { return []; }
   });
   const isTeacherScopedDataRef = useRef(false);
+  const [dailyAttendanceRecords, setDailyAttendanceRecords] = useState([]);
   const masterStudentsRef = useRef(masterStudents);
   useEffect(() => { masterStudentsRef.current = masterStudents; }, [masterStudents]);
   const [activities, setActivities] = useState([]);
@@ -2957,6 +2959,7 @@ useEffect(() => {
         const report = generateDailyLineReport({
           masterStudents,
           sessions: checkinSessions,
+        dailyAttendance: dailyAttendanceRecords,
           academicYear: currentAcademicYear,
           semester: currentSemester,
           customNote: lineSettings.customNote,
@@ -3499,6 +3502,7 @@ useEffect(() => {
 
       // Map daily attendance for active term (real-time calculation from daily_attendance)
       const dailyAttsList = dailyAttsRes || [];
+      setDailyAttendanceRecords(dailyAttsList);
       const studentDailyPresentCount = {};
       dailyAttsList.forEach(row => {
         if (String(row.academic_year || activeYear) === String(activeYear) &&
@@ -5041,6 +5045,7 @@ useEffect(() => {
             compensatoryDays: compensatoryDays,
             holidayReasons: holidayReasons,
             sessions: checkinSessions,
+        dailyAttendance: dailyAttendanceRecords,
             teachers: teachersList,
             isAdminLoggedIn: isAdminLoggedIn,
             isLoading: isLoading,
@@ -6342,6 +6347,7 @@ useEffect(() => {
         onUpdateTeachers: () => fetchTeachers(),
         onUpdateStudents: () => reloadData(),
         sessions: checkinSessions,
+        dailyAttendance: dailyAttendanceRecords,
         lineSettings: lineSettings,
         onSaveLineSettings: handleSaveLineSettings,
         allowOffHoursCheckin: allowOffHoursCheckin,
@@ -6362,6 +6368,7 @@ useEffect(() => {
       isCalendarModalOpen && /*#__PURE__*/_jsx(AttendanceCalendarModal, {
         teachers: teachersList,
         sessions: checkinSessions,
+        dailyAttendance: dailyAttendanceRecords,
         academicYear: currentAcademicYear,
         semester: currentSemester,
         isAdminLoggedIn: isAdminLoggedIn,
@@ -11223,6 +11230,12 @@ function TeacherCheckinModal({
       }
     }
 
+    // ตรวจสอบความถูกต้องของรายชื่อนักเรียน (ป้องกันบันทึกข้อมูลว่างเมื่อเน็ตช้าหรือรายชื่อยังโหลดไม่เสร็จ)
+    if (!roomStudents || roomStudents.length === 0) {
+      alert('⚠️ ไม่พบรายชื่อนักเรียนในห้องนี้ หรือระบบกำลังโหลดข้อมูลอยู่\nกรุณารอสักครู่ให้รายชื่อนักเรียนปรากฏบนหน้าจอก่อนกดบันทึกครับ');
+      return;
+    }
+
     // บังคับถ่ายรูปหลักฐานการเข้าแถว/กิจกรรมก่อนบันทึกเสมอ
     if (!photoDataUrl) {
       if (fileInputRef.current) {
@@ -11374,7 +11387,13 @@ function TeacherCheckinModal({
           });
           if (sessErr) {
             console.error('attendance_checkin_sessions upsert error for room:', targetClassLevel, sessErr);
-            await dbAssembly.from('attendance_checkin_sessions').insert([sessionRecord]).catch(e => console.warn('fallback insert:', e));
+            const { error: insErr } = await dbAssembly.from('attendance_checkin_sessions').insert([sessionRecord]).catch(e => ({ error: e }));
+            if (insErr && sessionRecord.evidence_photo_url) {
+              const safeRecord = { ...sessionRecord, evidence_photo_url: '' };
+              await dbAssembly.from('attendance_checkin_sessions').upsert([safeRecord], {
+                onConflict: 'check_date,department,class_level,academic_year,semester'
+              }).catch(e => console.warn('safe fallback insert:', e));
+            }
           }
         }
       } catch (sessCatch) {

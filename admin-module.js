@@ -2657,6 +2657,7 @@ function AdminRecheckTab({
 // MODAL: Admin Panel (Expanded with Logs & Drive)
 // ==========================================
 function AdminPanelModal({
+  dailyAttendance = [],
   studentPhotosMap,
   studentCodesMap = {},
   onSaveStudentCode,
@@ -2863,6 +2864,7 @@ const [adminTab, setAdminTab] = useState('term'); // 'term', 'students', 'logs',
       const { data, error } = await dbAssembly.rpc('admin_get_storage_stats');
       if (!error && data && data.success) {
         setStorageStats(data);
+        setLoadingStorage(false);
         return;
       }
     } catch (e) {
@@ -2992,6 +2994,274 @@ const [adminTab, setAdminTab] = useState('term'); // 'term', 'students', 'logs',
     }
   };
 
+  // Google Drive & Cloud Backup State
+  const [driveWebhookUrl, setDriveWebhookUrl] = useState(() => {
+    try { return localStorage.getItem('google_drive_webhook_url') || ''; } catch(_) { return ''; }
+  });
+  const [driveBackupEmails, setDriveBackupEmails] = useState(() => {
+    try { return localStorage.getItem('google_drive_backup_emails') || 'admin@dansai.ac.th, backup@dansai.ac.th'; } catch(_) { return ''; }
+  });
+  const [isTestingDrive, setIsTestingDrive] = useState(false);
+  const [isPushingDrive, setIsPushingDrive] = useState(false);
+  const [isCopiedGas, setIsCopiedGas] = useState(false);
+
+  const handleSaveDriveSettings = (url, emails) => {
+    setDriveWebhookUrl(url);
+    setDriveBackupEmails(emails);
+    try {
+      localStorage.setItem('google_drive_webhook_url', url);
+      localStorage.setItem('google_drive_backup_emails', emails);
+    } catch(_) {}
+  };
+
+  const handleCopyGasCode = () => {
+    const rawGas = `/**
+ * ==============================================================================
+ * ระบบสำรองข้อมูลการเข้าแถวและกิจกรรมกลาง - วิทยาลัยการอาชีพด่านซ้าย
+ * Google Apps Script Web App สำหรับรับข้อมูลสำรองขึ้น Google Drive อัตโนมัติ
+ * และส่งอีเมลแจ้งเตือนไปยัง 2 บัญชีอีเมลราชการ/แอดมิน
+ * ==============================================================================
+ * 
+ * 📋 วิธีการติดตั้งใช้งาน (ทำครั้งเดียวใน 1 นาที):
+ * 1. เปิดเว็บ https://script.google.com/home
+ * 2. กดปุ่ม "+ โครงการใหม่" (New project)
+ * 3. ลบโค้ดเดิมออกทั้งหมด แล้วนำโค้ดในไฟล์นี้ทั้งหมดไปวาง
+ * 4. กดปุ่ม "ทำให้ใช้งานได้" (Deploy) มุมขวาบน -> เลือก "การทำให้ใช้งานได้รายการใหม่" (New deployment)
+ * 5. กดไอคอนรูปเฟือง (⚙️) ข้างประเภท -> เลือก "เว็บแอป" (Web app)
+ *    - คำอธิบาย: สำรองข้อมูลเข้าแถว วกด่านซ้าย
+ *    - ดำเนินการในฐานะ: ฉัน (อีเมลของคุณ)
+ *    - ใครมีสิทธิ์เข้าถึง: ทุกคน (Anyone)  <--- สำคัญมาก เพื่อให้ระบบส่งข้อมูลมาได้
+ * 6. กดปุ่ม "ทำให้ใช้งานได้" (Deploy) -> กดยอมรับสิทธิ์ (Authorize access)
+ * 7. คัดลอก "URL ของเว็บแอป" (Web App URL) ที่ขึ้นต้นด้วย https://script.google.com/macros/s/...
+ * 8. นำ URL นั้นมาวางในหน้า "พื้นที่จัดเก็บ & สำรองข้อมูล" ในระบบแดชบอร์ดเข้าแถว
+ * ==============================================================================
+ */
+
+function doPost(e) {
+  try {
+    if (!e || !e.postData || !e.postData.contents) {
+      return ContentService.createTextOutput(JSON.stringify({
+        success: false,
+        error: "ไม่พบข้อมูลที่ส่งมา (Empty payload)"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    var payload = JSON.parse(e.postData.contents);
+    var checkDate = payload.date || Utilities.formatDate(new Date(), "GMT+7", "yyyy-MM-dd");
+    var academicYear = payload.academic_year || "2569";
+    var semester = payload.semester || "2";
+    var targetEmails = payload.target_emails || [];
+    var isTestPing = Boolean(payload.is_test_ping);
+
+    // 1. ตรวจสอบหรือสร้างโฟลเดอร์หลักใน Google Drive
+    var rootFolderName = "วก.ด่านซ้าย_สำรองข้อมูลเข้าแถวราชการ";
+    var rootFolders = DriveApp.getFoldersByName(rootFolderName);
+    var rootFolder = rootFolders.hasNext() ? rootFolders.next() : DriveApp.createFolder(rootFolderName);
+
+    // 2. ตรวจสอบหรือสร้างโฟลเดอร์ตามปีการศึกษาและเทอม เช่น "ปีการศึกษา_2569_ภาคเรียนที่_2"
+    var termFolderName = "ปีการศึกษา_" + academicYear + "_ภาคเรียนที่_" + semester;
+    var termFolders = rootFolder.getFoldersByName(termFolderName);
+    var termFolder = termFolders.hasNext() ? termFolders.next() : rootFolder.createFolder(termFolderName);
+
+    // 3. แปลงวันที่เป็น พ.ศ. ไทย เช่น วันที่ 04-11-2569
+    var dParts = checkDate.split('-');
+    var thaiYear = parseInt(dParts[0], 10) + 543;
+    var thaiDateStr = (dParts[2] || '01') + "-" + (dParts[1] || '01') + "-" + thaiYear;
+
+    // ถ้าเป็นการทดสอบเชื่อมต่อ (Test Ping)
+    if (isTestPing) {
+      if (targetEmails && targetEmails.length > 0) {
+        var emailList = Array.isArray(targetEmails) ? targetEmails.join(",") : String(targetEmails);
+        MailApp.sendEmail(
+          emailList,
+          "🧪 [ทดสอบสำเร็จ] เชื่อมต่อระบบสำรองข้อมูล Google Drive วก.ด่านซ้าย",
+          "เรียน ผู้ดูแลระบบ\\n\\nการเชื่อมต่อระหว่างระบบติดตามการเข้าแถว วก.ด่านซ้าย กับ Google Drive ทำงานถูกต้องสมบูรณ์แล้ว!\\n\\n" +
+          "• บัญชีที่รับข้อมูล: " + emailList + "\\n" +
+          "• โฟลเดอร์จัดเก็บ: " + rootFolderName + "\\n" +
+          "• วันที่ทดสอบ: " + new Date().toLocaleString('th-TH') + "\\n\\n" +
+          "เมื่อมีการเช็คชื่อเสร็จสิ้นในแต่ละวัน ระบบจะจัดส่งไฟล์สำรองและภาพถ่ายหลักฐานมาเก็บที่โฟลเดอร์นี้อัตโนมัติครับ"
+        );
+      }
+      return ContentService.createTextOutput(JSON.stringify({
+        success: true,
+        message: "เชื่อมต่อ Google Drive สำเร็จ",
+        folder_url: rootFolder.getUrl(),
+        tested_at: new Date().toISOString()
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // สร้างโฟลเดอร์ประจำวัน เช่น "วันที่_04-11-2569"
+    var dailyFolderName = "วันที่_" + thaiDateStr;
+    var dailyFolders = termFolder.getFoldersByName(dailyFolderName);
+    var dailyFolder = dailyFolders.hasNext() ? dailyFolders.next() : termFolder.createFolder(dailyFolderName);
+
+    // 4. บันทึกไฟล์ฐานข้อมูลฉบับเต็มประจำวัน (JSON)
+    var jsonFileName = "database_backup_" + thaiDateStr + ".json";
+    dailyFolder.createFile(jsonFileName, JSON.stringify(payload, null, 2), MimeType.PLAIN_TEXT);
+
+    // 5. สกัดภาพถ่ายหลักฐานหน้าเสาธงทั้งหมดออกมาเป็นไฟล์ .jpg จริง
+    var photoCount = 0;
+    if (Array.isArray(payload.sessions)) {
+      payload.sessions.forEach(function(s) {
+        if (s.evidence_photo_url && s.evidence_photo_url.indexOf('data:image') === 0) {
+          var parts = s.evidence_photo_url.split(',');
+          if (parts.length === 2) {
+            var base64Data = parts[1];
+            var cleanDept = (s.department || "แผนก").replace(/[/\\\\?%*:|"<>]/g, "_");
+            var cleanLvl = (s.class_level || "").replace(/[/\\\\?%*:|"<>]/g, "_");
+            var cleanTeacher = (s.teacher_name || "").replace(/\\s+/g, "_").replace(/[/\\\\?%*:|"<>]/g, "_");
+            var photoName = thaiDateStr + "_" + cleanDept + "_" + cleanLvl + "_" + cleanTeacher + ".jpg";
+
+            var decoded = Utilities.base64Decode(base64Data);
+            var blob = Utilities.newBlob(decoded, MimeType.JPEG, photoName);
+            dailyFolder.createFile(blob);
+            photoCount++;
+          }
+        }
+      });
+    }
+
+    // 6. ตรวจสอบพื้นที่จัดเก็บ Google Drive และคำนวณโควตา
+    var usedBytes = DriveApp.getStorageUsed();
+    var limitBytes = DriveApp.getStorageLimit();
+    var usedMb = (usedBytes / (1024 * 1024)).toFixed(1);
+    var limitMb = limitBytes > 0 ? (limitBytes / (1024 * 1024)).toFixed(1) : "ไม่จำกัด";
+    var usedPct = limitBytes > 0 ? Math.round((usedBytes / limitBytes) * 100) : 0;
+
+    var quotaAlertText = "";
+    if (usedPct >= 85) {
+      quotaAlertText = "\\n⚠️ [แจ้งเตือนด่วน] พื้นที่ Google Drive ใช้ไปแล้ว " + usedPct + "% (" + usedMb + " MB จาก " + limitMb + " MB) ใกล้เต็มแล้ว! กรุณาตรวจสอบหรือเคลียร์พื้นที่ไฟล์ที่ไม่จำเป็น เพื่อไม่ให้การสำรองข้อมูลหยุดชะงัก\\n";
+    }
+
+    // 7. ส่งอีเมลแจ้งเตือนรายงานผลไปยัง 2 บัญชีอีเมล
+    if (targetEmails && targetEmails.length > 0) {
+      var emailList = Array.isArray(targetEmails) ? targetEmails.join(",") : String(targetEmails);
+      var emailSubject = (usedPct >= 85 ? "⚠️ [Drive ใกล้เต็ม] " : "✅ ") + "สำรองข้อมูลเข้าแถวประจำวันที่ " + thaiDateStr + " สำเร็จ (วก.ด่านซ้าย)";
+      var emailBody = "เรียน ผู้ดูแลระบบและงานพัฒนากิจกรรมนักเรียนนักศึกษา\\n\\n" +
+        "ระบบติดตามการเข้าแถว วทยาลัยการอาชีพด่านซ้าย ได้สำรองข้อมูลประจำวันขึ้น Google Drive เรียบร้อยแล้ว:\\n\\n" +
+        "• ประจำวันที่: " + thaiDateStr + " (ปีการศึกษา " + academicYear + " เทอม " + semester + ")\\n" +
+        "• โฟลเดอร์ใน Drive: " + rootFolderName + " > " + termFolderName + " > " + dailyFolderName + "\\n" +
+        "• ไฟล์ข้อมูลฐานข้อมูล: " + jsonFileName + "\\n" +
+        "• สกัดภาพถ่ายหลักฐาน: " + photoCount + " ไฟล์ (.jpg)\\n" +
+        "• สถิตินักเรียน: มา " + (payload.present_count || 0) + " คน | ขาด " + (payload.absent_count || 0) + " คน | ลา " + (payload.leave_count || 0) + " คน\\n" +
+        "• สถานะพื้นที่ Google Drive: ใช้ไป " + usedPct + "% (" + usedMb + " MB / " + limitMb + " MB)\\n" +
+        quotaAlertText + "\\n" +
+        "ลิงก์เปิดโฟลเดอร์ Google Drive: " + dailyFolder.getUrl() + "\\n\\n" +
+        "--------------------------------------------------\\n" +
+        "ข้อมูลนี้จัดเก็บเป็นหลักฐานทางราชการถาวร สามารถอ้างอิงย้อนหลังได้ตลอดเวลา\\n" +
+        "วิทยาลัยการอาชีพด่านซ้าย";
+
+      MailApp.sendEmail(emailList, emailSubject, emailBody);
+    }
+
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true,
+      message: "สำรองข้อมูลและภาพถ่ายขึ้น Google Drive เรียบร้อยแล้ว",
+      date: thaiDateStr,
+      photos_count: photoCount,
+      folder_url: dailyFolder.getUrl(),
+      drive_used_pct: usedPct,
+      quota_warning: usedPct >= 85
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      error: err.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function doGet(e) {
+  return ContentService.createTextOutput("ระบบสำรองข้อมูล Google Drive - วิทยาลัยการอาชีพด่านซ้าย พร้อมใช้งาน (Ready)");
+}
+`;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(rawGas).then(() => {
+        setIsCopiedGas(true);
+        setTimeout(() => setIsCopiedGas(false), 3000);
+        alert('📋 คัดลอกโค้ด Google Apps Script สำเร็จ!\n\nนำไปวางในเว็บ https://script.google.com แล้วกด Deploy Web App ได้ทันทีครับ');
+      }).catch(() => {
+        alert('กรุณาคัดลอกโค้ดจากไฟล์ google_apps_script_backup.js ในโฟลเดอร์โปรเจกต์ครับ');
+      });
+    } else {
+      alert('กรุณาคัดลอกโค้ดจากไฟล์ google_apps_script_backup.js ในโฟลเดอร์โปรเจกต์ครับ');
+    }
+  };
+
+  const handleTestDriveWebhook = async () => {
+    const cleanUrl = (driveWebhookUrl || '').trim();
+    if (!cleanUrl) {
+      alert('⚠️ กรุณาระบุ Google Apps Script Webhook URL ก่อนทดสอบครับ');
+      return;
+    }
+    setIsTestingDrive(true);
+    try {
+      const emailArr = driveBackupEmails.split(',').map(e => e.trim()).filter(Boolean);
+      const resp = await fetch(cleanUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          is_test_ping: true,
+          target_emails: emailArr
+        })
+      });
+      const res = await resp.json();
+      if (res && res.success) {
+        alert('🎉 เชื่อมต่อ Google Drive สำเร็จ 100%!\n\n• ส่งอีเมลยืนยันไปยัง: ' + (emailArr.join(', ') || 'ไม่มีอีเมลระบุ') + '\n• โฟลเดอร์ใน Drive พร้อมใช้งานครับ');
+      } else {
+        alert('⚠️ ได้รับการตอบกลับแต่เกิดข้อผิดพลาด: ' + (res?.error || JSON.stringify(res)));
+      }
+    } catch (err) {
+      alert('เกิดข้อผิดพลาดในการเชื่อมต่อ: ' + (err.message || err) + '\n\nคำแนะนำ: กรุณาตรวจสอบว่าตอน Deploy ใน Google Apps Script ได้เลือก "ใครมีสิทธิ์เข้าถึง: ทุกคน (Anyone)" หรือยังครับ');
+    } finally {
+      setIsTestingDrive(false);
+    }
+  };
+
+  const handlePushDailyDriveBackup = async () => {
+    const cleanUrl = (driveWebhookUrl || '').trim();
+    if (!cleanUrl) {
+      alert('⚠️ กรุณาระบุ Google Apps Script Webhook URL ก่อนครับ');
+      return;
+    }
+    setIsPushingDrive(true);
+    try {
+      const todayStr = formatLocalDate(new Date());
+      const [dailyRes, sessionsRes] = await Promise.all([
+        dbAssembly.from('daily_attendance').select('*').eq('check_date', todayStr).then(r => r.data || []),
+        dbAssembly.from('attendance_checkin_sessions').select('*').eq('check_date', todayStr).then(r => r.data || [])
+      ]);
+      const emailArr = driveBackupEmails.split(',').map(e => e.trim()).filter(Boolean);
+      const payload = {
+        date: todayStr,
+        academic_year: academicYear || '2569',
+        semester: semester || '2',
+        target_emails: emailArr,
+        daily_records: dailyRes,
+        sessions: sessionsRes,
+        present_count: dailyRes.filter(d => d.status === 'present').length,
+        absent_count: dailyRes.filter(d => d.status === 'absent').length,
+        leave_count: dailyRes.filter(d => d.status === 'leave').length
+      };
+      const resp = await fetch(cleanUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+      });
+      const res = await resp.json();
+      if (res && res.success) {
+        alert(`✅ ส่งข้อมูลสำรองประจำวันที่ ${todayStr} ขึ้น Google Drive สำเร็จ!\n\n• สกัดภาพถ่ายจริง: ${res.photos_count || 0} ภาพ\n• ส่งอีเมลรายงานเข้า 2 บัญชีเมลเรียบร้อยแล้วครับ`);
+      } else {
+        alert('ข้อผิดพลาดจาก Google Drive: ' + (res?.error || ''));
+      }
+    } catch (err) {
+      alert('เกิดข้อผิดพลาดในการส่งข้อมูล: ' + (err.message || err));
+    } finally {
+      setIsPushingDrive(false);
+    }
+  };
+
   // Full Backup & Restore State & Handlers
   const [isExportingBackup, setIsExportingBackup] = useState(false);
   const [isRestoringBackup, setIsRestoringBackup] = useState(false);
@@ -3038,19 +3308,69 @@ const [adminTab, setAdminTab] = useState('term'); // 'term', 'students', 'logs',
         }
       };
 
-      const jsonStr = JSON.stringify(backupObj, null, 2);
-      const blob = new Blob([jsonStr], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
       const now = new Date();
-      const datePart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const day = String(now.getDate()).padStart(2, '0');
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const thaiYear = now.getFullYear() + 543;
+      const zipFileName = `${day}-${month}-${thaiYear}.zip`;
+
+      const JSZipClass = window.JSZip;
+      if (!JSZipClass) {
+        throw new Error('ไม่พบโมดูลสร้างไฟล์ ZIP กรุณารีเฟรชหน้าเว็บแล้วลองใหม่อีกครั้ง');
+      }
+
+      const zip = new JSZipClass();
+
+      // 1. Full Database JSON dump
+      zip.file('database_backup.json', JSON.stringify(backupObj, null, 2));
+
+      // 2. Extract photos into photos/ folder
+      const photosFolder = zip.folder('photos');
+      let photoCount = 0;
+      (sessionsRes || []).forEach(s => {
+        const photo = s.evidence_photo_url || '';
+        if (photo && photo.startsWith('data:image')) {
+          const parts = photo.split(',');
+          if (parts.length === 2) {
+            const ext = parts[0].includes('png') ? 'png' : 'jpg';
+            const base64Data = parts[1];
+            const cleanDept = (s.department || 'แผนก').replace(/[/\\?%*:|"<>]/g, '_');
+            const cleanLvl = (s.class_level || '').replace(/[/\\?%*:|"<>]/g, '_');
+            const cleanTeacher = (s.teacher_name || '').replace(/\s+/g, '_').replace(/[/\\?%*:|"<>]/g, '_');
+            const fname = `${s.check_date}_${cleanDept}_${cleanLvl}_${cleanTeacher}_id${s.id}.${ext}`;
+            photosFolder.file(fname, base64Data, { base64: true });
+            photoCount++;
+          }
+        }
+      });
+
+      // 3. README Guide
+      const readme = `ระบบติดตามการเข้าแถวและกิจกรรมกลาง v2.0 (วิทยาลัยการอาชีพด่านซ้าย)\n` +
+        `ไฟล์สำรองข้อมูลฉบับสมบูรณ์ ประจำวันที่ ${day}/${month}/${thaiYear}\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `เนื้อหาในไฟล์ ZIP:\n` +
+        `1. database_backup.json : ฐานข้อมูลทั้งหมด (นักเรียน ${(summaryRes || []).length} คน, เช็คชื่อรายวัน ${(dailyRes || []).length} รายการ)\n` +
+        `2. โฟลเดอร์ photos/ : สกัดไฟล์ภาพถ่ายหลักฐานจริงออกมาจำนวน ${photoCount} ภาพ (.jpg)\n\n` +
+        `คำแนะนำสำหรับการสำรองบน Google Drive (2 บัญชีอีเมล):\n` +
+        `- สามารถนำไฟล์ ZIP (${zipFileName}) นี้ ไปอัปโหลดขึ้น Google Drive ได้ทันที\n` +
+        `- แนะนำให้แชร์โฟลเดอร์ใน Google Drive ไปยังอีก 1 บัญชีอีเมลสำรอง เพื่อป้องกันการสูญหาย\n`;
+      zip.file('README_BACKUP.txt', readme);
+
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(zipBlob);
+      const a = document.createElement('a');
       a.href = url;
-      a.download = `backup_dansai_attendance_full_${datePart}.json`;
+      a.download = zipFileName;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      alert(`✅ สำรองข้อมูลทั้งหมดเรียบร้อยแล้ว!\n\n• นักเรียน (attendance_summary): ${(summaryRes || []).length} คน\n• ประวัติเช็คชื่อรายวัน (daily_attendance): ${(dailyRes || []).length} รายการ\n• รอบเช็คชื่อ & ภาพถ่าย (attendance_checkin_sessions): ${(sessionsRes || []).length} รอบ\n• ครูที่ปรึกษา: ${(teachersRes || []).length} คน\n\nดาวน์โหลดไฟล์ JSON สำเร็จ`);
+
+      alert(`✅ สำรองข้อมูลเรียบร้อยแล้ว!\n\n` +
+        `📁 ไฟล์: ${zipFileName}\n` +
+        `• ข้อมูลฐานข้อมูล (database_backup.json)\n` +
+        `• ดึงไฟล์ภาพถ่ายหลักฐานจริง: ${photoCount} ภาพ (ในโฟลเดอร์ photos/)\n\n` +
+        `สามารถนำไฟล์ ZIP นี้ไปอัปโหลดเก็บที่ Google Drive เพื่อสำรองอย่างน้อย 2 บัญชีอีเมลได้ทันทีครับ`);
     } catch (err) {
       console.error('Backup error:', err);
       alert('เกิดข้อผิดพลาดในการสำรองข้อมูล: ' + (err.message || err));
@@ -3064,8 +3384,18 @@ const [adminTab, setAdminTab] = useState('term'); // 'term', 'students', 'logs',
     if (!file) return;
     setIsRestoringBackup(true);
     try {
-      const text = await file.text();
-      const parsed = JSON.parse(text);
+      let jsonContent = '';
+      if (file.name.endsWith('.zip')) {
+        const JSZipClass = window.JSZip;
+        if (!JSZipClass) throw new Error('ไม่พบโมดูล JSZip กรุณารีเฟรชหน้าเว็บ');
+        const zip = await JSZipClass.loadAsync(file);
+        const jsonFile = zip.file('database_backup.json') || zip.file(/\.json$/i)[0];
+        if (!jsonFile) throw new Error('ไม่พบไฟล์ database_backup.json ในไฟล์ ZIP');
+        jsonContent = await jsonFile.async('string');
+      } else {
+        jsonContent = await file.text();
+      }
+      const parsed = JSON.parse(jsonContent);
       if (!parsed || !parsed.data) {
         throw new Error('รูปแบบไฟล์สำรองข้อมูลไม่ถูกต้อง (ไม่พบโครงสร้าง data)');
       }
@@ -3196,11 +3526,42 @@ const [adminTab, setAdminTab] = useState('term'); // 'term', 'students', 'logs',
         return true;
       });
 
-      const distinctDates = [...new Set(tSessions.map(s => s.check_date))];
+      // 2. Student attendance records check in dailyAttendance
+      const tDailyRecords = (dailyAttendance || []).filter(d => {
+        const isName = normalizeTeacherName(d.teacher_name) === normalizeTeacherName(t.name);
+        const sLvl = String(d.class_level || '').replace(/\s+/g, '');
+        const tLvl = String(t.class_level || '').replace(/\s+/g, '');
+        const sDept = String(d.department || '').replace(/\s+/g, '');
+        const tDept = String(t.department || '').replace(/\s+/g, '');
+        const matchLvl = !sLvl || !tLvl || sLvl === tLvl;
+        const matchDept = !sDept || !tDept || sDept.includes(tDept) || tDept.includes(sDept);
+        return isName && matchLvl && matchDept;
+      });
+
+      const distinctDates = [...new Set([
+        ...tSessions.map(s => s.check_date),
+        ...tDailyRecords.map(d => d.check_date)
+      ])];
       const submittedDays = distinctDates.length;
+
       const todaySession = tSessions.find(s => s.check_date === teacherStatsTodayStr);
-      const isCheckedToday = Boolean(todaySession);
-      const todayTime = todaySession?.created_at ? new Date(todaySession.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : null;
+      const todayDaily = tDailyRecords.find(d => d.check_date === teacherStatsTodayStr);
+
+      const hasPhoto = Boolean(todaySession && todaySession.evidence_photo_url && todaySession.evidence_photo_url.length > 50);
+      const hasDailyOrSession = Boolean(todaySession || todayDaily);
+
+      let checkinStatus = 'pending';
+      if (hasPhoto) {
+        checkinStatus = 'checked_with_photo';
+      } else if (hasDailyOrSession) {
+        checkinStatus = 'checked_no_photo';
+      }
+
+      const isCheckedToday = (checkinStatus !== 'pending');
+      const todayTime = todaySession?.created_at
+        ? new Date(todaySession.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })
+        : (todayDaily?.created_at ? new Date(todayDaily.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : null);
+
       const compliancePct = teacherStatsElapsedDays > 0 ? Math.min(100, Math.round((submittedDays / teacherStatsElapsedDays) * 100)) : 100;
 
       return {
@@ -3209,12 +3570,15 @@ const [adminTab, setAdminTab] = useState('term'); // 'term', 'students', 'logs',
         elapsedDays: teacherStatsElapsedDays,
         compliancePct,
         isCheckedToday,
+        checkinStatus,
+        hasPhoto,
         todayTime,
         todaySession,
+        todayDaily,
         distinctDates
       };
     });
-  }, [teachers, sessions, teacherStatsElapsedDays, teacherStatsTodayStr]);
+  }, [teachers, sessions, dailyAttendance, teacherStatsElapsedDays, teacherStatsTodayStr]);
 
   const checkedTodayTeachersCount = useMemo(() => teacherStatsList.filter(t => t.isCheckedToday).length, [teacherStatsList]);
   const pendingTodayTeachersCount = useMemo(() => teacherStatsList.length - checkedTodayTeachersCount, [teacherStatsList, checkedTodayTeachersCount]);
@@ -5804,7 +6168,8 @@ const [adminTab, setAdminTab] = useState('term'); // 'term', 'students', 'logs',
                           s.evidence_photo_url ? /*#__PURE__*/_jsx("img", {
                             src: s.evidence_photo_url,
                             alt: "หลักฐาน",
-                            className: "w-12 h-12 rounded-xl object-cover border border-slate-200 flex-shrink-0"
+                            onClick: () => setViewingEvidencePhoto(s.evidence_photo_url),
+                            className: "w-12 h-12 rounded-xl object-cover border border-slate-200 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
                           }) : /*#__PURE__*/_jsx("div", {
                             className: "w-12 h-12 rounded-xl bg-slate-200 text-slate-500 flex items-center justify-center text-xl flex-shrink-0 font-bold",
                             children: /*#__PURE__*/_jsx(Icon.Document, { className: "w-5 h-5 text-slate-500" })
@@ -5841,11 +6206,10 @@ const [adminTab, setAdminTab] = useState('term'); // 'term', 'students', 'logs',
                           })
                         ]
                       }),
-                      s.evidence_photo_url && /*#__PURE__*/_jsx("a", {
-                        href: s.evidence_photo_url,
-                        target: "_blank",
-                        rel: "noreferrer",
-                        className: "px-3 py-1.5 bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 rounded-xl text-xs font-bold cursor-pointer flex-shrink-0",
+                      s.evidence_photo_url && /*#__PURE__*/_jsx("button", {
+                        type: "button",
+                        onClick: () => setViewingEvidencePhoto(s.evidence_photo_url),
+                        className: "px-3 py-1.5 bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 rounded-xl text-xs font-bold cursor-pointer flex-shrink-0 flex items-center gap-1",
                         children: [/*#__PURE__*/_jsx(Icon.Search, { className: "w-3 h-3 inline mr-1" }), "ดูรูป"]
                       })
                     ]
@@ -6088,12 +6452,22 @@ const [adminTab, setAdminTab] = useState('term'); // 'term', 'students', 'logs',
                                 /*#__PURE__*/_jsxs("div", {
                                   className: "flex items-center gap-1.5",
                                   children: [
-                                    t.isCheckedToday ? (
+                                    t.checkinStatus === 'checked_with_photo' ? (
                                       /*#__PURE__*/_jsxs("span", {
                                         className: "inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-2xs whitespace-nowrap",
                                         children: [
                                           /*#__PURE__*/_jsx(Icon.CheckSimple, { className: "w-3 h-3 text-emerald-600" }),
-                                          "เช็คแล้ว",
+                                          "เช็คแล้ว (มีรูป)",
+                                          t.todayTime && /*#__PURE__*/_jsx("span", { className: "font-mono font-normal opacity-75 text-[10px]", children: `(${t.todayTime})` })
+                                        ]
+                                      })
+                                    ) : t.checkinStatus === 'checked_no_photo' ? (
+                                      /*#__PURE__*/_jsxs("span", {
+                                        className: "inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300 shadow-2xs whitespace-nowrap",
+                                        title: "เช็ครายชื่อนักเรียนในระบบแล้ว แต่ไม่พบรูปถ่ายหรือเน็ตหลุดตอนส่งภาพ",
+                                        children: [
+                                          /*#__PURE__*/_jsx(Icon.CheckSimple, { className: "w-3 h-3 text-amber-600" }),
+                                          "เช็คแล้ว (ไม่มีรูป)",
                                           t.todayTime && /*#__PURE__*/_jsx("span", { className: "font-mono font-normal opacity-75 text-[10px]", children: `(${t.todayTime})` })
                                         ]
                                       })
@@ -6123,7 +6497,7 @@ const [adminTab, setAdminTab] = useState('term'); // 'term', 'students', 'logs',
                     }),
 
                     viewingEvidencePhoto && /*#__PURE__*/_jsx("div", {
-                      className: "fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-xs",
+                      className: "fixed inset-0 z-[9999] bg-black/85 flex items-center justify-center p-4 backdrop-blur-xs",
                       onClick: () => setViewingEvidencePhoto(null),
                       children: /*#__PURE__*/_jsxs("div", {
                         className: "bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl space-y-3 p-4",
@@ -6669,7 +7043,7 @@ const [adminTab, setAdminTab] = useState('term'); // 'term', 'students', 'logs',
                             isExportingBackup
                               ? /*#__PURE__*/_jsx(Icon.Spin, { className: "w-4 h-4 text-white" })
                               : /*#__PURE__*/_jsx(Icon.Save, { className: "w-4 h-4 text-white" }),
-                            isExportingBackup ? "กำลังส่งออกข้อมูล..." : "📦 สำรองข้อมูลทั้งหมด (ดาวน์โหลด JSON)"
+                            isExportingBackup ? "กำลังส่งออกข้อมูล..." : "📦 สำรองข้อมูลทั้งหมด (ดาวน์โหลด ZIP พร้อมรูปภาพ)"
                           ]
                         }),
                         /*#__PURE__*/_jsxs("button", {
@@ -6681,15 +7055,114 @@ const [adminTab, setAdminTab] = useState('term'); // 'term', 'students', 'logs',
                             isRestoringBackup
                               ? /*#__PURE__*/_jsx(Icon.Spin, { className: "w-4 h-4 text-indigo-600" })
                               : /*#__PURE__*/_jsx(Icon.Upload, { className: "w-4 h-4 text-indigo-600" }),
-                            isRestoringBackup ? "กำลังกู้คืนข้อมูล..." : "📥 กู้คืนข้อมูล (เลือกไฟล์ JSON)"
+                            isRestoringBackup ? "กำลังกู้คืนข้อมูล..." : "📥 กู้คืนข้อมูล (เลือกไฟล์ ZIP หรือ JSON)"
                           ]
                         }),
                         /*#__PURE__*/_jsx("input", {
                           ref: backupFileInputRef,
                           type: "file",
-                          accept: ".json",
+                          accept: ".zip,.json",
                           onChange: handleRestoreFullBackup,
                           className: "hidden"
+                        })
+                      ]
+                    })
+                  ]
+                }),
+
+                // Google Drive 2-Tier Cloud Backup Card
+                /*#__PURE__*/_jsxs("div", {
+                  className: "p-4 sm:p-5 bg-gradient-to-br from-white to-sky-50/50 border border-sky-200 rounded-3xl shadow-xs space-y-3",
+                  children: [
+                    /*#__PURE__*/_jsxs("div", {
+                      className: "flex justify-between items-center",
+                      children: [
+                        /*#__PURE__*/_jsxs("div", {
+                          className: "flex items-center gap-2",
+                          children: [
+                            /*#__PURE__*/_jsx(Icon.Cloud, { className: "w-5 h-5 text-sky-600" }),
+                            /*#__PURE__*/_jsx("h3", {
+                              className: "text-sm sm:text-base font-bold text-slate-900",
+                              children: "สำรองข้อมูลราชการขึ้น Google Drive (Dual-Tier Backup)"
+                            })
+                          ]
+                        }),
+                        /*#__PURE__*/_jsx(InfoTooltip, {
+                          title: "Google Drive สำรองข้อมูล 2 บัญชี",
+                          text: "ส่งไฟล์สำรองและภาพถ่ายจริงรายวันขึ้น Google Drive อัตโนมัติ เพื่อเป็นหลักฐานราชการถาวร และแจ้งเตือนไปยัง 2 บัญชีอีเมล เมื่อข้อมูลถูกเก็บใน Drive แล้ว แอดมินสามารถกดล้างรูปภาพเทอมเก่าใน Supabase ด้านล่างเพื่อคืนพื้นที่ได้ทันที"
+                        })
+                      ]
+                    }),
+                    /*#__PURE__*/_jsx("p", {
+                      className: "text-xs text-slate-600",
+                      children: "ระบบจะสร้างโฟลเดอร์แยกตามวันใน Google Drive พร้อมสกัดภาพถ่าย .jpg จริง และส่งอีเมลรายงานผลเข้า 2 บัญชีเมล พร้อมแจ้งเตือนหากพื้นที่ Drive ใกล้เต็ม"
+                    }),
+
+                    /* Form Inputs */
+                    /*#__PURE__*/_jsxs("div", {
+                      className: "grid grid-cols-1 md:grid-cols-2 gap-3 pt-1",
+                      children: [
+                        /*#__PURE__*/_jsxs("div", {
+                          className: "space-y-1",
+                          children: [
+                            /*#__PURE__*/_jsx("label", { className: "text-[11px] font-bold text-slate-700", children: "Google Apps Script Webhook URL" }),
+                            /*#__PURE__*/_jsx("input", {
+                              type: "text",
+                              value: driveWebhookUrl,
+                              onChange: e => handleSaveDriveSettings(e.target.value, driveBackupEmails),
+                              placeholder: "https://script.google.com/macros/s/.../exec",
+                              className: "w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 font-mono focus:outline-none focus:border-sky-500"
+                            })
+                          ]
+                        }),
+                        /*#__PURE__*/_jsxs("div", {
+                          className: "space-y-1",
+                          children: [
+                            /*#__PURE__*/_jsx("label", { className: "text-[11px] font-bold text-slate-700", children: "อีเมลรับสำรองข้อมูล & แจ้งเตือน (คั่นด้วยจุลภาค สำหรับ 2 เมล)" }),
+                            /*#__PURE__*/_jsx("input", {
+                              type: "text",
+                              value: driveBackupEmails,
+                              onChange: e => handleSaveDriveSettings(driveWebhookUrl, e.target.value),
+                              placeholder: "admin@dansai.ac.th, backup@dansai.ac.th",
+                              className: "w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 font-mono focus:outline-none focus:border-sky-500"
+                            })
+                          ]
+                        })
+                      ]
+                    }),
+
+                    /* Action Buttons */
+                    /*#__PURE__*/_jsxs("div", {
+                      className: "flex flex-wrap gap-2 pt-1",
+                      children: [
+                        /*#__PURE__*/_jsxs("button", {
+                          type: "button",
+                          onClick: handleCopyGasCode,
+                          className: "px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold shadow-2xs flex items-center gap-1.5 transition-all cursor-pointer",
+                          children: [
+                            /*#__PURE__*/_jsx(Icon.Document, { className: "w-3.5 h-3.5" }),
+                            isCopiedGas ? "✓ คัดลอกโค้ดสคริปต์แล้ว!" : "📋 คัดลอกโค้ด Google Apps Script"
+                          ]
+                        }),
+                        /*#__PURE__*/_jsxs("button", {
+                          type: "button",
+                          onClick: handleTestDriveWebhook,
+                          disabled: isTestingDrive || isPushingDrive,
+                          className: "px-3.5 py-2 bg-sky-600 hover:bg-sky-700 disabled:bg-slate-300 text-white rounded-xl text-xs font-bold shadow-2xs flex items-center gap-1.5 transition-all cursor-pointer",
+                          children: [
+                            isTestingDrive ? /*#__PURE__*/_jsx(Icon.Spin, { className: "w-3.5 h-3.5 text-white" }) : /*#__PURE__*/_jsx(Icon.Sparkles, { className: "w-3.5 h-3.5 text-white" }),
+                            isTestingDrive ? "กำลังทดสอบ..." : "🧪 ทดสอบเชื่อมต่อ Google Drive"
+                          ]
+                        }),
+                        /*#__PURE__*/_jsxs("button", {
+                          type: "button",
+                          onClick: handlePushDailyDriveBackup,
+                          disabled: isTestingDrive || isPushingDrive,
+                          className: "px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white rounded-xl text-xs font-bold shadow-2xs flex items-center gap-1.5 transition-all cursor-pointer",
+                          children: [
+                            isPushingDrive ? /*#__PURE__*/_jsx(Icon.Spin, { className: "w-3.5 h-3.5 text-white" }) : /*#__PURE__*/_jsx(Icon.Cloud, { className: "w-3.5 h-3.5 text-white" }),
+                            isPushingDrive ? "กำลังส่งข้อมูลขึ้น Drive..." : "🚀 สำรองข้อมูลวันนี้ขึ้น Google Drive ทันที"
+                          ]
                         })
                       ]
                     })
