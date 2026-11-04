@@ -2631,6 +2631,14 @@ function App() {
 
   // Sandbox (Test Mode) State
   const [isSandboxMode, setIsSandboxMode] = useState(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.has('sandbox')) {
+        const val = params.get('sandbox') === '1' || params.get('sandbox') === 'true';
+        localStorage.setItem('system_sandbox_mode', val ? 'true' : 'false');
+        return val;
+      }
+    } catch(_) {}
     return localStorage.getItem('system_sandbox_mode') === 'true';
   });
 
@@ -2946,6 +2954,22 @@ useEffect(() => {
       console.warn('Persisting allow_off_hours_checkin error:', err);
     }
   };
+
+  const handleToggleSandbox = useCallback(async (enabled) => {
+    setIsSandboxMode(enabled);
+    localStorage.setItem('system_sandbox_mode', enabled ? 'true' : 'false');
+    window.dispatchEvent(new CustomEvent('sandbox_mode_changed', { detail: enabled }));
+    try {
+      const token = sessionStorage.getItem('admin_session_token') || 'admin2026';
+      await dbAssembly.rpc('admin_save_system_setting_secure', {
+        p_key: 'system_sandbox_mode',
+        p_value: enabled ? 'true' : 'false',
+        p_auth_token_or_pin: token
+      });
+    } catch (err) {
+      console.warn('Persisting sandbox setting error:', err);
+    }
+  }, []);
 
   // LINE Auto-send at 08:20 Cut-off on School Days (Excluding Weekends & Special Holidays)
   useEffect(() => {
@@ -3304,6 +3328,13 @@ useEffect(() => {
           const val = offHoursObj.value === 'true';
           setAllowOffHoursCheckin(val);
           localStorage.setItem('allow_off_hours_checkin', String(val));
+        }
+
+        const sandboxObj = settings.find(s => s.key === 'system_sandbox_mode');
+        if (sandboxObj) {
+          const val = sandboxObj.value === 'true';
+          setIsSandboxMode(val);
+          localStorage.setItem('system_sandbox_mode', String(val));
         }
 
         let loadedOpenIds = null;
@@ -4508,11 +4539,7 @@ useEffect(() => {
                 }),
                 /* Turn off sandbox */
                 /*#__PURE__*/_jsxs("button", {
-                  onClick: () => {
-                    setIsSandboxMode(false);
-                    localStorage.setItem('system_sandbox_mode', 'false');
-                    window.dispatchEvent(new CustomEvent('sandbox_mode_changed', { detail: false }));
-                  },
+                  onClick: () => handleToggleSandbox(false),
                   className: "px-3 py-2 rounded-xl bg-black/30 hover:bg-black/40 text-white font-bold text-xs border border-white/30 transition-all active:scale-95 cursor-pointer flex items-center gap-1",
                   title: "ปิดโหมดทดสอบและซ่อนข้อมูลทดสอบทั้งหมด",
                   children: [
@@ -6498,16 +6525,10 @@ useEffect(() => {
         hiddenClassLevels: hiddenClassLevels,
         onSaveHiddenClassLevels: handleSaveHiddenClassLevels,
         isSandboxMode: isSandboxMode,
-        onToggleSandbox: (val) => {
-          setIsSandboxMode(val);
-          localStorage.setItem('system_sandbox_mode', val ? 'true' : 'false');
-          window.dispatchEvent(new CustomEvent('sandbox_mode_changed', { detail: val }));
-        },
+        onToggleSandbox: handleToggleSandbox,
         onSelectTestTeacherCheckin: (teacher) => {
           setIsAdminPanelOpen(false);
-          setIsSandboxMode(true);
-          localStorage.setItem('system_sandbox_mode', 'true');
-          window.dispatchEvent(new CustomEvent('sandbox_mode_changed', { detail: true }));
+          handleToggleSandbox(true);
           setSelectedTeacherForCheckin(teacher);
           setSelectedDateForCheckin(formatLocalDate(new Date()));
           setIsTeacherCheckinModalOpen(true);
