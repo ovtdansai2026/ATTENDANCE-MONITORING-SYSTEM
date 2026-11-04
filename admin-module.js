@@ -4278,7 +4278,7 @@ function dailyAutoBackupTrigger() {
       const todaySession = tSessions.find(s => s.check_date === teacherStatsTodayStr);
       const todayDaily = tDailyRecords.find(d => d.check_date === teacherStatsTodayStr);
 
-      const hasPhoto = Boolean(todaySession && todaySession.evidence_photo_url && todaySession.evidence_photo_url.length > 50);
+      const hasPhoto = Boolean(todaySession && (todaySession.has_photo || (todaySession.evidence_photo_url && todaySession.evidence_photo_url.length > 50)));
       const hasDailyOrSession = Boolean(todaySession || todayDaily);
 
       let checkinStatus = 'pending';
@@ -7052,9 +7052,28 @@ function dailyAutoBackupTrigger() {
                           })
                         ]
                       }),
-                      s.evidence_photo_url && /*#__PURE__*/_jsx("button", {
+                      (s.evidence_photo_url || s.has_photo) && /*#__PURE__*/_jsx("button", {
                         type: "button",
-                        onClick: () => setViewingEvidencePhoto(s.evidence_photo_url),
+                        onClick: async () => {
+                          if (s.evidence_photo_url) {
+                            setViewingEvidencePhoto(s.evidence_photo_url);
+                            return;
+                          }
+                          try {
+                            const { data } = await dbAssembly.from('attendance_checkin_sessions')
+                              .select('evidence_photo_url')
+                              .eq('id', s.id)
+                              .single();
+                            if (data?.evidence_photo_url) {
+                              s.evidence_photo_url = data.evidence_photo_url;
+                              setViewingEvidencePhoto(data.evidence_photo_url);
+                            } else {
+                              alert('ไม่พบภาพถ่ายหลักฐานในระบบ');
+                            }
+                          } catch(e) {
+                            alert('โหลดภาพล้มเหลว: ' + e.message);
+                          }
+                        },
                         className: "px-3 py-1.5 bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 rounded-xl text-xs font-bold cursor-pointer flex-shrink-0 flex items-center gap-1",
                         children: [/*#__PURE__*/_jsx(Icon.Search, { className: "w-3 h-3 inline mr-1" }), "ดูรูป"]
                       })
@@ -7219,7 +7238,7 @@ function dailyAutoBackupTrigger() {
                           /*#__PURE__*/_jsx("p", { className: "text-xs font-bold text-slate-600", children: "ไม่พบข้อมูลครูที่ตรงกับเงื่อนไขค้นหา" })
                         ]
                       }) : filteredTeacherStats.map(t => {
-                        const hasPhoto = t.todaySession && t.todaySession.evidence_photo_url;
+                        const hasPhoto = t.todaySession && (t.todaySession.has_photo || t.todaySession.evidence_photo_url);
                         return /*#__PURE__*/_jsxs("div", {
                           key: t.id || `${t.name}_${t.class_level}`,
                           className: `p-3 rounded-2xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
@@ -7328,7 +7347,26 @@ function dailyAutoBackupTrigger() {
                                     ),
                                     hasPhoto && /*#__PURE__*/_jsx("button", {
                                       type: "button",
-                                      onClick: () => setViewingEvidencePhoto(t.todaySession.evidence_photo_url),
+                                      onClick: async () => {
+                                        if (t.todaySession.evidence_photo_url) {
+                                          setViewingEvidencePhoto(t.todaySession.evidence_photo_url);
+                                          return;
+                                        }
+                                        try {
+                                          const { data } = await dbAssembly.from('attendance_checkin_sessions')
+                                            .select('evidence_photo_url')
+                                            .eq('id', t.todaySession.id)
+                                            .single();
+                                          if (data?.evidence_photo_url) {
+                                            t.todaySession.evidence_photo_url = data.evidence_photo_url;
+                                            setViewingEvidencePhoto(data.evidence_photo_url);
+                                          } else {
+                                            alert('ไม่พบภาพถ่ายหลักฐานในระบบ');
+                                          }
+                                        } catch(e) {
+                                          alert('โหลดภาพล้มเหลว: ' + e.message);
+                                        }
+                                      },
                                       title: "ดูภาพถ่ายหน้าเสาธงของห้องนี้",
                                       className: "p-1.5 bg-sky-100 hover:bg-sky-200 text-sky-800 rounded-lg cursor-pointer transition-colors shadow-2xs",
                                       children: /*#__PURE__*/_jsx(Icon.Camera, { className: "w-3.5 h-3.5 text-sky-700" })
