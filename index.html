@@ -3,7 +3,27 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>ระบบติดตามการเข้าแถวและกิจกรรมกลาง v2.0 (วิทยาลัยการอาชีพด่านซ้าย)</title>
+  <script>
+    // 1. Purge legacy service workers that cause stale caching on Home Screen standalone apps
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        for (var reg of registrations) { reg.unregister(); }
+      }).catch(function(){});
+    }
+    // 2. Global force update function for standalone Home Screen apps
+    window.forceAppUpdate = function() {
+      try {
+        sessionStorage.clear();
+        localStorage.removeItem('app_cached_students');
+      } catch(e) {}
+      var cleanUrl = window.location.origin + window.location.pathname + '?_t=' + Date.now();
+      window.location.replace(cleanUrl);
+    };
+  </script>
   <link class="custom-favicon" rel="icon" type="image/png" href="logo.png">
   <meta name="theme-color" content="#ffffff">
   <script src="https://cdn.tailwindcss.com"></script>
@@ -2440,18 +2460,24 @@ function App() {
   const [systemMode, setSystemMode] = useState('assembly');
   const [loggedInTeacher, setLoggedInTeacher] = useState(() => {
     try {
-      const saved = sessionStorage.getItem('logged_in_teacher');
+      const saved = localStorage.getItem('logged_in_teacher') || sessionStorage.getItem('logged_in_teacher');
       return saved ? JSON.parse(saved) : null;
     } catch(e) { return null; }
   });
   const [dashboardViewMode, setDashboardViewMode] = useState(() => {
     try {
-      return sessionStorage.getItem('dashboard_view_mode') || 'classroom';
+      return localStorage.getItem('dashboard_view_mode') || sessionStorage.getItem('dashboard_view_mode') || 'classroom';
     } catch(e) { return 'classroom'; }
   });
   const [teacherSelectedRoomId, setTeacherSelectedRoomId] = useState('ALL');
   const [teacherCheckinMode, setTeacherCheckinMode] = useState('assembly');
-  const [masterStudents, setMasterStudents] = useState([]);
+  const [masterStudents, setMasterStudents] = useState(() => {
+    try {
+      const cached = localStorage.getItem('app_cached_students');
+      return cached ? JSON.parse(cached) : [];
+    } catch(e) { return []; }
+  });
+  const isTeacherScopedDataRef = useRef(false);
   const masterStudentsRef = useRef(masterStudents);
   useEffect(() => { masterStudentsRef.current = masterStudents; }, [masterStudents]);
   const [activities, setActivities] = useState([]);
@@ -2971,10 +2997,32 @@ useEffect(() => {
     }
   }, []);
 
-  // Fetch Assembly Data
-  const fetchAssemblyData = useCallback(async () => {
+  // Fetch Assembly Data (Fast Teacher-Scoped loading for morning flagpole)
+  const fetchAssemblyData = useCallback(async (forceAll = false) => {
     setIsLoading(true);
     try {
+      const currentTeacher = loggedInTeacher || (() => {
+        try { return JSON.parse(localStorage.getItem('logged_in_teacher') || sessionStorage.getItem('logged_in_teacher')); } catch(_) { return null; }
+      })();
+      const isClassroom = (dashboardViewMode === 'classroom' || !dashboardViewMode);
+      const shouldScopeToTeacher = !forceAll && Boolean(currentTeacher) && isClassroom;
+
+      let targetDepts = [];
+      if (shouldScopeToTeacher && currentTeacher) {
+        const normName = normalizeTeacherName(currentTeacher.name);
+        const matching = (teachersList || []).filter(t => normalizeTeacherName(t.name) === normName);
+        const deptsSet = new Set();
+        if (currentTeacher.department) deptsSet.add(currentTeacher.department);
+        matching.forEach(t => { if (t.department) deptsSet.add(t.department); });
+        targetDepts = Array.from(deptsSet);
+        isTeacherScopedDataRef.current = true;
+      } else {
+        isTeacherScopedDataRef.current = false;
+      }
+
+      const activeSemCheck = currentSemester || '2';
+      const isSem2 = String(activeSemCheck) === '2';
+
       const [
         settingsRes,
         studentsRaw,
@@ -2993,7 +3041,9 @@ useEffect(() => {
             return { data: null };
           }
         })(),
-        fetchAllRows(dbAssembly, 'attendance_summary', '*').catch(() => []),
+        (shouldScopeToTeacher && targetDepts.length > 0)
+          ? dbAssembly.from('attendance_summary').select('*').in('department', targetDepts).then(r => r.data || []).catch(() => [])
+          : fetchAllRows(dbAssembly, 'attendance_summary', '*').catch(() => []),
         (async () => {
           try {
             return await dbAssembly.from('system_rules').select('*').order('min_percent', { ascending: false });
@@ -3002,11 +3052,13 @@ useEffect(() => {
           }
         })(),
         fetchAllRows(dbAssembly, 'activities', '*').catch(() => []),
-        fetchAllRows(dbReCheckFallback, 'students', '*').catch(() => []),
-        fetchAllRows(dbReCheckFallback, 'attendances', '*').catch(() => []),
+        (!isSem2 ? fetchAllRows(dbReCheckFallback, 'students', '*').catch(() => []) : Promise.resolve([])),
+        (!isSem2 ? fetchAllRows(dbReCheckFallback, 'attendances', '*').catch(() => []) : Promise.resolve([])),
         fetchAllRows(dbAssembly, 'attendances', '*').catch(() => []),
         fetchAllRows(dbAssembly, 'attendance_checkin_sessions', '*').catch(() => []),
-        fetchAllRows(dbAssembly, 'daily_attendance', '*').catch(() => [])
+        (shouldScopeToTeacher && targetDepts.length > 0)
+          ? dbAssembly.from('daily_attendance').select('*').in('department', targetDepts).then(r => r.data || []).catch(() => [])
+          : fetchAllRows(dbAssembly, 'daily_attendance', '*').catch(() => [])
       ]);
       const rulesData = rulesRes?.data;
       if (rulesData && rulesData.length > 0) setRules(rulesData);
@@ -3526,13 +3578,16 @@ useEffect(() => {
         return (a.name || '').localeCompare(b.name || '', 'th');
       });
       setMasterStudents(mapped);
+      try {
+        localStorage.setItem('app_cached_students', JSON.stringify(mapped));
+      } catch(_) {}
     } catch (err) {
       console.error(err);
       alert('ไม่สามารถดึงข้อมูลเข้าแถวได้: ' + err.message);
     } finally {
       setIsLoading(false);
     }
-  }, [currentAcademicYear, currentSemester]);
+  }, [currentAcademicYear, currentSemester, loggedInTeacher, dashboardViewMode, teachersList]);
 
   const handleCalendarSettingsUpdated = useCallback(async (updates) => {
     if (!updates) return;
@@ -4444,20 +4499,41 @@ useEffect(() => {
                     ]
                   }),
 
-                  /* Right: Logout button */
-                  /*#__PURE__*/_jsxs("button", {
-                    type: "button",
-                    onClick: () => {
-                      setLoggedInTeacher(null);
-                      sessionStorage.removeItem('logged_in_teacher');
-                      sessionStorage.removeItem('dashboard_view_mode');
-                      setDashboardViewMode('classroom');
-                      setTeacherSelectedRoomId('ALL');
-                    },
-                    className: "text-slate-400 hover:text-rose-600 hover:bg-rose-50 font-semibold text-xs flex items-center gap-1.5 cursor-pointer transition-all px-3 py-1.5 rounded-xl border border-transparent hover:border-rose-200 active:scale-95",
+                  /* Right Actions: Force Refresh + Logout */
+                  /*#__PURE__*/_jsxs("div", {
+                    className: "flex items-center gap-2",
                     children: [
-                      /*#__PURE__*/_jsx(Icon.Close, { className: "w-3.5 h-3.5 text-rose-500" }),
-                      /*#__PURE__*/_jsx("span", { children: "ออกจากระบบครู" })
+                      /* One-Tap Refresh / App Update Button for Home Screen Standalone users */
+                      /*#__PURE__*/_jsxs("button", {
+                        type: "button",
+                        onClick: () => {
+                          if (confirm("ต้องการรีเฟรชหน้าเว็บเพื่อดึงข้อมูลและอัปเดตระบบเวอร์ชันล่าสุดทันทีหรือไม่?")) {
+                            window.forceAppUpdate();
+                          }
+                        },
+                        className: "text-emerald-700 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-all px-2.5 py-1.5 rounded-xl border border-emerald-300 shadow-2xs active:scale-95",
+                        title: "รีเฟรชและล้างแคชเพื่อรับฟีเจอร์เวอร์ชันล่าสุด",
+                        children: [
+                          /*#__PURE__*/_jsx(Icon.Refresh, { className: "w-3.5 h-3.5 text-emerald-600" }),
+                          /*#__PURE__*/_jsx("span", { children: "🔄 รีเฟรชแอป" })
+                        ]
+                      }),
+                      /* Logout button */
+                      /*#__PURE__*/_jsxs("button", {
+                        type: "button",
+                        onClick: () => {
+                          setLoggedInTeacher(null);
+                          localStorage.removeItem('logged_in_teacher'); sessionStorage.removeItem('logged_in_teacher');
+                          localStorage.removeItem('dashboard_view_mode'); sessionStorage.removeItem('dashboard_view_mode');
+                          setDashboardViewMode('classroom');
+                          setTeacherSelectedRoomId('ALL');
+                        },
+                        className: "text-slate-400 hover:text-rose-600 hover:bg-rose-50 font-semibold text-xs flex items-center gap-1.5 cursor-pointer transition-all px-3 py-1.5 rounded-xl border border-transparent hover:border-rose-200 active:scale-95",
+                        children: [
+                          /*#__PURE__*/_jsx(Icon.Close, { className: "w-3.5 h-3.5 text-rose-500" }),
+                          /*#__PURE__*/_jsx("span", { children: "ออกจากระบบครู" })
+                        ]
+                      })
                     ]
                   })
                 ]
@@ -4714,7 +4790,7 @@ useEffect(() => {
                         "aria-selected": dashboardViewMode === 'classroom',
                         onClick: () => {
                           setDashboardViewMode('classroom');
-                          sessionStorage.setItem('dashboard_view_mode', 'classroom');
+                          localStorage.setItem('dashboard_view_mode', 'classroom'); sessionStorage.setItem('dashboard_view_mode', 'classroom');
                         },
                         className: "px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 transition-all cursor-pointer " + (
                           dashboardViewMode === 'classroom'
@@ -4737,7 +4813,10 @@ useEffect(() => {
                         "aria-selected": dashboardViewMode === 'college',
                         onClick: () => {
                           setDashboardViewMode('college');
-                          sessionStorage.setItem('dashboard_view_mode', 'college');
+                          localStorage.setItem('dashboard_view_mode', 'college'); sessionStorage.setItem('dashboard_view_mode', 'college');
+                          if (isTeacherScopedDataRef.current) {
+                            fetchAssemblyData(true);
+                          }
                         },
                         className: "px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 transition-all cursor-pointer " + (
                           dashboardViewMode === 'college'
@@ -6329,9 +6408,9 @@ useEffect(() => {
         masterStudents: masterStudents,
         onLoginSuccess: (teacher) => {
           setLoggedInTeacher(teacher);
-          sessionStorage.setItem('logged_in_teacher', JSON.stringify(teacher));
+          localStorage.setItem('logged_in_teacher', JSON.stringify(teacher)); sessionStorage.setItem('logged_in_teacher', JSON.stringify(teacher));
           setDashboardViewMode('classroom');
-          sessionStorage.setItem('dashboard_view_mode', 'classroom');
+          localStorage.setItem('dashboard_view_mode', 'classroom'); sessionStorage.setItem('dashboard_view_mode', 'classroom');
           setTeacherSelectedRoomId('ALL');
           setIsTeacherLoginModalOpen(false);
         },
@@ -6345,7 +6424,7 @@ useEffect(() => {
         onSaveStudentPhoto: handleSaveStudentPhotoDirect,
         onTeacherChange: (newTeacher) => {
           setLoggedInTeacher(newTeacher);
-          sessionStorage.setItem('logged_in_teacher', JSON.stringify(newTeacher));
+          localStorage.setItem('logged_in_teacher', JSON.stringify(newTeacher)); sessionStorage.setItem('logged_in_teacher', JSON.stringify(newTeacher));
         },
         teachers: teachersList,
         masterStudents: masterStudents,
@@ -6362,7 +6441,7 @@ useEffect(() => {
         },
         onLogout: () => {
           setLoggedInTeacher(null);
-          sessionStorage.removeItem('logged_in_teacher');
+          localStorage.removeItem('logged_in_teacher'); sessionStorage.removeItem('logged_in_teacher');
           setIsTeacherClassroomModalOpen(false);
         },
         onClose: () => setIsTeacherClassroomModalOpen(false)
@@ -6398,7 +6477,7 @@ useEffect(() => {
         onVerifyClubSessions: fetchLatestClubSessions,
         onTeacherLoginSuccess: (teacher) => {
           setLoggedInTeacher(teacher);
-          sessionStorage.setItem('logged_in_teacher', JSON.stringify(teacher));
+          localStorage.setItem('logged_in_teacher', JSON.stringify(teacher)); sessionStorage.setItem('logged_in_teacher', JSON.stringify(teacher));
         },
         onSuccessUpdate: reloadData,
         onClose: () => {
@@ -10609,7 +10688,7 @@ function TeacherCheckinModal({
   const [isCapturingPhoto, setIsCapturingPhoto] = useState(false);
   const fileInputRef = useRef(null);
 
-  // Load students for selected teacher (supports loading multiple rooms combined)
+  // Load students for selected teacher (supports loading multiple rooms combined with ultra-fast parallel fetch)
   const loadRoomStudents = useCallback(async (teacher, date, targetRooms = null) => {
     if (!teacher) return;
     setIsLoadingStudents(true);
@@ -10659,7 +10738,7 @@ function TeacherCheckinModal({
           };
         });
 
-        // 2. หากยังไม่พบ ให้ดึงจากตาราง attendance_summary ของ dbAssembly
+        // 2. หากยังไม่พบในหน่วยความจำ ให้ดึงจากตาราง attendance_summary
         if (students.length === 0) {
           try {
             const { data, error } = await dbAssembly.from('attendance_summary')
@@ -10713,126 +10792,148 @@ function TeacherCheckinModal({
         ];
       }
 
+      // ⚡ INSTANT RENDER: แสดงรายชื่อนักศึกษาทันที ไม่ต้องรอคิวรี่เน็ตเวิร์ก
+      if (allCombinedStudents.length > 0) {
+        setRoomStudents(allCombinedStudents);
+      }
+
       const initialMap = {};
       let sharedPhoto = null;
       let allTermAttHistory = [];
       try {
         if (checkinMode === 'assembly') {
-          // 1. Morning Assembly Mode: Query daily_attendance and assembly session
-          for (const rm of rooms) {
-            try {
-              const { data: termRows } = await dbAssembly.from('daily_attendance')
-                .select('student_id, student_name, check_date, status, department, class_level')
-                .eq('academic_year', academicYear || '2569')
-                .eq('semester', semester || '2')
+          // ⚡ PARALLEL FETCH: รันทุกห้องพร้อมกันในรอบเดียว (ลดเวลารอจาก 5-10 วิ เหลือ 200ms)
+          const [dailyAttResults, sessionResults, termHistResults] = await Promise.all([
+            Promise.all(rooms.map(rm =>
+              dbAssembly.from('daily_attendance')
+                .select('*')
+                .eq('check_date', date)
                 .eq('department', rm.department)
-                .eq('class_level', rm.class_level);
-              if (termRows && termRows.length > 0) {
-                allTermAttHistory = allTermAttHistory.concat(termRows);
-              }
-            } catch (tErr) {
-              console.warn('term history fetch error:', tErr);
-            }
-
-            const { data: existingAtt } = await dbAssembly.from('daily_attendance')
-              .select('*')
-              .eq('check_date', date)
-              .eq('department', rm.department)
-              .eq('class_level', rm.class_level);
-            if (existingAtt && existingAtt.length > 0) {
-              existingAtt.forEach(rec => {
-                initialMap[rec.student_id] = rec.status;
-              });
-            }
-
-            if (!sharedPhoto) {
-              const { data: sessionRows } = await dbAssembly.from('attendance_checkin_sessions')
+                .eq('class_level', rm.class_level)
+                .then(r => r.data || [])
+                .catch(() => [])
+            )),
+            Promise.all(rooms.map(rm =>
+              dbAssembly.from('attendance_checkin_sessions')
                 .select('evidence_photo_url, notes')
                 .eq('check_date', date)
                 .eq('department', rm.department)
                 .eq('class_level', rm.class_level)
-                .limit(1);
-              if (sessionRows && sessionRows.length > 0 && sessionRows[0].evidence_photo_url) {
-                let isAssembly = true;
-                if (sessionRows[0].notes) {
-                  try {
-                    const parsed = JSON.parse(sessionRows[0].notes);
-                    if (parsed.activity_type && parsed.activity_type !== 'assembly') isAssembly = false;
-                  } catch (_) {}
-                }
-                if (isAssembly) {
-                  sharedPhoto = sessionRows[0].evidence_photo_url;
-                }
+                .limit(1)
+                .then(r => r.data || [])
+                .catch(() => [])
+            )),
+            Promise.all(rooms.map(rm =>
+              dbAssembly.from('daily_attendance')
+                .select('student_id, student_name, check_date, status, department, class_level')
+                .eq('academic_year', academicYear || '2569')
+                .eq('semester', semester || '2')
+                .eq('department', rm.department)
+                .eq('class_level', rm.class_level)
+                .then(r => r.data || [])
+                .catch(() => [])
+            ))
+          ]);
+
+          dailyAttResults.forEach(rows => {
+            rows.forEach(rec => {
+              if (rec.student_id) initialMap[rec.student_id] = rec.status;
+            });
+          });
+
+          sessionResults.forEach(rows => {
+            if (!sharedPhoto && rows.length > 0 && rows[0].evidence_photo_url) {
+              let isAssembly = true;
+              if (rows[0].notes) {
+                try {
+                  const parsed = JSON.parse(rows[0].notes);
+                  if (parsed.activity_type && parsed.activity_type !== 'assembly') isAssembly = false;
+                } catch (_) {}
+              }
+              if (isAssembly) {
+                sharedPhoto = rows[0].evidence_photo_url;
               }
             }
-          }
+          });
+
+          termHistResults.forEach(rows => {
+            if (rows && rows.length > 0) {
+              allTermAttHistory = allTermAttHistory.concat(rows);
+            }
+          });
         } else if (checkinMode === 'central') {
-          // 2. Central Activity Mode: Query attendances table and central session photo ONLY
+          // Central Activity Mode: Parallel room query
           const actId = selectedCentralActivity ? String(selectedCentralActivity.id).toLowerCase() : null;
           if (actId) {
-            try {
-              const { data: centralAttRows } = await dbAssembly.from('attendances')
+            const [centralAttRes, sessionResults] = await Promise.all([
+              dbAssembly.from('attendances')
                 .select('student_id')
-                .eq('activity_id', actId);
-              const presentSet = new Set((centralAttRows || []).map(r => String(r.student_id).trim()));
-              allCombinedStudents.forEach(s => {
-                const sId = String(s.student_id || s.id).trim();
-                initialMap[s.student_id] = (presentSet.has(sId) || presentSet.has(String(s.id).trim())) ? 'present' : 'absent';
-              });
-            } catch (attErr) {
-              console.warn('central attendance fetch error:', attErr);
-            }
-
-            for (const rm of rooms) {
-              if (!sharedPhoto) {
+                .eq('activity_id', actId)
+                .then(r => r.data || [])
+                .catch(() => []),
+              Promise.all(rooms.map(rm => {
                 const rawLevel = `${rm.class_level}#central_${actId}`;
                 const safeLevel = rawLevel.length > 50 ? `${rm.class_level}#c_${actId}`.substring(0, 50) : rawLevel;
-                const { data: cSess } = await dbAssembly.from('attendance_checkin_sessions')
+                return dbAssembly.from('attendance_checkin_sessions')
                   .select('evidence_photo_url')
                   .eq('department', rm.department)
                   .eq('class_level', safeLevel)
                   .eq('academic_year', academicYear || '2569')
                   .eq('semester', semester || '2')
                   .order('created_at', { ascending: false })
-                  .limit(1);
-                if (cSess && cSess.length > 0 && cSess[0].evidence_photo_url) {
-                  sharedPhoto = cSess[0].evidence_photo_url;
-                }
+                  .limit(1)
+                  .then(r => r.data || [])
+                  .catch(() => []);
+              }))
+            ]);
+
+            const presentSet = new Set((centralAttRes || []).map(r => String(r.student_id).trim()));
+            allCombinedStudents.forEach(s => {
+              const sId = String(s.student_id || s.id).trim();
+              initialMap[s.student_id] = (presentSet.has(sId) || presentSet.has(String(s.id).trim())) ? 'present' : 'absent';
+            });
+
+            sessionResults.forEach(rows => {
+              if (!sharedPhoto && rows.length > 0 && rows[0].evidence_photo_url) {
+                sharedPhoto = rows[0].evidence_photo_url;
               }
-            }
+            });
           }
         } else if (checkinMode === 'club') {
-          // 3. Club Activity Mode: Query club session and club session photo ONLY
+          // Club Activity Mode: Parallel room query
           const sessNo = Number(clubSessionNo) || 1;
-          for (const rm of rooms) {
-            if (!sharedPhoto) {
-              const { data: clbSess } = await dbAssembly.from('attendance_checkin_sessions')
-                .select('evidence_photo_url, notes')
-                .eq('department', rm.department)
-                .eq('class_level', `${rm.class_level}#club_${sessNo}`)
-                .eq('academic_year', academicYear || '2569')
-                .eq('semester', semester || '2')
-                .order('created_at', { ascending: false })
-                .limit(1);
-              if (clbSess && clbSess.length > 0) {
-                if (clbSess[0].evidence_photo_url) sharedPhoto = clbSess[0].evidence_photo_url;
-                if (clbSess[0].notes) {
-                  try {
-                    const parsed = JSON.parse(clbSess[0].notes);
-                    if (Array.isArray(parsed.present_student_ids)) {
-                      const pSet = new Set(parsed.present_student_ids.map(id => String(id).trim()));
-                      allCombinedStudents.forEach(s => {
-                        const sId = String(s.student_id || s.id).trim();
-                        if (pSet.has(sId) || pSet.has(String(s.id).trim())) {
-                          initialMap[s.student_id] = 'present';
-                        }
-                      });
-                    }
-                  } catch (_) {}
-                }
+          const sessionResults = await Promise.all(rooms.map(rm =>
+            dbAssembly.from('attendance_checkin_sessions')
+              .select('evidence_photo_url, notes')
+              .eq('department', rm.department)
+              .eq('class_level', `${rm.class_level}#club_${sessNo}`)
+              .eq('academic_year', academicYear || '2569')
+              .eq('semester', semester || '2')
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .then(r => r.data || [])
+              .catch(() => [])
+          ));
+
+          sessionResults.forEach(rows => {
+            if (rows.length > 0) {
+              if (!sharedPhoto && rows[0].evidence_photo_url) sharedPhoto = rows[0].evidence_photo_url;
+              if (rows[0].notes) {
+                try {
+                  const parsed = JSON.parse(rows[0].notes);
+                  if (Array.isArray(parsed.present_student_ids)) {
+                    const pSet = new Set(parsed.present_student_ids.map(id => String(id).trim()));
+                    allCombinedStudents.forEach(s => {
+                      const sId = String(s.student_id || s.id).trim();
+                      if (pSet.has(sId) || pSet.has(String(s.id).trim())) {
+                        initialMap[s.student_id] = 'present';
+                      }
+                    });
+                  }
+                } catch (_) {}
               }
             }
-          }
+          });
         }
 
         if (sharedPhoto) {
@@ -12672,26 +12773,14 @@ function TeacherCheckinModal({
                     if (!reportText) return;
 
                     // 1. Always copy text to clipboard as safety buffer (works everywhere)
-                    safeCopyToClipboard(reportText).then(() => {
+                    try {
+                      await safeCopyToClipboard(reportText);
                       setIsCopiedLine(true);
                       setTimeout(() => setIsCopiedLine(false), 3000);
-                    }).catch(() => {});
+                    } catch (_) {}
 
-                    // 2. Try Native Web Share API first (Production HTTPS on mobile phones)
-                    if (navigator.share) {
-                      try {
-                        await navigator.share({
-                          title: 'รายงานการเข้าแถว วก.ด่านซ้าย',
-                          text: reportText
-                        });
-                        return;
-                      } catch (shareErr) {
-                        if (shareErr.name === 'AbortError') return; // User cancelled
-                        console.warn('Native share error, falling back to LINE URL:', shareErr);
-                      }
-                    }
-
-                    // 3. Fallback: Direct LINE URL Scheme
+                    // 2. Direct LINE App Jump (Universal Link / Line Scheme)
+                    // Directly launches the LINE application on iOS and Android to select the chat/group
                     const shareUrl = `https://line.me/R/share?text=${encodeURIComponent(reportText)}`;
                     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
                     if (isMobile) {
