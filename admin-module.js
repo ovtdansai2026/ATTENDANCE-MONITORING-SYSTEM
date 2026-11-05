@@ -4453,10 +4453,21 @@ function dailyAutoBackupTrigger() {
     return '';
   }, [studentCodesMap]);
 
+  // Active term students (Filtered when Sandbox Mode is OFF)
+  const activeTermStudentsList = useMemo(() => {
+    if (isSandboxMode) return termStudentsList;
+    return (termStudentsList || []).filter(s => {
+      const d = normalizeDepartmentName(s.department || s.dept || '');
+      const sid = Number(s.id || s.student_id || 0);
+      const name = s.student_name || s.name || '';
+      return d !== 'ทดสอบระบบ' && !(sid >= 99000 && sid < 100000) && !name.includes('ทดสอบ');
+    });
+  }, [termStudentsList, isSandboxMode]);
+
   // Dynamic department counts and filter options for student roster (Real data only, NO presets with 0 students)
   const termDepartmentCounts = useMemo(() => {
     const counts = {};
-    (termStudentsList || []).forEach(s => {
+    (activeTermStudentsList || []).forEach(s => {
       const rawDept = s.department || s.dept || '';
       const cleanDept = normalizeDepartmentName(rawDept);
       if (cleanDept && cleanDept !== 'ทั่วไป') {
@@ -4464,7 +4475,7 @@ function dailyAutoBackupTrigger() {
       }
     });
     return counts;
-  }, [termStudentsList]);
+  }, [activeTermStudentsList]);
 
   const departmentFilterOptions = useMemo(() => {
     // Only real departments that have actual students in this term (counts > 0)
@@ -4548,7 +4559,7 @@ function dailyAutoBackupTrigger() {
   }, [adminTab, adminYear, adminSem]);
 
   const filteredTermStudents = useMemo(() => {
-    return termStudentsList.filter(s => {
+    return activeTermStudentsList.filter(s => {
       if (studentLevelFilter !== 'ALL' && s.pure_level !== studentLevelFilter) return false;
       if (studentDeptFilter !== 'ALL' && normalizeDepartmentName(s.department || s.dept || '') !== studentDeptFilter) return false;
       if (studentSearch.trim()) {
@@ -4561,7 +4572,7 @@ function dailyAutoBackupTrigger() {
       }
       return true;
     });
-  }, [termStudentsList, studentLevelFilter, studentDeptFilter, studentSearch, getStudentCode]);
+  }, [activeTermStudentsList, studentLevelFilter, studentDeptFilter, studentSearch, getStudentCode]);
 
   const adminTotalStudentPages = Math.max(1, Math.ceil(filteredTermStudents.length / adminStudentPageSize));
   const paginatedTermStudents = useMemo(() => {
@@ -4703,7 +4714,7 @@ function dailyAutoBackupTrigger() {
 
   // ส่งออกรายชื่อนักเรียนเป็นไฟล์ Excel (.xlsx)
   const handleExportStudentsExcel = () => {
-    const listToExport = filteredTermStudents.length > 0 ? filteredTermStudents : termStudentsList;
+    const listToExport = filteredTermStudents.length > 0 ? filteredTermStudents : activeTermStudentsList;
     if (!listToExport || listToExport.length === 0) {
       alert('ไม่มีข้อมูลนักเรียนสำหรับส่งออก');
       return;
@@ -6039,7 +6050,7 @@ function dailyAutoBackupTrigger() {
                     /*#__PURE__*/_jsx("div", {
                       className: "grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1",
                       children: ['ปวช.1', 'ปวช.2', 'ปวช.3', 'ปวส.1', 'ปวส.2'].map(lvl => {
-                        const count = (termStudentsList || []).filter(s => s.pure_level === lvl).length;
+                        const count = (activeTermStudentsList || []).filter(s => s.pure_level === lvl).length;
                         const isHidden = localHiddenLevels.includes(lvl);
                         return /*#__PURE__*/_jsxs("div", {
                           key: lvl,
@@ -6160,7 +6171,7 @@ function dailyAutoBackupTrigger() {
                       className: `px-3.5 py-1.5 rounded-xl text-xs font-bold cursor-pointer transition-all flex items-center gap-1.5 ${studentSubTab === 'list' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`,
                       children: [
                         /*#__PURE__*/_jsx(Icon.Users, { className: "w-3.5 h-3.5" }),
-                        `รายชื่อนักเรียน (${termStudentsList.length})`
+                        `รายชื่อนักเรียน (${activeTermStudentsList.length})`
                       ]
                     }),
                     /*#__PURE__*/_jsxs("button", {
@@ -6247,7 +6258,7 @@ function dailyAutoBackupTrigger() {
                               className: "bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:border-indigo-400 cursor-pointer shadow-2xs flex-1 sm:flex-initial",
                               title: "เลือกแผนกวิชาเพื่อกรองรายชื่อ",
                               children: [
-                                /*#__PURE__*/_jsx("option", { value: "ALL", children: `📁 ทุกแผนก (${termStudentsList.length})` }),
+                                /*#__PURE__*/_jsx("option", { value: "ALL", children: `📁 ทุกแผนก (${activeTermStudentsList.length})` }),
                                 departmentFilterOptions.map(dept => {
                                   const count = termDepartmentCounts[dept] || 0;
                                   return /*#__PURE__*/_jsx("option", { value: dept, children: `${dept} (${count})` }, dept);
@@ -6261,9 +6272,9 @@ function dailyAutoBackupTrigger() {
                               className: "bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:border-indigo-400 cursor-pointer shadow-2xs flex-1 sm:flex-initial",
                               title: "เลือกระดับชั้นปีเพื่อกรองรายชื่อ",
                               children: [
-                                /*#__PURE__*/_jsx("option", { value: "ALL", children: `🎓 ทุกชั้นปี (${termStudentsList.length})` }),
+                                /*#__PURE__*/_jsx("option", { value: "ALL", children: `🎓 ทุกชั้นปี (${activeTermStudentsList.length})` }),
                                 ['ปวช.1', 'ปวช.2', 'ปวช.3', 'ปวส.1', 'ปวส.2'].map(lvl => {
-                                  const count = termStudentsList.filter(s => s.pure_level === lvl).length;
+                                  const count = activeTermStudentsList.filter(s => s.pure_level === lvl).length;
                                   const isHidden = localHiddenLevels && localHiddenLevels.includes(lvl);
                                   return /*#__PURE__*/_jsx("option", { value: lvl, children: `${lvl} (${count})${isHidden ? ' [ซ่อนอยู่]' : ''}` }, lvl);
                                 })
@@ -6871,7 +6882,7 @@ function dailyAutoBackupTrigger() {
                     }),
                     (() => {
                       const safeCodes = (studentCodesMap && typeof studentCodesMap === 'object') ? studentCodesMap : {};
-                      const matchedCount = termStudentsList.filter(s => Boolean(safeCodes[s.id] || safeCodes[s.student_name] || safeCodes[(s.student_name || '').trim()])).length;
+                      const matchedCount = activeTermStudentsList.filter(s => Boolean(safeCodes[s.id] || safeCodes[s.student_name] || safeCodes[(s.student_name || '').trim()])).length;
                       return /*#__PURE__*/_jsxs(_Fragment, {
                         children: [
                           /*#__PURE__*/_jsxs("div", {
@@ -6899,7 +6910,7 @@ function dailyAutoBackupTrigger() {
                                 className: "p-3.5 bg-white rounded-xl border border-slate-200 text-center",
                                 children: [
                                   /*#__PURE__*/_jsx("div", { className: "text-[11px] font-bold text-slate-500", children: `นักเรียนในระบบ (${adminSem}/${adminYear})` }),
-                                  /*#__PURE__*/_jsxs("div", { className: "text-xl font-black text-slate-800 mt-1", children: [termStudentsList.length, " คน"] })
+                                  /*#__PURE__*/_jsxs("div", { className: "text-xl font-black text-slate-800 mt-1", children: [activeTermStudentsList.length, " คน"] })
                                 ]
                               }),
                               /*#__PURE__*/_jsxs("div", {
@@ -6910,7 +6921,7 @@ function dailyAutoBackupTrigger() {
                                     className: "text-xl font-black text-emerald-800 mt-1",
                                     children: [
                                       matchedCount,
-                                      termStudentsList.length > 0 ? ` คน (${Math.round((matchedCount / termStudentsList.length) * 100)}%)` : " คน"
+                                      activeTermStudentsList.length > 0 ? ` คน (${Math.round((matchedCount / activeTermStudentsList.length) * 100)}%)` : " คน"
                                     ]
                                   })
                                 ]
@@ -6921,7 +6932,7 @@ function dailyAutoBackupTrigger() {
                                   /*#__PURE__*/_jsx("div", { className: "text-[11px] font-bold text-indigo-700", children: "สถานะการซิงค์" }),
                                   /*#__PURE__*/_jsx("div", {
                                     className: "text-base font-black text-indigo-900 mt-1.5",
-                                    children: (matchedCount === termStudentsList.length && termStudentsList.length > 0) ? "✅ ครบถ้วน 100%" : "⚡ พร้อมใช้งาน"
+                                    children: (matchedCount === activeTermStudentsList.length && activeTermStudentsList.length > 0) ? "✅ ครบถ้วน 100%" : "⚡ พร้อมใช้งาน"
                                   })
                                 ]
                               })
@@ -6939,16 +6950,16 @@ function dailyAutoBackupTrigger() {
                                   }),
                                   /*#__PURE__*/_jsxs("span", {
                                     className: "text-[11px] text-slate-400 font-medium",
-                                    children: [`แสดง ${Math.min(30, termStudentsList.length)} จาก ${termStudentsList.length} คน`]
+                                    children: [`แสดง ${Math.min(30, activeTermStudentsList.length)} จาก ${activeTermStudentsList.length} คน`]
                                   })
                                 ]
                               }),
-                              termStudentsList.length === 0 ? /*#__PURE__*/_jsx("div", {
+                              activeTermStudentsList.length === 0 ? /*#__PURE__*/_jsx("div", {
                                 className: "p-6 text-center text-xs text-slate-400 border border-dashed border-slate-200 rounded-lg",
                                 children: `ยังไม่มีรายชื่อนักเรียนในภาคเรียนที่ ${adminSem}/${adminYear}`
                               }) : /*#__PURE__*/_jsx("div", {
                                 className: "max-h-60 overflow-y-auto divide-y divide-slate-100 border border-slate-100 rounded-lg text-xs",
-                                children: termStudentsList.slice(0, 30).map(s => {
+                                children: activeTermStudentsList.slice(0, 30).map(s => {
                                   const code = safeCodes[s.id] || safeCodes[s.student_name] || safeCodes[(s.student_name || '').trim()] || '-';
                                   return /*#__PURE__*/_jsxs("div", {
                                     className: "p-2 px-3 flex items-center justify-between hover:bg-slate-50",
@@ -6968,9 +6979,9 @@ function dailyAutoBackupTrigger() {
                                   }, s.id);
                                 })
                               }),
-                              termStudentsList.length > 30 && /*#__PURE__*/_jsxs("p", {
+                              activeTermStudentsList.length > 30 && /*#__PURE__*/_jsxs("p", {
                                 className: "text-[11px] text-slate-400 text-center pt-1",
-                                children: ["แสดง 30 คนแรก จากทั้งหมด ", termStudentsList.length, " คน (มีรหัสในระบบครบ)"]
+                                children: ["แสดง 30 คนแรก จากทั้งหมด ", activeTermStudentsList.length, " คน (มีรหัสในระบบครบ)"]
                               })
                             ]
                           })

@@ -2964,6 +2964,15 @@ useEffect(() => {
     setIsSandboxMode(enabled);
     localStorage.setItem('system_sandbox_mode', enabled ? 'true' : 'false');
     window.dispatchEvent(new CustomEvent('sandbox_mode_changed', { detail: enabled }));
+    if (!enabled && loggedInTeacher) {
+      const d = normalizeDepartmentName(loggedInTeacher.department || '');
+      const n = (loggedInTeacher.name || '').toLowerCase();
+      if (d === 'ทดสอบระบบ' || n.includes('ทดสอบ') || n === 'admin') {
+        setLoggedInTeacher(null);
+        localStorage.removeItem('logged_in_teacher');
+        sessionStorage.removeItem('logged_in_teacher');
+      }
+    }
     try {
       const token = sessionStorage.getItem('admin_session_token') || 'admin2026';
       await dbAssembly.rpc('admin_save_system_setting_secure', {
@@ -2974,7 +2983,7 @@ useEffect(() => {
     } catch (err) {
       console.warn('Persisting sandbox setting error:', err);
     }
-  }, []);
+  }, [loggedInTeacher]);
 
   // LINE Auto-send at 08:20 Cut-off on School Days (Excluding Weekends & Special Holidays)
   useEffect(() => {
@@ -4041,55 +4050,60 @@ useEffect(() => {
   const activeClubSession = activeClubSessions[0] || null;
 
   // Sandbox (Test Mode) Filtered Records
-  const isTeacherTesting = Boolean(loggedInTeacher && (
+  const isTeacherTesting = Boolean(isSandboxMode && loggedInTeacher && (
     normalizeDepartmentName(loggedInTeacher.department || '') === 'ทดสอบระบบ' || 
     (loggedInTeacher.name || '').includes('ทดสอบ') ||
     (loggedInTeacher.name || '').toLowerCase() === 'admin'
   ));
 
   const displayTeachers = useMemo(() => {
-    if (isSandboxMode || isTeacherTesting || isAdminLoggedIn) return teachersList;
+    if (isSandboxMode || isTeacherTesting) return teachersList;
     return (teachersList || []).filter(t => {
       const d = normalizeDepartmentName(t.department || '');
       const n = (t.name || '').toLowerCase();
       return d !== 'ทดสอบระบบ' && !n.includes('ทดสอบ') && n !== 'admin';
     });
-  }, [teachersList, isSandboxMode, isTeacherTesting, isAdminLoggedIn]);
+  }, [teachersList, isSandboxMode, isTeacherTesting]);
 
   const displayDailyAttendance = useMemo(() => {
-    if (isSandboxMode || isTeacherTesting || isAdminLoggedIn) return dailyAttendanceRecords;
+    if (isSandboxMode || isTeacherTesting) return dailyAttendanceRecords;
     return (dailyAttendanceRecords || []).filter(r => {
       const d = normalizeDepartmentName(r.department || '');
       return d !== 'ทดสอบระบบ';
     });
-  }, [dailyAttendanceRecords, isSandboxMode, isTeacherTesting, isAdminLoggedIn]);
+  }, [dailyAttendanceRecords, isSandboxMode, isTeacherTesting]);
 
   const displayCheckinSessions = useMemo(() => {
-    if (isSandboxMode || isTeacherTesting || isAdminLoggedIn) return checkinSessions;
+    if (isSandboxMode || isTeacherTesting) return checkinSessions;
     return (checkinSessions || []).filter(s => {
       const d = normalizeDepartmentName(s.department || '');
       const t = (s.teacher_name || '').toLowerCase();
       return d !== 'ทดสอบระบบ' && !t.includes('ทดสอบ') && t !== 'admin';
     });
-  }, [checkinSessions, isSandboxMode, isTeacherTesting, isAdminLoggedIn]);
+  }, [checkinSessions, isSandboxMode, isTeacherTesting]);
+
+  // Master Students with sandbox mock students completely filtered out when sandbox mode is OFF
+  const displayMasterStudents = useMemo(() => {
+    let list = masterStudents || [];
+    if (!isSandboxMode && !isTeacherTesting) {
+      list = list.filter(s => {
+        const d = normalizeDepartmentName(s.dept || s.department || '');
+        const sid = Number(s.id || s.student_id || 0);
+        const name = s.name || s.student_name || '';
+        return d !== 'ทดสอบระบบ' && !(sid >= 99000 && sid < 100000) && !name.includes('ทดสอบ');
+      });
+    }
+    return list;
+  }, [masterStudents, isSandboxMode, isTeacherTesting]);
 
   // Active Master Students (Excludes hidden class levels and sandbox mock students when mode is OFF)
   const activeMasterStudents = useMemo(() => {
-    let list = masterStudents || [];
-    if (!isSandboxMode && !isTeacherTesting && !isAdminLoggedIn) {
-      list = list.filter(s => {
-        const d = normalizeDepartmentName(s.dept || s.department || '');
-        const sid = Number(s.id || s.student_id);
-        const name = s.name || s.student_name || '';
-        return d !== 'ทดสอบระบบ' && sid < 99000 && !name.includes('ทดสอบ');
-      });
-    }
-    if (!hiddenClassLevels || hiddenClassLevels.length === 0) return list;
-    return list.filter(s => {
+    if (!hiddenClassLevels || hiddenClassLevels.length === 0) return displayMasterStudents;
+    return displayMasterStudents.filter(s => {
       const lvl = String(s.level || s.class_level || s.pure_level || '').trim();
       return !hiddenClassLevels.includes(lvl);
     });
-  }, [masterStudents, hiddenClassLevels, isSandboxMode, isTeacherTesting, isAdminLoggedIn]);
+  }, [displayMasterStudents, hiddenClassLevels]);
 
   // Sibling rooms managed by logged in teacher (Multi-room support)
   const loggedInTeacherRooms = useMemo(() => {
@@ -5371,7 +5385,7 @@ useEffect(() => {
                   /*#__PURE__*/_jsx("span", { className: "font-bold bg-white px-2 py-0.5 rounded-lg border border-amber-300 text-amber-950 shadow-2xs", children: hiddenClassLevels.join(', ') }),
                   /*#__PURE__*/_jsxs("span", {
                     className: "text-[11px] text-amber-700 font-medium",
-                    children: ["(ตัดออกจากสถิติแดชบอร์ด ", (masterStudents.length - activeMasterStudents.length), " คน)"]
+                    children: ["(ตัดออกจากสถิติแดชบอร์ด ", (displayMasterStudents.length - activeMasterStudents.length), " คน)"]
                   })
                 ]
               }),
@@ -6568,7 +6582,7 @@ useEffect(() => {
           setMasterStudents([]);
           reloadData();
         },
-        teachersList: teachersList,
+        teachersList: displayTeachers,
         teacherPhotosMap: teacherPhotosMap,
         onOpenTeacherPhoto: (t) => setPhotoModalTeacher(t),
         onUpdateTeachers: () => fetchTeachers(),
@@ -6579,7 +6593,7 @@ useEffect(() => {
         onSaveLineSettings: handleSaveLineSettings,
         allowOffHoursCheckin: allowOffHoursCheckin,
         onToggleOffHoursCheckin: handleToggleOffHoursCheckin,
-        masterStudents: masterStudents,
+        masterStudents: displayMasterStudents,
         hiddenClassLevels: hiddenClassLevels,
         onSaveHiddenClassLevels: handleSaveHiddenClassLevels,
         isSandboxMode: isSandboxMode,
@@ -6704,8 +6718,8 @@ useEffect(() => {
           setLoggedInTeacher(newTeacher);
           localStorage.setItem('logged_in_teacher', JSON.stringify(newTeacher)); sessionStorage.setItem('logged_in_teacher', JSON.stringify(newTeacher));
         },
-        teachers: teachersList,
-        masterStudents: masterStudents,
+        teachers: displayTeachers,
+        masterStudents: displayMasterStudents,
         academicYear: currentAcademicYear,
         semester: currentSemester,
         reloadData: reloadData,
@@ -6727,7 +6741,7 @@ useEffect(() => {
 
       // Teacher Daily Check-in Modal (with Camera / Evidence Photo)
       isTeacherCheckinModalOpen && /*#__PURE__*/_jsx(TeacherCheckinModal, {
-        teachers: teachersList,
+        teachers: displayTeachers,
         teacherPhotosMap: teacherPhotosMap,
         studentPhotosMap: studentPhotosMap,
         studentCodesMap: studentCodesMap,
@@ -6735,7 +6749,7 @@ useEffect(() => {
         onOpenTeacherPhoto: (t) => setPhotoModalTeacher(t),
         initialTeacher: selectedTeacherForCheckin || loggedInTeacher,
         initialDate: selectedDateForCheckin,
-        masterStudents: masterStudents,
+        masterStudents: displayMasterStudents,
         academicYear: currentAcademicYear,
         semester: currentSemester,
         isAdminLoggedIn: isAdminLoggedIn,
