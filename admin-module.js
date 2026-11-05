@@ -4269,11 +4269,18 @@ function dailyAutoBackupTrigger() {
         return isName && matchLvl && matchDept;
       });
 
+      const effectiveStart = adminStartDate || termStartDate || '2026-11-02';
+      const effectiveEnd = adminEndDate || termEndDate || '2027-03-05';
       const distinctDates = [...new Set([
         ...tSessions.map(s => s.check_date),
         ...tDailyRecords.map(d => d.check_date)
-      ])];
-      const submittedDays = distinctDates.length;
+      ])].filter(d => {
+        if (!d) return false;
+        if (effectiveStart && d < effectiveStart) return false;
+        if (effectiveEnd && d > effectiveEnd) return false;
+        return true;
+      });
+      const submittedDays = Math.min(distinctDates.length, teacherStatsElapsedDays || distinctDates.length);
 
       const todaySession = tSessions.find(s => s.check_date === teacherStatsTodayStr);
       const todayDaily = tDailyRecords.find(d => d.check_date === teacherStatsTodayStr);
