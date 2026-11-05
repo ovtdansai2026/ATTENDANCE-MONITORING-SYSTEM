@@ -10991,8 +10991,7 @@ function TeacherCheckinModal({
   // Combined multi-room attendance mode (defaults to true for multi-room teachers)
   const [isAllRoomsCombined, setIsAllRoomsCombined] = useState(true);
 
-  // Multi-room photo mode: 'shared' (ใช้รูปถ่ายรวมรูปเดียว) หรือ 'separate' (ถ่ายแยกรูปทีละชั้นปี/ห้อง)
-  const [multiRoomPhotoMode, setMultiRoomPhotoMode] = useState('shared');
+  // Photo evidence separated by room/class level for multi-room teachers
   const [roomPhotos, setRoomPhotos] = useState({});
   const [capturingTargetRoom, setCapturingTargetRoom] = useState(null);
 
@@ -11328,19 +11327,11 @@ function TeacherCheckinModal({
     setIsCapturingPhoto(true);
     try {
       const compressed = await compressImage(file, 1024, 1024, 0.68);
-      if (capturingTargetRoom) {
-        setRoomPhotos(prev => ({ ...prev, [capturingTargetRoom]: compressed }));
-        setPhotoDataUrl(prev => prev || compressed);
-      } else {
-        setPhotoDataUrl(compressed);
-        if (teacherRooms.length > 1) {
-          setRoomPhotos(prev => {
-            const next = { ...prev };
-            teacherRooms.forEach(rm => { next[rm.class_level] = compressed; });
-            return next;
-          });
-        }
+      const targetRoomLevel = capturingTargetRoom || (teacherRooms.length === 1 ? teacherRooms[0]?.class_level : selectedTeacher?.class_level);
+      if (targetRoomLevel) {
+        setRoomPhotos(prev => ({ ...prev, [targetRoomLevel]: compressed }));
       }
+      setPhotoDataUrl(compressed);
       setPhotoFile(file);
       setHasUnsavedChanges(true);
     } catch (err) {
@@ -11568,30 +11559,18 @@ function TeacherCheckinModal({
       return;
     }
 
-    // บังคับถ่ายรูปหลักฐานการเข้าแถว/กิจกรรมก่อนบันทึกเสมอ
-    if (isAllRoomsCombined && teacherRooms.length > 1 && multiRoomPhotoMode === 'separate') {
+    // บังคับถ่ายรูปหลักฐานการเข้าแถว/กิจกรรมก่อนบันทึกเสมอ (แยกรูปตามชั้นปี)
+    if (teacherRooms.length > 1) {
       const missingRooms = teacherRooms.filter(rm => !roomPhotos[rm.class_level]);
       if (missingRooms.length > 0) {
-        alert(`⚠️ กรุณาถ่ายรูปหลักฐานให้ครบทุกห้อง\nยังขาดรูปของ: ${missingRooms.map(rm => rm.class_level).join(', ')}\n(หรือสลับเป็น "ถ่ายรวมรูปเดียว" หากต้องการใช้รูปเดียวกัน)`);
-        return;
-      }
-    } else if (!isAllRoomsCombined) {
-      const currentLevelPhoto = roomPhotos[selectedTeacher?.class_level] || photoDataUrl;
-      if (!currentLevelPhoto) {
-        if (fileInputRef.current) {
-          setCapturingTargetRoom(selectedTeacher?.class_level || null);
-          fileInputRef.current.click();
-        }
+        alert(`⚠️ กรุณาถ่ายรูปหลักฐานให้ครบทุกชั้นปี\nยังขาดรูปของ: ${missingRooms.map(rm => rm.class_level).join(', ')}`);
         return;
       }
     } else {
-      const hasAnyPhoto = Boolean(
-        photoDataUrl ||
-        Object.values(roomPhotos || {}).some(p => Boolean(p))
-      );
-      if (!hasAnyPhoto) {
+      const singlePhoto = roomPhotos[selectedTeacher?.class_level] || photoDataUrl;
+      if (!singlePhoto) {
         if (fileInputRef.current) {
-          setCapturingTargetRoom(null);
+          setCapturingTargetRoom(selectedTeacher?.class_level || null);
           fileInputRef.current.click();
         }
         return;
@@ -11601,6 +11580,7 @@ function TeacherCheckinModal({
     setIsSaving(true);
     setSaveSuccessMsg('');
     try {
+      let finalPhotoUrl = photoDataUrl || Object.values(roomPhotos || {})[0] || '';
       const driveUploadCache = new Map();
       const uploadToDriveWithCache = async (imgStr, dept, lvl) => {
         if (!imgStr || !imgStr.startsWith('data:image')) return imgStr;
@@ -11732,17 +11712,12 @@ function TeacherCheckinModal({
             sessionNotesObj.absent_student_ids = rmStudents.filter(s => (attendanceMap[s.student_id] || 'absent') === 'absent').map(s => s.student_id);
           }
 
-          // กำหนดรูปภาพหลักฐานสำหรับห้องนี้ (รองรับทั้งโหมดรูปเดียวกัน และโหมดแยกรูปตามห้อง)
-          let rawRoomPhoto = photoDataUrl;
-          if (isAllRoomsCombined && multiRoomPhotoMode === 'separate') {
-            rawRoomPhoto = roomPhotos[rm.class_level] || photoDataUrl || '';
-          } else if (!isAllRoomsCombined) {
-            rawRoomPhoto = roomPhotos[rm.class_level] || photoDataUrl || '';
-          } else {
-            rawRoomPhoto = photoDataUrl || roomPhotos[rm.class_level] || '';
-          }
-
+          // กำหนดรูปภาพหลักฐานสำหรับห้องนี้ (แยกรูปตามชั้นปี)
+          const rawRoomPhoto = roomPhotos[rm.class_level] || photoDataUrl || '';
           const finalPhotoForRoom = await uploadToDriveWithCache(rawRoomPhoto, rm.department, targetClassLevel);
+          if (finalPhotoForRoom) {
+            finalPhotoUrl = finalPhotoForRoom;
+          }
 
           const sessionRecord = {
             check_date: checkDate,
@@ -11878,7 +11853,8 @@ function TeacherCheckinModal({
         presentCount: pCount,
         absentCount: aCount,
         leaveCount: lCount,
-        photoUrl: finalPhotoUrl,
+        photoUrl: finalPhotoUrl || '',
+        roomPhotos: (teacherRooms.length > 1) ? { ...roomPhotos } : null,
         checkinMode,
         absentList,
         isCombined: (isAllRoomsCombined && teacherRooms.length > 1),
@@ -12393,61 +12369,22 @@ function TeacherCheckinModal({
                       ]
                     }),
 
-                    // Multi-room Switch Tabs (Segmented Pills)
+                    // Multi-room Info (Simple Text Badges)
                     teacherRooms.length > 1 && /*#__PURE__*/_jsxs("div", {
                       className: "pt-2 border-t border-slate-200/70 flex flex-wrap items-center gap-1.5",
                       children: [
                         /*#__PURE__*/_jsxs("span", {
-                          className: "text-[11px] font-bold text-slate-400 flex items-center gap-1 mr-1",
+                          className: "text-xs font-bold text-slate-500 flex items-center gap-1 mr-1",
                           children: [
-                            /*#__PURE__*/_jsx(Icon.Users, { className: "w-3 h-3 text-slate-400" }),
-                            `ห้องที่ดูแล (${teacherRooms.length}):`
+                            /*#__PURE__*/_jsx(Icon.Users, { className: "w-3.5 h-3.5 text-slate-400" }),
+                            `ห้องที่ดูแล (${teacherRooms.length} ห้อง):`
                           ]
                         }),
-                        /* Combined All-Rooms Tab */
-                        /*#__PURE__*/_jsxs("button", {
-                          type: "button",
-                          onClick: () => {
-                            if (hasUnsavedChanges && !isAllRoomsCombined) {
-                              if (!confirm('คุณมีข้อมูลที่ยังไม่ได้กดบันทึก ต้องการสลับไปดูรวมทุกห้องหรือไม่?')) return;
-                            }
-                            setHasUnsavedChanges(false);
-                            setIsAllRoomsCombined(true);
-                            loadRoomStudents(selectedTeacher, checkDate, teacherRooms);
-                          },
-                          className: `px-2.5 py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer border ${
-                            isAllRoomsCombined
-                              ? "bg-slate-900 text-white border-slate-900 shadow-xs font-black"
-                              : "bg-white hover:bg-slate-100 text-slate-600 border-slate-200 shadow-2xs"
-                          }`,
-                          children: [
-                            /*#__PURE__*/_jsx(Icon.Users, { className: `w-3 h-3 ${isAllRoomsCombined ? "text-amber-400" : "text-slate-400"}` }),
-                            `รวมทุกห้อง (${teacherRooms.length} ห้อง)`
-                          ]
-                        }),
-                        /* Individual Room Tabs */
-                        teacherRooms.map(rm => {
-                          const isCurrent = !isAllRoomsCombined && rm.id === selectedTeacher?.id;
-                          return /*#__PURE__*/_jsx("button", {
-                            key: rm.id,
-                            type: "button",
-                            onClick: () => {
-                              if (hasUnsavedChanges) {
-                                if (!confirm(`คุณมีข้อมูลที่ยังไม่ได้กดบันทึก ต้องการสลับไปเช็คห้อง ${rm.class_level} หรือไม่?`)) return;
-                              }
-                              setHasUnsavedChanges(false);
-                              setIsAllRoomsCombined(false);
-                              setSelectedTeacher(rm);
-                              loadRoomStudents(rm, checkDate, [rm]);
-                            },
-                            className: `px-2.5 py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer border ${
-                              isCurrent
-                                ? "bg-emerald-600 text-white border-emerald-600 shadow-xs font-black"
-                                : "bg-white hover:bg-slate-100 text-slate-600 border-slate-200 shadow-2xs"
-                            }`,
-                            children: `${rm.class_level} ${formatDeptDisplay(rm.department)}`
-                          }, rm.id);
-                        })
+                        teacherRooms.map(rm => /*#__PURE__*/_jsx("span", {
+                          key: rm.id,
+                          className: "px-2.5 py-0.5 rounded-lg bg-slate-100 text-slate-700 text-xs font-bold border border-slate-200 shadow-2xs",
+                          children: `${rm.class_level} ${formatDeptDisplay(rm.department)}`
+                        }, rm.id))
                       ]
                     })
                   ]
@@ -12457,80 +12394,47 @@ function TeacherCheckinModal({
                 /*#__PURE__*/_jsxs("div", {
                   className: "flex flex-col gap-2.5",
                   children: [
-                    /* Top Bar: Date Picker & (if multi-room and combined) Photo Mode Selector */
+                    /* Top Bar: Date Picker */
                     /*#__PURE__*/_jsxs("div", {
-                      className: "flex flex-col sm:flex-row sm:items-center justify-between gap-2",
+                      className: "flex items-center flex-wrap gap-2",
                       children: [
-                        /* Date Picker */
-                        /*#__PURE__*/_jsxs("div", {
-                          className: "flex items-center flex-wrap gap-2",
-                          children: [
-                            /*#__PURE__*/_jsx("label", {
-                              className: "text-xs sm:text-sm font-bold text-slate-700 whitespace-nowrap flex items-center gap-1",
-                              children: [/*#__PURE__*/_jsx(Icon.Calendar, { className: "w-3.5 h-3.5 text-slate-500" }), "วันที่:"]
-                            }),
-                            /*#__PURE__*/_jsx("input", {
-                              type: "date",
-                              value: checkDate,
-                              max: formatLocalDate(new Date()),
-                              min: !isAdminLoggedIn ? formatLocalDate(new Date()) : undefined,
-                              disabled: !isAdminLoggedIn,
-                              onChange: e => {
-                                const newDate = e.target.value;
-                                if (newDate) {
-                                  if (!isAdminLoggedIn && newDate < formatLocalDate(new Date())) {
-                                    alert('การเช็คชื่อย้อนหลังสงวนสิทธิ์เฉพาะผู้ดูแลระบบ (Admin) เท่านั้น');
-                                    return;
-                                  }
-                                  setCheckDate(newDate);
-                                  loadRoomStudents(selectedTeacher, newDate);
-                                }
-                              },
-                              className: `border rounded-xl px-2.5 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm font-bold shadow-xs focus:outline-none ${
-                                !isAdminLoggedIn
-                                  ? 'bg-slate-100 border-slate-200 text-slate-600 cursor-not-allowed'
-                                  : 'bg-white border-slate-300 text-slate-800 cursor-pointer focus:border-emerald-500'
-                              }`,
-                              title: !isAdminLoggedIn ? 'เฉพาะผู้ดูแลระบบ (Admin) จึงจะเปลี่ยนวันที่เช็คชื่อย้อนหลังได้' : 'เลือกวันที่เช็คชื่อ'
-                            }),
-                            checkDate < formatLocalDate(new Date()) && /*#__PURE__*/_jsxs("span", {
-                              className: `text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-md flex items-center gap-1 shadow-xs border ${
-                                isAdminLoggedIn
-                                  ? 'bg-amber-100 text-amber-900 border-amber-300'
-                                  : 'bg-rose-100 text-rose-900 border-rose-300'
-                              }`,
-                              children: [
-                                /*#__PURE__*/_jsx(Icon.Clock, { className: `w-3 h-3 ${isAdminLoggedIn ? 'text-amber-700' : 'text-rose-700'}` }),
-                                isAdminLoggedIn ? "ย้อนหลัง (Admin)" : "ย้อนหลัง (Admin เท่านั้น)"
-                              ]
-                            })
-                          ]
+                        /*#__PURE__*/_jsx("label", {
+                          className: "text-xs sm:text-sm font-bold text-slate-700 whitespace-nowrap flex items-center gap-1",
+                          children: [/*#__PURE__*/_jsx(Icon.Calendar, { className: "w-3.5 h-3.5 text-slate-500" }), "วันที่:"]
                         }),
-
-                        /* Multi-room photo mode toggle (only when multi-room & combined) */
-                        isAllRoomsCombined && teacherRooms.length > 1 && /*#__PURE__*/_jsxs("div", {
-                          className: "flex items-center gap-1 p-0.5 bg-slate-100 rounded-xl border border-slate-200/80 shadow-2xs self-start sm:self-auto",
+                        /*#__PURE__*/_jsx("input", {
+                          type: "date",
+                          value: checkDate,
+                          max: formatLocalDate(new Date()),
+                          min: !isAdminLoggedIn ? formatLocalDate(new Date()) : undefined,
+                          disabled: !isAdminLoggedIn,
+                          onChange: e => {
+                            const newDate = e.target.value;
+                            if (newDate) {
+                              if (!isAdminLoggedIn && newDate < formatLocalDate(new Date())) {
+                                alert('การเช็คชื่อย้อนหลังสงวนสิทธิ์เฉพาะผู้ดูแลระบบ (Admin) เท่านั้น');
+                                return;
+                              }
+                              setCheckDate(newDate);
+                              loadRoomStudents(selectedTeacher, newDate);
+                            }
+                          },
+                          className: `border rounded-xl px-2.5 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm font-bold shadow-xs focus:outline-none ${
+                            !isAdminLoggedIn
+                              ? 'bg-slate-100 border-slate-200 text-slate-600 cursor-not-allowed'
+                              : 'bg-white border-slate-300 text-slate-800 cursor-pointer focus:border-emerald-500'
+                          }`,
+                          title: !isAdminLoggedIn ? 'เฉพาะผู้ดูแลระบบ (Admin) จึงจะเปลี่ยนวันที่เช็คชื่อย้อนหลังได้' : 'เลือกวันที่เช็คชื่อ'
+                        }),
+                        checkDate < formatLocalDate(new Date()) && /*#__PURE__*/_jsxs("span", {
+                          className: `text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-md flex items-center gap-1 shadow-xs border ${
+                            isAdminLoggedIn
+                              ? 'bg-amber-100 text-amber-900 border-amber-300'
+                              : 'bg-rose-100 text-rose-900 border-rose-300'
+                          }`,
                           children: [
-                            /*#__PURE__*/_jsx("button", {
-                              type: "button",
-                              onClick: () => setMultiRoomPhotoMode('shared'),
-                              className: `px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
-                                multiRoomPhotoMode === 'shared'
-                                  ? "bg-white text-slate-900 shadow-xs font-black"
-                                  : "text-slate-500 hover:text-slate-800"
-                              }`,
-                              children: "📷 ถ่ายรวมรูปเดียว"
-                            }),
-                            /*#__PURE__*/_jsx("button", {
-                              type: "button",
-                              onClick: () => setMultiRoomPhotoMode('separate'),
-                              className: `px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
-                                multiRoomPhotoMode === 'separate'
-                                  ? "bg-white text-emerald-800 shadow-xs font-black"
-                                  : "text-slate-500 hover:text-slate-800"
-                              }`,
-                              children: `📸 แยกรูปตามชั้นปี (${teacherRooms.length})`
-                            })
+                            /*#__PURE__*/_jsx(Icon.Clock, { className: `w-3 h-3 ${isAdminLoggedIn ? 'text-amber-700' : 'text-rose-700'}` }),
+                            isAdminLoggedIn ? "ย้อนหลัง (Admin)" : "ย้อนหลัง (Admin เท่านั้น)"
                           ]
                         })
                       ]
@@ -12546,8 +12450,8 @@ function TeacherCheckinModal({
                       style: { display: 'none' }
                     }),
 
-                    /* Photo Evidence Cards Container */
-                    (isAllRoomsCombined && teacherRooms.length > 1 && multiRoomPhotoMode === 'separate') ? /*#__PURE__*/_jsx("div", {
+                    /* Photo Evidence Cards: Multi-room shows separate card per room, single-room shows 1 card */
+                    teacherRooms.length > 1 ? /*#__PURE__*/_jsx("div", {
                       className: `grid grid-cols-1 ${teacherRooms.length === 2 ? 'sm:grid-cols-2' : (teacherRooms.length === 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2 md:grid-cols-4')} gap-2`,
                       children: teacherRooms.map(rm => {
                         const rmPhoto = roomPhotos[rm.class_level];
@@ -12606,7 +12510,7 @@ function TeacherCheckinModal({
                                     }),
                                     /*#__PURE__*/_jsx("span", {
                                       className: "text-[10px] text-white/90 block",
-                                      children: "แตะเปิดกล้องเฉพาะห้องนี้"
+                                      children: "แตะเปิดกล้องเฉพาะชั้นปีนี้"
                                     })
                                   ]
                                 }),
@@ -12620,19 +12524,19 @@ function TeacherCheckinModal({
                         }, rm.id || rm.class_level);
                       })
                     }) : /*#__PURE__*/_jsx("div", {
-                      className: "w-full",
+                      className: "w-full sm:w-auto",
                       children: /*#__PURE__*/_jsx("button", {
                         type: "button",
                         onClick: () => {
-                          setCapturingTargetRoom(null);
+                          setCapturingTargetRoom(selectedTeacher?.class_level || null);
                           fileInputRef.current && fileInputRef.current.click();
                         },
-                        className: `w-full p-2.5 rounded-xl font-bold cursor-pointer transition-all active:scale-[0.99] shadow-2xs flex items-center justify-between gap-2.5 border ${
-                          (photoDataUrl || (!isAllRoomsCombined && roomPhotos[selectedTeacher?.class_level]))
+                        className: `w-full sm:w-auto p-2.5 rounded-xl font-bold cursor-pointer transition-all active:scale-[0.99] shadow-2xs flex items-center justify-between gap-2.5 border ${
+                          photoDataUrl || roomPhotos[selectedTeacher?.class_level]
                             ? 'bg-emerald-50/80 hover:bg-emerald-100 text-emerald-950 border-emerald-300'
                             : 'bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-600 hover:to-amber-600 text-white ring-2 ring-rose-300 border-rose-400'
                         }`,
-                        children: (photoDataUrl || (!isAllRoomsCombined && roomPhotos[selectedTeacher?.class_level])) ? /*#__PURE__*/_jsxs("div", {
+                        children: (photoDataUrl || roomPhotos[selectedTeacher?.class_level]) ? /*#__PURE__*/_jsxs("div", {
                           className: "flex items-center gap-2.5 w-full",
                           children: [
                             /*#__PURE__*/_jsx("img", {
@@ -12647,9 +12551,7 @@ function TeacherCheckinModal({
                                   className: "text-xs sm:text-sm font-black text-emerald-950 flex items-center gap-1",
                                   children: [
                                     /*#__PURE__*/_jsx(Icon.CheckCircle, { className: "w-3.5 h-3.5 text-emerald-600 inline" }),
-                                    isAllRoomsCombined && teacherRooms.length > 1
-                                      ? `มีรูปหลักฐานแล้ว (ใช้ร่วม ${teacherRooms.length} ห้อง)`
-                                      : "มีรูปหลักฐานแล้ว"
+                                    "มีรูปหลักฐานแล้ว"
                                   ]
                                 }),
                                 /*#__PURE__*/_jsx("span", {
@@ -12678,9 +12580,7 @@ function TeacherCheckinModal({
                                 }),
                                 /*#__PURE__*/_jsx("span", {
                                   className: "text-[10px] text-white/90 block",
-                                  children: isAllRoomsCombined && teacherRooms.length > 1
-                                    ? `แตะเพื่อเปิดกล้องหน้าเสาธง (1 รูป ใช้ร่วม ${teacherRooms.length} ห้อง)`
-                                    : "แตะเพื่อเปิดกล้องหน้าเสาธง"
+                                  children: "แตะเพื่อเปิดกล้องหน้าเสาธง"
                                 })
                               ]
                             })
@@ -13211,7 +13111,29 @@ function TeacherCheckinModal({
                     })
                   ]
                 }),
-                submittedSummary.photoUrl && /*#__PURE__*/_jsxs("div", {
+                (submittedSummary.roomPhotos && Object.keys(submittedSummary.roomPhotos).length > 1) ? /*#__PURE__*/_jsxs("div", {
+                  className: "p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-600 space-y-1.5",
+                  children: [
+                    /*#__PURE__*/_jsx("span", { className: "font-bold text-slate-800 block", children: "ภาพถ่ายหลักฐานแยกตามชั้นปี:" }),
+                    /*#__PURE__*/_jsx("div", {
+                      className: "grid grid-cols-2 gap-2",
+                      children: Object.entries(submittedSummary.roomPhotos).map(([lvl, photo]) => /*#__PURE__*/_jsxs("div", {
+                        key: lvl,
+                        className: "flex items-center gap-2 bg-white p-1.5 rounded-lg border border-slate-200",
+                        children: [
+                          /*#__PURE__*/_jsx("img", { src: photo, alt: lvl, className: "w-9 h-9 object-cover rounded-md flex-shrink-0" }),
+                          /*#__PURE__*/_jsxs("div", {
+                            className: "min-w-0 leading-tight",
+                            children: [
+                              /*#__PURE__*/_jsx("span", { className: "font-bold text-xs text-slate-800 block truncate", children: lvl }),
+                              /*#__PURE__*/_jsx("span", { className: "text-[10px] text-emerald-700 font-semibold block", children: "✓ แนบแล้ว" })
+                            ]
+                          })
+                        ]
+                      }))
+                    })
+                  ]
+                }) : (submittedSummary.photoUrl && /*#__PURE__*/_jsxs("div", {
                   className: "flex items-center gap-2.5 p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-600",
                   children: [
                     /*#__PURE__*/_jsx("img", {
@@ -13234,7 +13156,7 @@ function TeacherCheckinModal({
                       ]
                     })
                   ]
-                })
+                }))
               ]
             }),
             /*#__PURE__*/_jsxs("div", {
