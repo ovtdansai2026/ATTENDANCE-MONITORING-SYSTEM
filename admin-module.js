@@ -4497,6 +4497,95 @@ function dailyAutoBackupTrigger() {
       .sort((a, b) => (b.check_date || '').localeCompare(a.check_date || '') || (b.id || 0) - (a.id || 0));
   }, [sessions]);
 
+  
+  // Grouped Logs State
+  const [logSearch, setLogSearch] = useState('');
+  const [logFilterType, setLogFilterType] = useState('all'); // 'all' | 'assembly' | 'central' | 'club'
+  const [logOnlyPhotos, setLogOnlyPhotos] = useState(false);
+  const [expandedDates, setExpandedDates] = useState(() => {
+    const today = (window.formatLocalDate ? window.formatLocalDate(new Date()) : '');
+    return new Set(today ? [today] : []);
+  });
+
+  const toggleExpandDate = (dateStr) => {
+    setExpandedDates(prev => {
+      const next = new Set(prev);
+      if (next.has(dateStr)) next.delete(dateStr);
+      else next.add(dateStr);
+      return next;
+    });
+  };
+
+  const sessionsGroupedByDate = useMemo(() => {
+    const rawSessions = (realCheckinSessions || []);
+    const groups = {};
+    const searchLower = (logSearch || '').toLowerCase().trim();
+
+    for (const s of rawSessions) {
+      const rawLvl = String(s.class_level || '');
+      const dept = s.department || '';
+      const teacher = s.teacher_name || '';
+
+      // Type identification
+      let type = 'assembly';
+      if (rawLvl.includes('#central_') || rawLvl.includes('#c_')) type = 'central';
+      else if (rawLvl.includes('#club_')) type = 'club';
+
+      // Type filter
+      if (logFilterType !== 'all' && logFilterType !== type) continue;
+
+      // Photo filter
+      const hasImg = Boolean(s.evidence_photo_url || s.has_photo);
+      if (logOnlyPhotos && !hasImg) continue;
+
+      // Search filter
+      if (searchLower) {
+        const matchDept = dept.toLowerCase().includes(searchLower);
+        const matchTeacher = teacher.toLowerCase().includes(searchLower);
+        const matchLevel = rawLvl.toLowerCase().includes(searchLower);
+        const matchDate = (s.check_date || '').includes(searchLower);
+        if (!matchDept && !matchTeacher && !matchLevel && !matchDate) continue;
+      }
+
+      const d = s.check_date || 'ไม่ระบุวันที่';
+      if (!groups[d]) {
+        groups[d] = {
+          date: d,
+          sessions: [],
+          totalPresent: 0,
+          totalAbsent: 0,
+          totalLeave: 0,
+          totalStudents: 0,
+          photos: []
+        };
+      }
+      groups[d].sessions.push(s);
+      groups[d].totalPresent += (s.present_count || 0);
+      groups[d].totalAbsent += (s.absent_count || 0);
+      groups[d].totalLeave += (s.leave_count || 0);
+      groups[d].totalStudents += (s.total_students || 0);
+      if (s.evidence_photo_url) {
+        groups[d].photos.push({
+          url: s.evidence_photo_url,
+          sessionId: s.id,
+          dept: s.department,
+          classLevel: s.class_level,
+          teacherName: s.teacher_name
+        });
+      }
+    }
+
+    return Object.values(groups).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  }, [realCheckinSessions, logSearch, logFilterType, logOnlyPhotos]);
+
+  const handleToggleExpandAllDates = () => {
+    if (expandedDates.size >= sessionsGroupedByDate.length) {
+      setExpandedDates(new Set());
+    } else {
+      setExpandedDates(new Set(sessionsGroupedByDate.map(g => g.date)));
+    }
+  };
+
   // Excel Import State
   const [excelFile, setExcelFile] = useState(null);
   const [parsedStudents, setParsedStudents] = useState([]);
@@ -6997,108 +7086,295 @@ function dailyAutoBackupTrigger() {
               ]
             }),
 
-            // TAB 3: Check-in Logs & Photos
+            // TAB 3: Check-in Logs & Photos (Grouped by Date Cards)
             adminTab === 'logs' && /*#__PURE__*/_jsxs("div", {
-              className: "space-y-3",
+              className: "space-y-3.5",
               children: [
+                // Header & Controls
                 /*#__PURE__*/_jsxs("div", {
-                  className: "flex justify-between items-center",
+                  className: "flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2 border-b border-slate-200",
                   children: [
-                    /*#__PURE__*/_jsxs("h4", {
-                      className: "text-xs font-bold text-slate-800 uppercase flex items-center gap-1.5",
+                    /*#__PURE__*/_jsxs("div", {
                       children: [
-                        /*#__PURE__*/_jsx(Icon.Document, { className: "w-4 h-4 text-slate-600" }),
-                        "ประวัติการเช็คชื่อทั้งหมด (", realCheckinSessions.length, " ครั้ง)"
+                        /*#__PURE__*/_jsxs("h4", {
+                          className: "text-sm font-bold text-slate-800 flex items-center gap-2",
+                          children: [
+                            /*#__PURE__*/_jsx(Icon.Camera, { className: "w-4 h-4 text-rose-600" }),
+                            "บันทึกประวัติและคลังภาพหลักฐาน (แยกรายวัน)"
+                          ]
+                        }),
+                        /*#__PURE__*/_jsxs("p", {
+                          className: "text-[11px] text-slate-500 mt-0.5",
+                          children: [
+                            "พบ ", sessionsGroupedByDate.length, " วัน (รวม ", realCheckinSessions.length, " บันทึก · รูปใน Drive ",
+                            realCheckinSessions.filter(s => s.evidence_photo_url).length, " รูป)"
+                          ]
+                        })
                       ]
                     }),
-                    /*#__PURE__*/_jsx(InfoTooltip, {
-                      title: "ประวัติการเช็คชื่อ",
-                      text: "บันทึกภาพถ่ายหน้าเสาธงและสถิติการมาแถวของแต่ละแผนก จัดเก็บภาพไว้เพื่อตรวจสอบย้อนหลัง"
+                    /*#__PURE__*/_jsx("button", {
+                      type: "button",
+                      onClick: handleToggleExpandAllDates,
+                      className: "px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold cursor-pointer transition-all self-start sm:self-auto flex items-center gap-1",
+                      children: expandedDates.size >= sessionsGroupedByDate.length ? "ยุบทุกวัน" : "ขยายทุกวัน"
                     })
                   ]
                 }),
-                realCheckinSessions.length === 0 ? /*#__PURE__*/_jsxs("div", {
-                  className: "py-12 text-center text-slate-400 text-sm",
+
+                // Filters & Search Bar
+                /*#__PURE__*/_jsxs("div", {
+                  className: "flex flex-col sm:flex-row gap-2 items-stretch sm:items-center",
                   children: [
-                    /*#__PURE__*/_jsx(Icon.Document, { className: "w-10 h-10 text-slate-300 mx-auto mb-2" }),
-                    "ยังไม่มีข้อมูลประวัติการเช็คชื่อในระบบ"
+                    /* Search input */
+                    /*#__PURE__*/_jsxs("div", {
+                      className: "relative flex-1",
+                      children: [
+                        /*#__PURE__*/_jsx(Icon.Search, { className: "w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none" }),
+                        /*#__PURE__*/_jsx("input", {
+                          type: "text",
+                          value: logSearch,
+                          onChange: (e) => setLogSearch(e.target.value),
+                          placeholder: "ค้นหาแผนก, ห้องเรียน, ชื่อครู, หรือวันที่...",
+                          className: "w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 outline-none transition-all"
+                        })
+                      ]
+                    }),
+                    /* Type Filter Pills */
+                    /*#__PURE__*/_jsxs("div", {
+                      className: "flex items-center gap-1 overflow-x-auto pb-0.5 custom-scroll text-xs shrink-0",
+                      children: [
+                        [
+                          { id: 'all', label: 'ทั้งหมด' },
+                          { id: 'assembly', label: 'หน้าเสาธง' },
+                          { id: 'central', label: 'กิจกรรมกลาง' },
+                          { id: 'club', label: 'ชมรม' }
+                        ].map(t => /*#__PURE__*/_jsx("button", {
+                          key: t.id,
+                          type: "button",
+                          onClick: () => setLogFilterType(t.id),
+                          className: "px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap cursor-pointer " +
+                            (logFilterType === t.id ? "bg-rose-600 text-white shadow-xs" : "bg-slate-100 text-slate-600 hover:bg-slate-200"),
+                          children: t.label
+                        })),
+                        /* Photo Only Toggle */
+                        /*#__PURE__*/_jsxs("button", {
+                          type: "button",
+                          onClick: () => setLogOnlyPhotos(!logOnlyPhotos),
+                          className: "px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1 " +
+                            (logOnlyPhotos ? "bg-indigo-600 text-white shadow-xs" : "bg-slate-100 text-slate-600 hover:bg-slate-200"),
+                          children: [
+                            /*#__PURE__*/_jsx(Icon.Camera, { className: "w-3 h-3" }),
+                            "เฉพาะมีรูป"
+                          ]
+                        })
+                      ]
+                    })
+                  ]
+                }),
+
+                // Date Groups List
+                sessionsGroupedByDate.length === 0 ? /*#__PURE__*/_jsxs("div", {
+                  className: "py-12 text-center text-slate-400 text-sm bg-slate-50 rounded-2xl border border-dashed border-slate-200",
+                  children: [
+                    /*#__PURE__*/_jsx(Icon.Document, { className: "w-8 h-8 text-slate-300 mx-auto mb-2" }),
+                    "ไม่พบบันทึกการเช็คชื่อตามเงื่อนไขที่เลือก"
                   ]
                 }) : /*#__PURE__*/_jsx("div", {
-                  className: "space-y-2 max-h-80 overflow-y-auto custom-scroll pr-1",
-                  children: realCheckinSessions.map(s => /*#__PURE__*/_jsxs("div", {
-                    className: "p-3 bg-slate-50 hover:bg-white rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between gap-3 transition-colors",
-                    children: [
-                      /*#__PURE__*/_jsxs("div", {
-                        className: "min-w-0 flex items-center gap-3",
-                        children: [
-                          s.evidence_photo_url ? /*#__PURE__*/_jsx("img", {
-                            src: s.evidence_photo_url,
-                            alt: "หลักฐาน",
-                            onClick: () => setViewingEvidencePhoto(s.evidence_photo_url),
-                            className: "w-12 h-12 rounded-xl object-cover border border-slate-200 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
-                          }) : /*#__PURE__*/_jsx("div", {
-                            className: "w-12 h-12 rounded-xl bg-slate-200 text-slate-500 flex items-center justify-center text-xl flex-shrink-0 font-bold",
-                            children: /*#__PURE__*/_jsx(Icon.Document, { className: "w-5 h-5 text-slate-500" })
-                          }),
-                          /*#__PURE__*/_jsxs("div", {
-                            className: "min-w-0",
+                  className: "space-y-3 max-h-[520px] overflow-y-auto custom-scroll pr-1",
+                  children: sessionsGroupedByDate.map(group => {
+                    const todayStr = window.formatLocalDate ? window.formatLocalDate(new Date()) : '';
+                    const isToday = group.date === todayStr;
+                    const isExpanded = expandedDates.has(group.date);
+                    const formattedDate = window.formatThaiDateFull ? window.formatThaiDateFull(group.date) : group.date;
+
+                    return /*#__PURE__*/_jsxs("div", {
+                      className: "rounded-2xl border transition-all duration-200 overflow-hidden " +
+                        (isToday ? "border-emerald-300 bg-white shadow-sm ring-1 ring-emerald-200/60" : "border-slate-200 bg-white shadow-2xs hover:border-slate-300"),
+                      children: [
+                        // Card Header Bar (Clickable)
+                        /*#__PURE__*/_jsxs("div", {
+                          onClick: () => toggleExpandDate(group.date),
+                          className: "w-full p-3.5 flex items-center justify-between gap-3 cursor-pointer select-none transition-colors " +
+                            (isToday ? "bg-emerald-50/40 hover:bg-emerald-50/70" : "bg-slate-50/50 hover:bg-slate-50"),
+                          children: [
+                            // Left: Date Info
+                            /*#__PURE__*/_jsxs("div", {
+                              className: "flex items-center gap-2.5 min-w-0",
+                              children: [
+                                /*#__PURE__*/_jsx("div", {
+                                  className: "w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 font-bold " +
+                                    (isToday ? "bg-emerald-500 text-white shadow-xs" : "bg-slate-200 text-slate-600"),
+                                  children: /*#__PURE__*/_jsx(Icon.Calendar, { className: "w-4 h-4" })
+                                }),
+                                /*#__PURE__*/_jsxs("div", {
+                                  className: "min-w-0",
+                                  children: [
+                                    /*#__PURE__*/_jsxs("div", {
+                                      className: "text-xs font-bold text-slate-900 flex items-center gap-1.5 flex-wrap",
+                                      children: [
+                                        formattedDate,
+                                        isToday && /*#__PURE__*/_jsx("span", {
+                                          className: "px-2 py-0.5 bg-emerald-500 text-white rounded-full text-[10px] font-bold shadow-2xs",
+                                          children: "วันนี้ 🌟"
+                                        })
+                                      ]
+                                    }),
+                                    /*#__PURE__*/_jsxs("div", {
+                                      className: "text-[11px] text-slate-500 mt-0.5 flex items-center gap-2",
+                                      children: [
+                                        /*#__PURE__*/_jsxs("span", { children: ["บันทึก ", group.sessions.length, " ห้อง"] }),
+                                        /*#__PURE__*/_jsxs("span", {
+                                          className: "text-rose-600 font-semibold flex items-center gap-0.5",
+                                          children: [/*#__PURE__*/_jsx(Icon.Camera, { className: "w-3 h-3 inline" }), group.photos.length, " รูป"]
+                                        })
+                                      ]
+                                    })
+                                  ]
+                                })
+                              ]
+                            }),
+
+                            // Right: Attendance Badges & Chevron
+                            /*#__PURE__*/_jsxs("div", {
+                              className: "flex items-center gap-2 shrink-0",
+                              children: [
+                                /*#__PURE__*/_jsxs("div", {
+                                  className: "hidden sm:flex items-center gap-1 text-[11px]",
+                                  children: [
+                                    /*#__PURE__*/_jsxs("span", { className: "px-2 py-0.5 bg-emerald-50 text-emerald-700 font-bold rounded-lg border border-emerald-200", children: ["มา ", group.totalPresent] }),
+                                    /*#__PURE__*/_jsxs("span", { className: "px-2 py-0.5 bg-rose-50 text-rose-600 font-bold rounded-lg border border-rose-200", children: ["ขาด ", group.totalAbsent] }),
+                                    /*#__PURE__*/_jsxs("span", { className: "px-2 py-0.5 bg-amber-50 text-amber-600 font-bold rounded-lg border border-amber-200", children: ["ลา ", group.totalLeave] })
+                                  ]
+                                }),
+                                /*#__PURE__*/_jsx(Icon.ChevronDown, {
+                                  className: "w-4 h-4 text-slate-400 transition-transform duration-200 " + (isExpanded ? "rotate-180 text-slate-700" : "")
+                                })
+                              ]
+                            })
+                          ]
+                        }),
+
+                        // Horizontal Photo Strip (Always Visible for Instant Glance)
+                        group.photos.length > 0 && /*#__PURE__*/_jsx("div", {
+                          className: "px-3.5 py-2.5 bg-slate-50/70 border-t border-slate-100 flex items-center gap-2 overflow-x-auto custom-scroll",
+                          children: group.photos.map(p => /*#__PURE__*/_jsxs("div", {
+                            key: p.sessionId,
+                            onClick: () => setViewingEvidencePhoto(p.url),
+                            className: "relative w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden border border-slate-200 flex-shrink-0 cursor-pointer hover:scale-105 hover:ring-2 hover:ring-rose-500 hover:border-transparent transition-all shadow-2xs group/thumb",
+                            title: p.dept + ' ' + p.classLevel + ' (' + p.teacherName + ')',
                             children: [
-                              /*#__PURE__*/_jsxs("div", {
-                                className: "text-xs font-bold text-slate-900 truncate flex items-center gap-1.5",
-                                children: [
-                                  (() => {
-                                    const raw = String(s.class_level || '');
-                                    const baseLvl = raw.split('#')[0].trim();
-                                    let tag = '';
-                                    if (raw.includes('#central_') || raw.includes('#c_')) tag = ' (กิจกรรมกลาง)';
-                                    else if (raw.includes('#club_')) tag = ` (กิจกรรมชมรม ครั้งที่ ${raw.match(/#club_(\d+)/)?.[1] || ''})`;
-                                    return baseLvl + tag;
-                                  })(),
-                                  " แผนก",
-                                  s.department,
-                                  /*#__PURE__*/_jsxs("span", { className: "text-slate-500 font-normal", children: ["(", s.teacher_name, ")"] })
-                                ]
+                              /*#__PURE__*/_jsx("img", {
+                                src: p.url,
+                                alt: p.dept,
+                                className: "w-full h-full object-cover"
                               }),
-                              /*#__PURE__*/_jsxs("div", {
-                                className: "text-[11px] text-slate-500 flex items-center gap-2 mt-0.5",
-                                children: [
-                                  /*#__PURE__*/_jsxs("span", { className: "font-mono text-slate-700 font-semibold flex items-center gap-1", children: [/*#__PURE__*/_jsx(Icon.Calendar, { className: "w-3 h-3 text-slate-400" }), s.check_date] }),
-                                  /*#__PURE__*/_jsxs("span", { className: "text-emerald-700 font-bold", children: ["มา ", s.present_count] }),
-                                  /*#__PURE__*/_jsxs("span", { className: "text-rose-600 font-bold", children: ["ขาด ", s.absent_count] }),
-                                  /*#__PURE__*/_jsxs("span", { className: "text-amber-600 font-bold", children: ["ลา ", s.leave_count] })
-                                ]
+                              /*#__PURE__*/_jsx("div", {
+                                className: "absolute bottom-0 inset-x-0 bg-slate-950/75 backdrop-blur-2xs text-[9px] font-bold text-white text-center py-0.5 px-1 truncate",
+                                children: (() => {
+                                  const raw = String(p.classLevel || '');
+                                  return raw.split('#')[0].trim() || p.dept;
+                                })()
                               })
                             ]
-                          })
-                        ]
-                      }),
-                      (s.evidence_photo_url || s.has_photo) && /*#__PURE__*/_jsx("button", {
-                        type: "button",
-                        onClick: async () => {
-                          if (s.evidence_photo_url) {
-                            setViewingEvidencePhoto(s.evidence_photo_url);
-                            return;
-                          }
-                          try {
-                            const { data } = await dbAssembly.from('attendance_checkin_sessions')
-                              .select('evidence_photo_url')
-                              .eq('id', s.id)
-                              .single();
-                            if (data?.evidence_photo_url) {
-                              s.evidence_photo_url = data.evidence_photo_url;
-                              setViewingEvidencePhoto(data.evidence_photo_url);
+                          }))
+                        }),
+
+                        // Expanded Sessions Accordion Details
+                        isExpanded && /*#__PURE__*/_jsx("div", {
+                          className: "border-t border-slate-200 bg-slate-50/50 p-3 space-y-2",
+                          children: group.sessions.map(s => {
+                            const raw = String(s.class_level || '');
+                            const baseLvl = raw.split('#')[0].trim();
+                            let tag = '';
+                            let tagClass = 'bg-sky-50 text-sky-700 border-sky-200';
+                            if (raw.includes('#central_') || raw.includes('#c_')) {
+                              tag = 'กิจกรรมกลาง';
+                              tagClass = 'bg-purple-50 text-purple-700 border-purple-200';
+                            } else if (raw.includes('#club_')) {
+                              const sessNo = raw.match(/#club_(d+)/)?.[1] || '';
+                              tag = 'ชมรม ครั้งที่ ' + sessNo;
+                              tagClass = 'bg-amber-50 text-amber-700 border-amber-200';
                             } else {
-                              alert('ไม่พบภาพถ่ายหลักฐานในระบบ');
+                              tag = 'หน้าเสาธง';
                             }
-                          } catch(e) {
-                            alert('โหลดภาพล้มเหลว: ' + e.message);
-                          }
-                        },
-                        className: "px-3 py-1.5 bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 rounded-xl text-xs font-bold cursor-pointer flex-shrink-0 flex items-center gap-1",
-                        children: [/*#__PURE__*/_jsx(Icon.Search, { className: "w-3 h-3 inline mr-1" }), "ดูรูป"]
-                      })
-                    ]
-                  }, s.id))
+
+                            return /*#__PURE__*/_jsxs("div", {
+                              className: "p-2.5 bg-white rounded-xl border border-slate-200 shadow-2xs flex items-center justify-between gap-3 hover:border-slate-300 transition-colors",
+                              children: [
+                                /* Left: Info & Photo */
+                                /*#__PURE__*/_jsxs("div", {
+                                  className: "min-w-0 flex items-center gap-2.5",
+                                  children: [
+                                    s.evidence_photo_url ? /*#__PURE__*/_jsx("img", {
+                                      src: s.evidence_photo_url,
+                                      alt: "หลักฐาน",
+                                      onClick: () => setViewingEvidencePhoto(s.evidence_photo_url),
+                                      className: "w-11 h-11 rounded-xl object-cover border border-slate-200 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                                    }) : /*#__PURE__*/_jsx("div", {
+                                      className: "w-11 h-11 rounded-xl bg-slate-100 text-slate-400 flex items-center justify-center flex-shrink-0",
+                                      children: /*#__PURE__*/_jsx(Icon.Document, { className: "w-4 h-4 text-slate-400" })
+                                    }),
+                                    /*#__PURE__*/_jsxs("div", {
+                                      className: "min-w-0",
+                                      children: [
+                                        /*#__PURE__*/_jsxs("div", {
+                                          className: "text-xs font-bold text-slate-900 truncate flex items-center gap-1.5 flex-wrap",
+                                          children: [
+                                            baseLvl,
+                                            "แผนก" + s.department,
+                                            /*#__PURE__*/_jsx("span", {
+                                              className: "px-1.5 py-0.2 rounded-md text-[10px] font-semibold border " + tagClass,
+                                              children: tag
+                                            }),
+                                            /*#__PURE__*/_jsxs("span", { className: "text-slate-500 font-normal text-[11px]", children: ["(", s.teacher_name, ")"] })
+                                          ]
+                                        }),
+                                        /*#__PURE__*/_jsxs("div", {
+                                          className: "text-[11px] text-slate-500 flex items-center gap-2 mt-0.5",
+                                          children: [
+                                            /*#__PURE__*/_jsxs("span", { className: "text-emerald-700 font-bold", children: ["มา ", s.present_count] }),
+                                            /*#__PURE__*/_jsxs("span", { className: "text-rose-600 font-bold", children: ["ขาด ", s.absent_count] }),
+                                            /*#__PURE__*/_jsxs("span", { className: "text-amber-600 font-bold", children: ["ลา ", s.leave_count] })
+                                          ]
+                                        })
+                                      ]
+                                    })
+                                  ]
+                                }),
+
+                                /* Right: View Photo Button */
+                                (s.evidence_photo_url || s.has_photo) && /*#__PURE__*/_jsx("button", {
+                                  type: "button",
+                                  onClick: async () => {
+                                    if (s.evidence_photo_url) {
+                                      setViewingEvidencePhoto(s.evidence_photo_url);
+                                      return;
+                                    }
+                                    try {
+                                      const { data } = await dbAssembly.from('attendance_checkin_sessions')
+                                        .select('evidence_photo_url')
+                                        .eq('id', s.id)
+                                        .single();
+                                      if (data?.evidence_photo_url) {
+                                        s.evidence_photo_url = data.evidence_photo_url;
+                                        setViewingEvidencePhoto(data.evidence_photo_url);
+                                      } else {
+                                        alert('ไม่พบภาพถ่ายหลักฐานในระบบ');
+                                      }
+                                    } catch(e) {
+                                      alert('โหลดภาพล้มเหลว: ' + e.message);
+                                    }
+                                  },
+                                  className: "px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold cursor-pointer flex-shrink-0 flex items-center gap-1 transition-all",
+                                  children: [/*#__PURE__*/_jsx(Icon.Search, { className: "w-3 h-3" }), "ดูรูป"]
+                                })
+                              ]
+                            }, s.id);
+                          })
+                        })
+                      ]
+                    }, group.date);
+                  })
                 })
               ]
             }),
