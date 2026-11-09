@@ -94,6 +94,37 @@ function doPost(e) {
     var dailyFolders = termFolder.getFoldersByName(dailyFolderName);
     var dailyFolder = dailyFolders.hasNext() ? dailyFolders.next() : termFolder.createFolder(dailyFolderName);
 
+    // 4.1 ถ้ารับอัปโหลดรูปเดี่ยวจากการเช็กชื่อหน้าเสาธง/กิจกรรม (Direct Photo Upload from Teacher Checkin)
+    if (payload.action === 'upload_single_photo' || (payload.imageBase64 && !Array.isArray(payload.sessions))) {
+      var rawImg = payload.imageBase64 || '';
+      if (rawImg.indexOf('data:image') === 0) {
+        var pParts = rawImg.split(',');
+        var b64Data = pParts[1];
+        var mime = (pParts[0].indexOf('png') >= 0) ? MimeType.PNG : MimeType.JPEG;
+        var cleanDept = (payload.department || 'แผนก').replace(/[/\\?%*:|"<>]/g, '_');
+        var cleanLvl = (payload.classLevel || 'ห้อง').replace(/[/\\?%*:|"<>]/g, '_');
+        var cleanTch = (payload.teacherName || 'ครู').replace(/\s+/g, '_').replace(/[/\\?%*:|"<>]/g, '_');
+        var pFileName = thaiDateStr + '_' + cleanDept + '_' + cleanLvl + '_' + cleanTch + '.jpg';
+
+        var decodedBytes = Utilities.base64Decode(b64Data);
+        var pBlob = Utilities.newBlob(decodedBytes, mime, pFileName);
+        var createdFile = dailyFolder.createFile(pBlob);
+        try {
+          createdFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+        } catch (_) {}
+
+        var pFileId = createdFile.getId();
+        var cdnUrl = 'https://lh3.googleusercontent.com/d/' + pFileId;
+        return ContentService.createTextOutput(JSON.stringify({
+          success: true,
+          fileId: pFileId,
+          fileUrl: cdnUrl,
+          directUrl: cdnUrl,
+          driveUrl: createdFile.getUrl()
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+
     // 4. บันทึกไฟล์ฐานข้อมูลฉบับเต็มประจำวัน (JSON)
     var jsonFileName = "database_backup_" + thaiDateStr + ".json";
     dailyFolder.createFile(jsonFileName, JSON.stringify(payload, null, 2), MimeType.PLAIN_TEXT);

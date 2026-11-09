@@ -11599,6 +11599,44 @@ function TeacherCheckinModal({
       const uploadToDriveWithCache = async (imgStr, dept, lvl) => {
         if (!imgStr || !imgStr.startsWith('data:image')) return imgStr;
         if (driveUploadCache.has(imgStr)) return driveUploadCache.get(imgStr);
+
+        // 1. ตรวจสอบ Google Apps Script Web App URL เพื่ออัปโหลดตรงเข้า Google Drive (ตัด Egress ของ Supabase เป็น 0)
+        let gasUrl = '';
+        try {
+          gasUrl = localStorage.getItem('google_drive_webhook_url') || '';
+        } catch (_) {}
+
+        if (gasUrl) {
+          try {
+            const gasResp = await fetch(gasUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+              body: JSON.stringify({
+                action: 'upload_single_photo',
+                imageBase64: imgStr,
+                teacherName: selectedTeacher.name,
+                department: dept,
+                classLevel: lvl,
+                checkDate: checkDate,
+                academicYear: activeYearStr,
+                semester: activeSemStr,
+                checkinMode: checkinMode
+              })
+            });
+            if (gasResp.ok) {
+              const gasData = await gasResp.json();
+              if (gasData && (gasData.fileUrl || gasData.directUrl)) {
+                const driveCdn = gasData.fileUrl || gasData.directUrl;
+                driveUploadCache.set(imgStr, driveCdn);
+                return driveCdn;
+              }
+            }
+          } catch (gasErr) {
+            console.warn('Google Apps Script direct photo upload error, trying local fallback:', gasErr);
+          }
+        }
+
+        // 2. Fallback: ถ้ามี Local API Server
         try {
           const resp = await fetch('/api/upload-drive', {
             method: 'POST',
@@ -11609,8 +11647,8 @@ function TeacherCheckinModal({
               department: dept,
               classLevel: lvl,
               checkDate: checkDate,
-              academicYear: academicYear,
-              semester: semester,
+              academicYear: activeYearStr,
+              semester: activeSemStr,
               checkinMode: checkinMode
             })
           });
