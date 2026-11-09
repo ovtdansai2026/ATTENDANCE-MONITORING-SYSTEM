@@ -208,8 +208,8 @@ function doPost(e) {
  * 8. กด "บันทึก" (Save)
  */
 function dailyAutoBackupTrigger() {
-  var SUPABASE_URL = "https://fpbgujzhrzsasmqbxncj.supabase.co";
-  var SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwYmd1anpocnpzYXNtcWJ4bmNqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3MzI3NTUsImV4cCI6MjEwNTMwODc1NX0.ggrCO-hHJeD74syDeSdL2HI45vGfyNkl8v5C9gdS6KI";
+  var SUPABASE_URL = "https://xgccjhcoanoyamyvwyqo.supabase.co";
+  var SUPABASE_KEY = "sb_publishable_1B1roP8Bm3kQyW_qfi3psA_lw_jM-ji";
 
   var todayStr = Utilities.formatDate(new Date(), "GMT+7", "yyyy-MM-dd");
 
