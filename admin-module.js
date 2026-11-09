@@ -7254,72 +7254,119 @@ function dailyAutoBackupTrigger() {
                           ]
                         }),
 
-                        // Horizontal Photo Strip with Clear Department & Room Cards
-                        group.photos.length > 0 && /*#__PURE__*/_jsx("div", {
-                          className: "px-3.5 py-2.5 bg-slate-50/70 border-t border-slate-100 flex items-stretch gap-2.5 overflow-x-auto custom-scroll",
-                          children: group.photos.map(p => {
-                            const rawLvl = String(p.classLevel || '');
-                            const cleanLvl = rawLvl.split('#')[0].trim();
-                            let cleanDept = (p.dept || 'แผนก').replace(/^(แผนกวิชา|แผนก)/, '').trim();
-                            if (cleanDept.includes('ธุรกิจดิจิทัล') || cleanDept.includes('คอมพิวเตอร์')) cleanDept = 'ธุรกิจดิจิทัล';
-                            else if (cleanDept.includes('ไฟฟ้า')) cleanDept = 'ไฟฟ้ากำลัง';
-                            else if (cleanDept.includes('ช่างยนต์')) cleanDept = 'ช่างยนต์';
-                            else if (cleanDept.includes('กลโรงงาน') || cleanDept.includes('ช่างกล')) cleanDept = 'ช่างกล';
-                            else if (cleanDept.includes('อิเล็ก')) cleanDept = 'อิเล็กฯ';
-                            else if (cleanDept.includes('บัญชี')) cleanDept = 'การบัญชี';
-                            else if (cleanDept.includes('ตลาด')) cleanDept = 'การตลาด';
-                            else if (cleanDept.includes('อาหาร')) cleanDept = 'อาหารฯ';
+                        // Horizontal Photo Strip with Left/Right Scroll Buttons
+                        group.photos.length > 0 && /*#__PURE__*/_jsxs("div", {
+                          className: "relative group/strip px-3.5 py-2.5 bg-slate-50/70 border-t border-slate-100",
+                          children: [
+                            // Left Scroll Arrow
+                            group.photos.length > 3 && /*#__PURE__*/_jsx("button", {
+                              type: "button",
+                              onClick: (e) => {
+                                e.stopPropagation();
+                                const el = document.getElementById('photo-strip-' + group.date);
+                                if (el) el.scrollBy({ left: -280, behavior: 'smooth' });
+                              },
+                              className: "absolute left-1 sm:left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/95 hover:bg-white shadow-md border border-slate-200 text-slate-700 hover:text-rose-600 flex items-center justify-center cursor-pointer transition-all active:scale-90 z-10 opacity-70 group-hover/strip:opacity-100",
+                              title: "เลื่อนไปทางซ้าย",
+                              children: /*#__PURE__*/_jsx("svg", {
+                                className: "w-4 h-4",
+                                fill: "none",
+                                viewBox: "0 0 24 24",
+                                stroke: "currentColor",
+                                strokeWidth: "2.5",
+                                children: /*#__PURE__*/_jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M15 19l-7-7 7-7" })
+                              })
+                            }),
 
-                            let actTag = '';
-                            let actColor = '';
-                            if (rawLvl.includes('#central_') || rawLvl.includes('#c_')) {
-                              actTag = 'กลาง';
-                              actColor = 'bg-purple-600';
-                            } else if (rawLvl.includes('#club_')) {
-                              const cNum = rawLvl.match(/#club_(\d+)/)?.[1] || '';
-                              actTag = 'ชมรม' + (cNum ? ' ' + cNum : '');
-                              actColor = 'bg-amber-600';
-                            }
+                            // Photo Strip Container
+                            /*#__PURE__*/_jsx("div", {
+                              id: 'photo-strip-' + group.date,
+                              className: "flex items-stretch gap-2.5 overflow-x-auto custom-scroll scroll-smooth px-1",
+                              children: group.photos.map(p => {
+                                const rawLvl = String(p.classLevel || '');
+                                const cleanLvl = rawLvl.split('#')[0].trim();
+                                let cleanDept = (p.dept || 'แผนก').replace(/^(แผนกวิชา|แผนก)/, '').trim();
+                                if (cleanDept.includes('ธุรกิจดิจิทัล') || cleanDept.includes('คอมพิวเตอร์')) cleanDept = 'ธุรกิจดิจิทัล';
+                                else if (cleanDept.includes('ไฟฟ้า')) cleanDept = 'ไฟฟ้ากำลัง';
+                                else if (cleanDept.includes('ช่างยนต์')) cleanDept = 'ช่างยนต์';
+                                else if (cleanDept.includes('กลโรงงาน') || cleanDept.includes('ช่างกล')) cleanDept = 'ช่างกล';
+                                else if (cleanDept.includes('อิเล็ก')) cleanDept = 'อิเล็กฯ';
+                                else if (cleanDept.includes('บัญชี')) cleanDept = 'การบัญชี';
+                                else if (cleanDept.includes('ตลาด')) cleanDept = 'การตลาด';
+                                else if (cleanDept.includes('อาหาร')) cleanDept = 'อาหารฯ';
 
-                            return /*#__PURE__*/_jsxs("div", {
-                              key: p.sessionId,
-                              onClick: () => setViewingEvidencePhoto(p.url),
-                              className: "w-20 sm:w-22 flex-shrink-0 flex flex-col bg-white rounded-xl border border-slate-200 overflow-hidden hover:border-rose-400 hover:shadow-md transition-all cursor-pointer group/thumb shadow-2xs select-none",
-                              title: `${p.dept} ${cleanLvl} (${p.teacherName})`,
-                              children: [
-                                /* Image Container */
-                                /*#__PURE__*/_jsxs("div", {
-                                  className: "relative w-full h-16 sm:h-18 bg-slate-100 overflow-hidden",
+                                let actTag = '';
+                                let actColor = '';
+                                if (rawLvl.includes('#central_') || rawLvl.includes('#c_')) {
+                                  actTag = 'กลาง';
+                                  actColor = 'bg-purple-600';
+                                } else if (rawLvl.includes('#club_')) {
+                                  const cNum = rawLvl.match(/#club_(\d+)/)?.[1] || '';
+                                  actTag = 'ชมรม' + (cNum ? ' ' + cNum : '');
+                                  actColor = 'bg-amber-600';
+                                }
+
+                                return /*#__PURE__*/_jsxs("div", {
+                                  key: p.sessionId,
+                                  onClick: () => setViewingEvidencePhoto(p.url),
+                                  className: "w-20 sm:w-22 flex-shrink-0 flex flex-col bg-white rounded-xl border border-slate-200 overflow-hidden hover:border-rose-400 hover:shadow-md transition-all cursor-pointer group/thumb shadow-2xs select-none",
+                                  title: `${p.dept} ${cleanLvl} (${p.teacherName})`,
                                   children: [
-                                    /*#__PURE__*/_jsx("img", {
-                                      src: p.url,
-                                      alt: p.dept,
-                                      className: "w-full h-full object-cover group-hover/thumb:scale-105 transition-transform duration-200"
+                                    /* Image Container */
+                                    /*#__PURE__*/_jsxs("div", {
+                                      className: "relative w-full h-16 sm:h-18 bg-slate-100 overflow-hidden",
+                                      children: [
+                                        /*#__PURE__*/_jsx("img", {
+                                          src: p.url,
+                                          alt: p.dept,
+                                          className: "w-full h-full object-cover group-hover/thumb:scale-105 transition-transform duration-200"
+                                        }),
+                                        actTag && /*#__PURE__*/_jsx("span", {
+                                          className: `absolute top-1 right-1 px-1 py-0.2 ${actColor} text-white rounded-md text-[8px] font-bold shadow-xs`,
+                                          children: actTag
+                                        })
+                                      ]
                                     }),
-                                    actTag && /*#__PURE__*/_jsx("span", {
-                                      className: `absolute top-1 right-1 px-1 py-0.2 ${actColor} text-white rounded-md text-[8px] font-bold shadow-xs`,
-                                      children: actTag
+                                    /* Label Container (Dept + Class Level) */
+                                    /*#__PURE__*/_jsxs("div", {
+                                      className: "p-1.5 bg-white text-center flex flex-col justify-center border-t border-slate-100",
+                                      children: [
+                                        /*#__PURE__*/_jsx("div", {
+                                          className: "text-[10px] font-bold text-slate-800 truncate leading-tight",
+                                          title: cleanDept,
+                                          children: cleanDept
+                                        }),
+                                        /*#__PURE__*/_jsx("div", {
+                                          className: "text-[9px] font-semibold text-rose-600 mt-0.5 truncate leading-tight",
+                                          children: cleanLvl
+                                        })
+                                      ]
                                     })
                                   ]
-                                }),
-                                /* Label Container (Dept + Class Level) */
-                                /*#__PURE__*/_jsxs("div", {
-                                  className: "p-1.5 bg-white text-center flex flex-col justify-center border-t border-slate-100",
-                                  children: [
-                                    /*#__PURE__*/_jsx("div", {
-                                      className: "text-[10px] font-bold text-slate-800 truncate leading-tight",
-                                      title: cleanDept,
-                                      children: cleanDept
-                                    }),
-                                    /*#__PURE__*/_jsx("div", {
-                                      className: "text-[9px] font-semibold text-rose-600 mt-0.5 truncate leading-tight",
-                                      children: cleanLvl
-                                    })
-                                  ]
-                                })
-                              ]
-                            });
-                          })
+                                });
+                              })
+                            }),
+
+                            // Right Scroll Arrow
+                            group.photos.length > 3 && /*#__PURE__*/_jsx("button", {
+                              type: "button",
+                              onClick: (e) => {
+                                e.stopPropagation();
+                                const el = document.getElementById('photo-strip-' + group.date);
+                                if (el) el.scrollBy({ left: 280, behavior: 'smooth' });
+                              },
+                              className: "absolute right-1 sm:right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/95 hover:bg-white shadow-md border border-slate-200 text-slate-700 hover:text-rose-600 flex items-center justify-center cursor-pointer transition-all active:scale-90 z-10 opacity-70 group-hover/strip:opacity-100",
+                              title: "เลื่อนไปทางขวา",
+                              children: /*#__PURE__*/_jsx("svg", {
+                                className: "w-4 h-4",
+                                fill: "none",
+                                viewBox: "0 0 24 24",
+                                stroke: "currentColor",
+                                strokeWidth: "2.5",
+                                children: /*#__PURE__*/_jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M9 5l7 7-7 7" })
+                              })
+                            })
+                          ]
                         }),
 
                         // Expanded Sessions Accordion Details
