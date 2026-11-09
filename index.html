@@ -3293,6 +3293,13 @@ useEffect(() => {
           } catch (e) {}
         }
 
+        const driveWebhookObj = settings.find(s => s.key === 'google_drive_webhook_url');
+        if (driveWebhookObj?.value) {
+          try {
+            localStorage.setItem('google_drive_webhook_url', driveWebhookObj.value);
+          } catch(_) {}
+        }
+
         const photosObj = settings.find(s => s.key === 'student_photos_map');
         if (photosObj?.value) {
           try {
@@ -4287,12 +4294,39 @@ useEffect(() => {
     const student = typeof studentOrKey === 'object' && studentOrKey !== null ? studentOrKey : { id: studentOrKey, name: String(studentOrKey) };
     const key = student.id || student.student_name || student.name;
     const updated = { ...studentPhotosMap };
-    if (photoData) {
-      updated[key] = photoData;
-      if (student.real_id) updated[student.real_id] = photoData;
-      if (student.student_id) updated[student.student_id] = photoData;
-      if (student.student_name) updated[student.student_name] = photoData;
-      if (student.name) updated[student.name] = photoData;
+    let finalPhoto = photoData;
+
+    // ถ้าเป็นรูปใหม่ (Base64) ให้อัปโหลดตรงเข้า Google Drive เพื่อให้ Supabase มี Egress = 0 MB
+    if (photoData && photoData.startsWith('data:image')) {
+      const gasUrl = localStorage.getItem('google_drive_webhook_url') || 'https://script.google.com/macros/s/AKfycby_jkcCC9jsKVVGshmrdKUYJguo2D-ZWNt9tAJVHFiQjqDtkMr0GAt_sFT5SX--oVHJEg/exec';
+      try {
+        const resp = await fetch(gasUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            action: 'upload_single_photo',
+            category: 'student',
+            studentId: student.student_id || student.id || student.real_id || key,
+            imageBase64: photoData
+          })
+        });
+        if (resp.ok) {
+          const resJson = await resp.json();
+          if (resJson && (resJson.fileUrl || resJson.directUrl)) {
+            finalPhoto = resJson.fileUrl || resJson.directUrl;
+          }
+        }
+      } catch (err) {
+        console.warn('Upload student photo to Google Drive error, fallback:', err);
+      }
+    }
+
+    if (finalPhoto) {
+      updated[key] = finalPhoto;
+      if (student.real_id) updated[student.real_id] = finalPhoto;
+      if (student.student_id) updated[student.student_id] = finalPhoto;
+      if (student.student_name) updated[student.student_name] = finalPhoto;
+      if (student.name) updated[student.name] = finalPhoto;
     } else {
       delete updated[key];
       if (student.real_id) delete updated[student.real_id];
@@ -6321,11 +6355,38 @@ useEffect(() => {
         currentPhoto: teacherPhotosMap[photoModalTeacher.id] || teacherPhotosMap[photoModalTeacher.name] || teacherPhotosMap[photoModalTeacher.name?.replace(/\s+/g, ' ').trim()] || '',
         onSave: async (teacher, photoData) => {
           const key = String(teacher.id);
-          const updated = { ...teacherPhotosMap, [key]: photoData };
+          let finalPhoto = photoData;
+
+          // ถ้าเป็นรูปใหม่ (Base64) ให้อัปโหลดตรงเข้า Google Drive ก่อนบันทึกลง Supabase
+          if (photoData && photoData.startsWith('data:image')) {
+            const gasUrl = localStorage.getItem('google_drive_webhook_url') || 'https://script.google.com/macros/s/AKfycby_jkcCC9jsKVVGshmrdKUYJguo2D-ZWNt9tAJVHFiQjqDtkMr0GAt_sFT5SX--oVHJEg/exec';
+            try {
+              const resp = await fetch(gasUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({
+                  action: 'upload_single_photo',
+                  category: 'teacher',
+                  teacherName: teacher.name || '',
+                  imageBase64: photoData
+                })
+              });
+              if (resp.ok) {
+                const resJson = await resp.json();
+                if (resJson && (resJson.fileUrl || resJson.directUrl)) {
+                  finalPhoto = resJson.fileUrl || resJson.directUrl;
+                }
+              }
+            } catch (err) {
+              console.warn('Upload teacher photo to Google Drive error, fallback:', err);
+            }
+          }
+
+          const updated = { ...teacherPhotosMap, [key]: finalPhoto };
           if (teacher.name) {
-            updated[teacher.name] = photoData;
+            updated[teacher.name] = finalPhoto;
             const norm = teacher.name.replace(/\s+/g, ' ').trim();
-            if (norm) updated[norm] = photoData;
+            if (norm) updated[norm] = finalPhoto;
           }
           setTeacherPhotosMap(updated);
           localStorage.setItem('teacher_photos_cache', JSON.stringify(updated));
