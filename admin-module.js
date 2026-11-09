@@ -4492,7 +4492,9 @@ function dailyAutoBackupTrigger() {
 
   // กรองเฉพาะประวัติการเช็คชื่อจริง (ตัดแถวการตั้งค่าระบบ __SYSTEM_SETTINGS__ ออก)
   const realCheckinSessions = useMemo(() => {
-    return (sessions || []).filter(s => s.department !== '__SYSTEM_SETTINGS__' && !String(s.department || '').startsWith('__'));
+    return (sessions || [])
+      .filter(s => s.department !== '__SYSTEM_SETTINGS__' && !String(s.department || '').startsWith('__'))
+      .sort((a, b) => (b.check_date || '').localeCompare(a.check_date || '') || (b.id || 0) - (a.id || 0));
   }, [sessions]);
 
   // Excel Import State

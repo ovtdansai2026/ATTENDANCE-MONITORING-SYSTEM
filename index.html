@@ -3056,13 +3056,14 @@ useEffect(() => {
     return () => clearInterval(intervalTimer);
   }, [lineSettings, specialHolidays, compensatoryDays, masterStudents, checkinSessions, currentAcademicYear, currentSemester]);
 
-  // Fetch Check-in Sessions (โหลดแบบ lightweight ไม่ดึง base64 รูปภาพขนาดใหญ่เข้าเครื่อง เพื่อให้ปฏิทินแสดงผลเร็วที่สุด 0 วินาที)
+  // Fetch Check-in Sessions (โหลดข้อมูลประวัติการเช็กชื่อ พร้อม URL รูปภาพ Google Drive CDN และเรียงตามวันที่ล่าสุดเสมอ)
   const fetchSessions = useCallback(async () => {
     try {
       const [sessionsRes, photoIdsRes] = await Promise.all([
         dbAssembly.from('attendance_checkin_sessions')
-          .select('id, check_date, teacher_name, department, class_level, total_students, present_count, absent_count, leave_count, academic_year, semester, notes, created_at, updated_at')
-          .order('created_at', { ascending: false }),
+          .select('id, check_date, teacher_name, department, class_level, total_students, present_count, absent_count, leave_count, evidence_photo_url, academic_year, semester, notes, created_at, updated_at')
+          .order('check_date', { ascending: false })
+          .order('id', { ascending: false }),
         dbAssembly.from('attendance_checkin_sessions')
           .select('id')
           .not('evidence_photo_url', 'is', null)
@@ -3075,8 +3076,9 @@ useEffect(() => {
           .filter(s => s.department !== '__SYSTEM_SETTINGS__' && !String(s.department || '').startsWith('__'))
           .map(s => ({
             ...s,
-            has_photo: photoIdSet.has(s.id)
-          }));
+            has_photo: photoIdSet.has(s.id) || Boolean(s.evidence_photo_url)
+          }))
+          .sort((a, b) => (b.check_date || '').localeCompare(a.check_date || '') || (b.id || 0) - (a.id || 0));
         setCheckinSessions(realSessions);
         try {
           localStorage.setItem('app_cached_checkin_sessions', JSON.stringify(realSessions));
@@ -3172,7 +3174,7 @@ useEffect(() => {
         (!isSem2 ? fetchAllRows(dbReCheckFallback, 'students', '*').catch(() => []) : Promise.resolve([])),
         (!isSem2 ? fetchAllRows(dbReCheckFallback, 'attendances', '*').catch(() => []) : Promise.resolve([])),
         fetchAllRows(dbAssembly, 'attendances', '*').catch(() => []),
-        fetchAllRows(dbAssembly, 'attendance_checkin_sessions', 'id, check_date, teacher_name, department, class_level, total_students, present_count, absent_count, leave_count, academic_year, semester, notes, created_at, updated_at').catch(() => []),
+        fetchAllRows(dbAssembly, 'attendance_checkin_sessions', 'id, check_date, teacher_name, department, class_level, total_students, present_count, absent_count, leave_count, evidence_photo_url, academic_year, semester, notes, created_at, updated_at').catch(() => []),
         (shouldScopeToTeacher && targetDepts.length > 0)
           ? dbAssembly.from('daily_attendance').select('*').in('department', targetDepts).then(r => r.data || []).catch(() => [])
           : fetchAllRows(dbAssembly, 'daily_attendance', '*').catch(() => [])
@@ -3483,7 +3485,7 @@ useEffect(() => {
             return realSessions.map(s => ({
               ...s,
               has_photo: photoMap.get(s.id) || Boolean(s.evidence_photo_url)
-            }));
+            })).sort((a, b) => (b.check_date || '').localeCompare(a.check_date || '') || (b.id || 0) - (a.id || 0));
           });
           try {
             localStorage.setItem('app_cached_checkin_sessions', JSON.stringify(realSessions));
@@ -4080,12 +4082,15 @@ useEffect(() => {
   }, [dailyAttendanceRecords, isSandboxMode, isTeacherTesting]);
 
   const displayCheckinSessions = useMemo(() => {
-    if (isSandboxMode || isTeacherTesting) return checkinSessions;
-    return (checkinSessions || []).filter(s => {
-      const d = normalizeDepartmentName(s.department || '');
-      const t = (s.teacher_name || '').toLowerCase();
-      return d !== 'ทดสอบระบบ' && !t.includes('ทดสอบ') && t !== 'admin';
-    });
+    let list = checkinSessions || [];
+    if (!isSandboxMode && !isTeacherTesting) {
+      list = list.filter(s => {
+        const d = normalizeDepartmentName(s.department || '');
+        const t = (s.teacher_name || '').toLowerCase();
+        return d !== 'ทดสอบระบบ' && !t.includes('ทดสอบ') && t !== 'admin';
+      });
+    }
+    return list.slice().sort((a, b) => (b.check_date || '').localeCompare(a.check_date || '') || (b.id || 0) - (a.id || 0));
   }, [checkinSessions, isSandboxMode, isTeacherTesting]);
 
   // Master Students with sandbox mock students completely filtered out when sandbox mode is OFF
