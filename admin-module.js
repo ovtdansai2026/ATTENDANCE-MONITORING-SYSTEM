@@ -3169,23 +3169,45 @@ const [adminTab, setAdminTab] = useState('term'); // 'term', 'students', 'logs',
       setSavingHiddenLevels(false);
     }
   };
-  const [localAllowOffHours, setLocalAllowOffHours] = useState(Boolean(allowOffHoursCheckin));
+  const [localAllowOffHours, setLocalAllowOffHours] = useState(false);
   const [savingOffHours, setSavingOffHours] = useState(false);
 
+  // ดึงค่าสดตรงจาก Supabase system_settings เสมอ เพื่อความปลอดภัยและสถานะที่แท้จริง
+  const fetchLiveOffHours = useCallback(async () => {
+    try {
+      const { data } = await dbAssembly
+        .from('system_settings')
+        .select('value')
+        .eq('key', 'allow_off_hours_checkin')
+        .maybeSingle();
+      if (data && data.value !== undefined) {
+        setLocalAllowOffHours(data.value === 'true');
+      }
+    } catch (e) {
+      console.warn('Fetch live off-hours setting warning:', e);
+    }
+  }, []);
+
   useEffect(() => {
-    setLocalAllowOffHours(Boolean(allowOffHoursCheckin));
-  }, [allowOffHoursCheckin]);
+    fetchLiveOffHours();
+  }, [fetchLiveOffHours, allowOffHoursCheckin]);
+
+  useEffect(() => {
+    if (adminTab === 'general') {
+      fetchLiveOffHours();
+    }
+  }, [adminTab, fetchLiveOffHours]);
 
   const handleToggleOffHours = async (checked) => {
-    setLocalAllowOffHours(checked);
     setSavingOffHours(true);
     try {
       if (onToggleOffHoursCheckin) {
         await onToggleOffHoursCheckin(checked);
       }
+      setLocalAllowOffHours(checked);
     } catch (err) {
       alert('เปลี่ยนการตั้งค่าเช็คชื่อนอกเวลาล้มเหลว: ' + (err.message || err));
-      setLocalAllowOffHours(!checked);
+      await fetchLiveOffHours();
     } finally {
       setSavingOffHours(false);
     }
@@ -7318,6 +7340,14 @@ function dailyAutoBackupTrigger() {
                                       children: [
                                         /*#__PURE__*/_jsx("img", {
                                           src: p.url,
+                                          referrerPolicy: "no-referrer",
+                                          onError: (e) => {
+                                            const match = (p.url || '').match(/\/d\/([a-zA-Z0-9_-]+)/);
+                                            if (match && match[1]) {
+                                              const fb = `https://drive.google.com/thumbnail?id=${match[1]}&sz=w600`;
+                                              if (e.target.src !== fb) e.target.src = fb;
+                                            }
+                                          },
                                           alt: p.dept,
                                           className: "w-full h-full object-cover group-hover/thumb:scale-105 transition-transform duration-200"
                                         }),
@@ -7397,6 +7427,14 @@ function dailyAutoBackupTrigger() {
                                   children: [
                                     s.evidence_photo_url ? /*#__PURE__*/_jsx("img", {
                                       src: s.evidence_photo_url,
+                                      referrerPolicy: "no-referrer",
+                                      onError: (e) => {
+                                        const match = (s.evidence_photo_url || '').match(/\/d\/([a-zA-Z0-9_-]+)/);
+                                        if (match && match[1]) {
+                                          const fb = `https://drive.google.com/thumbnail?id=${match[1]}&sz=w400`;
+                                          if (e.target.src !== fb) e.target.src = fb;
+                                        }
+                                      },
                                       alt: "หลักฐาน",
                                       onClick: () => setViewingEvidencePhoto(s.evidence_photo_url),
                                       className: "w-11 h-11 rounded-xl object-cover border border-slate-200 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
@@ -7787,6 +7825,14 @@ function dailyAutoBackupTrigger() {
                           }),
                           /*#__PURE__*/_jsx("img", {
                             src: viewingEvidencePhoto,
+                            referrerPolicy: "no-referrer",
+                            onError: (e) => {
+                              const match = (viewingEvidencePhoto || '').match(/\/d\/([a-zA-Z0-9_-]+)/);
+                              if (match && match[1]) {
+                                const fb = `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1200`;
+                                if (e.target.src !== fb) e.target.src = fb;
+                              }
+                            },
                             alt: "Evidence",
                             className: "w-full max-h-[65vh] object-contain rounded-xl bg-slate-950"
                           })

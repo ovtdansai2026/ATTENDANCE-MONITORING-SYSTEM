@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="referrer" content="no-referrer">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
@@ -2850,11 +2851,13 @@ function App() {
     }
   }, [openCentralActivityIds, currentAcademicYear, currentSemester]);
 
-  // ระบบตรวจจับ Real-time สด: ตรวจสอบทุก 10 วินาที + ตรวจสอบทันทีเมื่อกลับมาที่หน้าต่าง Chrome / Focus
+  // ระบบตรวจจับ Real-time: ตรวจสอบทุก 60 วินาทีเฉพาะตอนเปิดหน้าจอ + ตรวจสอบทันทีเมื่อกลับมาที่หน้าต่าง Chrome / Focus
   useEffect(() => {
     const pollInterval = setInterval(() => {
-      fetchLatestOpenCentralActivities();
-    }, 10000);
+      if (document.visibilityState === 'visible') {
+        fetchLatestOpenCentralActivities();
+      }
+    }, 60000);
 
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
@@ -2874,18 +2877,7 @@ function App() {
       window.removeEventListener('focus', handleFocus);
     };
   }, [fetchLatestOpenCentralActivities]);
-  const [allowOffHoursCheckin, setAllowOffHoursCheckin] = useState(() => {
-    try {
-      const cached = localStorage.getItem('allow_off_hours_checkin');
-      if (cached !== null) return cached === 'true';
-      const lineCached = localStorage.getItem('line_notification_settings');
-      if (lineCached) {
-        const parsed = JSON.parse(lineCached);
-        if (parsed.allowOffHoursCheckin !== undefined) return Boolean(parsed.allowOffHoursCheckin);
-      }
-      return false;
-    } catch(e) { return false; }
-  });
+  const [allowOffHoursCheckin, setAllowOffHoursCheckin] = useState(false);
   const [isTimeRestrictionModalOpen, setIsTimeRestrictionModalOpen] = useState(false);
   const [currentCheckinTimeStatus, setCurrentCheckinTimeStatus] = useState(() =>
     getCheckinTimeStatus(specialHolidays, compensatoryDays, isAdminLoggedIn || allowOffHoursCheckin)
@@ -2945,17 +2937,22 @@ useEffect(() => {
   };
 
   const handleToggleOffHoursCheckin = async (enabled) => {
-    setAllowOffHoursCheckin(enabled);
-    localStorage.setItem('allow_off_hours_checkin', String(enabled));
     try {
       const token = sessionStorage.getItem('admin_session_token') || '';
-      await dbAssembly.rpc('admin_save_system_setting_secure', {
+      const { data, error } = await dbAssembly.rpc('admin_save_system_setting_secure', {
         p_key: 'allow_off_hours_checkin',
         p_value: String(enabled),
         p_auth_token_or_pin: token
       });
+      if (error || (data && !data.success)) {
+        throw new Error(error?.message || data?.error || 'บันทึกการตั้งค่าลง Supabase ไม่สำเร็จ');
+      }
+      setAllowOffHoursCheckin(enabled);
+      localStorage.setItem('allow_off_hours_checkin', String(enabled));
+      return { success: true };
     } catch (err) {
       console.warn('Persisting allow_off_hours_checkin error:', err);
+      throw err;
     }
   };
 
@@ -3376,6 +3373,9 @@ useEffect(() => {
           const val = offHoursObj.value === 'true';
           setAllowOffHoursCheckin(val);
           localStorage.setItem('allow_off_hours_checkin', String(val));
+        } else {
+          setAllowOffHoursCheckin(false);
+          localStorage.setItem('allow_off_hours_checkin', 'false');
         }
 
         const sandboxObj = settings.find(s => s.key === 'system_sandbox_mode');
@@ -3438,9 +3438,6 @@ useEffect(() => {
             if (parsed && typeof parsed === 'object') {
               setLineSettings(prev => JSON.stringify(prev) === JSON.stringify(parsed) ? prev : parsed);
               localStorage.setItem('line_notification_settings', JSON.stringify(parsed));
-              if (!offHoursObj && parsed.allowOffHoursCheckin !== undefined) {
-                setAllowOffHoursCheckin(Boolean(parsed.allowOffHoursCheckin));
-              }
             }
           } catch(e) {}
         }
@@ -6813,6 +6810,7 @@ useEffect(() => {
         onOpenStudentPhoto: (s) => setPhotoModalTarget(s),
         onOpenTeacherPhoto: (t) => setPhotoModalTeacher(t),
         initialTeacher: selectedTeacherForCheckin || loggedInTeacher,
+        loggedInTeacher: loggedInTeacher,
         initialDate: selectedDateForCheckin,
         masterStudents: displayMasterStudents,
         academicYear: currentAcademicYear,
@@ -6839,6 +6837,7 @@ useEffect(() => {
         onSuccessUpdate: reloadData,
         onClose: () => {
           setIsTeacherCheckinModalOpen(false);
+          setSelectedTeacherForCheckin(null);
           setSelectedDateForCheckin(null);
         }
       }),
@@ -7306,6 +7305,22 @@ function DashboardInlineCalendar({
                 )
               })
             ]
+          }),
+
+          /* Full Width Button at Bottom of Dashboard Calendar */
+          onOpenFullCalendar && /*#__PURE__*/_jsx("div", {
+            className: "pt-1 border-t border-slate-100",
+            children: /*#__PURE__*/_jsxs("button", {
+              type: "button",
+              onClick: onOpenFullCalendar,
+              className: "w-full py-2.5 px-4 bg-gradient-to-r from-indigo-600 via-sky-600 to-indigo-700 hover:from-indigo-700 hover:to-sky-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-xs hover:shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-[0.99]",
+              title: "เปิดปฏิทินเต็ม / ตรวจสอบรูปถ่ายหลักฐาน",
+              children: [
+                /*#__PURE__*/_jsx(Icon.Calendar, { className: "w-4 h-4 text-amber-300" }),
+                /*#__PURE__*/_jsx("span", { children: "เปิดปฏิทินเต็ม & ตรวจสอบรูปถ่ายหลักฐานการเช็คชื่อ" }),
+                /*#__PURE__*/_jsx("span", { className: "text-[11px] px-2 py-0.5 rounded-full bg-white/20 font-bold", children: "คลิกดูรูป 📸 ↗" })
+              ]
+            })
           })
         ]
       })
@@ -7531,6 +7546,35 @@ function AttendanceCalendarModal({
       setIsSavingSchedule(false);
     }
   };
+
+  // จัดเรียงครูที่ยังไม่เช็คชื่อขึ้นมาก่อนด้านบน และเน้นสีแดงชัดเจน
+  const sortedTeachersWithStatus = useMemo(() => {
+    return (teachers || []).map(t => {
+      const sess = selectedDateSessions.find(s => {
+        const isNameMatch = normalizeTeacherName(s.teacher_name) === normalizeTeacherName(t.name);
+        if (!isNameMatch) return false;
+        const sLevel = String(s.class_level || '').replace(/\s+/g, '');
+        const tLevel = String(t.class_level || '').replace(/\s+/g, '');
+        const sDept = String(s.department || '').replace(/\s+/g, '');
+        const tDept = String(t.department || '').replace(/\s+/g, '');
+        if (sLevel && tLevel && sLevel !== tLevel) return false;
+        if (sDept && tDept && !sDept.includes(tDept) && !tDept.includes(sDept)) return false;
+        return true;
+      }) || selectedDateSessions.find(s => normalizeTeacherName(s.teacher_name) === normalizeTeacherName(t.name));
+      return { teacher: t, sess, isChecked: Boolean(sess) };
+    }).sort((a, b) => {
+      // 1. ยังไม่เช็คชื่อ (isChecked === false) ให้อยู่ด้านบนก่อนคนเช็คแล้ว (isChecked === true)
+      if (a.isChecked !== b.isChecked) {
+        return a.isChecked ? 1 : -1;
+      }
+      // 2. เรียงตามแผนกวิชา
+      const da = a.teacher.department || '';
+      const db = b.teacher.department || '';
+      if (da !== db) return da.localeCompare(db, 'th');
+      // 3. เรียงตามระดับชั้น
+      return (a.teacher.class_level || '').localeCompare(b.teacher.class_level || '', 'th');
+    });
+  }, [teachers, selectedDateSessions]);
 
   return /*#__PURE__*/_jsx("div", {
     className: "fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4",
@@ -7982,35 +8026,35 @@ function AttendanceCalendarModal({
                     }),
 
                     /*#__PURE__*/_jsxs("div", {
-                      className: "flex justify-between items-center",
+                      className: "flex justify-between items-center flex-wrap gap-1.5",
                       children: [
                         /*#__PURE__*/_jsx("h4", { className: "text-xs font-bold text-slate-800 uppercase tracking-wider", children: "สถานะการเช็คชื่อรายห้องเรียนประจำวัน" }),
-                        /*#__PURE__*/_jsxs("span", { className: "text-[11px] text-slate-500", children: ["เช็คแล้ว ", selectedDateCheckedRoomsCount, " จากทั้งหมด ", teachers.length, " ห้อง"] })
+                        /*#__PURE__*/_jsxs("div", {
+                          className: "flex items-center gap-1.5 text-[11px]",
+                          children: [
+                            /*#__PURE__*/_jsxs("span", {
+                              className: "px-2 py-0.5 rounded-md font-bold bg-rose-100 text-rose-700 border border-rose-300 shadow-2xs",
+                              children: ["ยังไม่เช็ค ", Math.max(0, teachers.length - selectedDateCheckedRoomsCount), " ห้อง"]
+                            }),
+                            /*#__PURE__*/_jsxs("span", {
+                              className: "px-2 py-0.5 rounded-md font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs",
+                              children: ["เช็คแล้ว ", selectedDateCheckedRoomsCount, " ห้อง"]
+                            })
+                          ]
+                        })
                       ]
                     }),
 
                     /*#__PURE__*/_jsx("div", {
                       className: "grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-[30vh] overflow-y-auto custom-scroll pr-1",
-                      children: teachers.map(t => {
-                        const sess = selectedDateSessions.find(s => {
-                          const isNameMatch = normalizeTeacherName(s.teacher_name) === normalizeTeacherName(t.name);
-                          if (!isNameMatch) return false;
-                          const sLevel = String(s.class_level || '').replace(/\s+/g, '');
-                          const tLevel = String(t.class_level || '').replace(/\s+/g, '');
-                          const sDept = String(s.department || '').replace(/\s+/g, '');
-                          const tDept = String(t.department || '').replace(/\s+/g, '');
-                          if (sLevel && tLevel && sLevel !== tLevel) return false;
-                          if (sDept && tDept && !sDept.includes(tDept) && !tDept.includes(sDept)) return false;
-                          return true;
-                        }) || selectedDateSessions.find(s => normalizeTeacherName(s.teacher_name) === normalizeTeacherName(t.name));
-                        const isChecked = Boolean(sess);
+                      children: sortedTeachersWithStatus.map(({ teacher: t, sess, isChecked }) => {
                         const isPastDate = selectedDateStr < formatLocalDate(new Date());
 
                         return /*#__PURE__*/_jsxs("div", {
-                          className: `p-2 rounded-xl border flex items-center justify-between gap-2 text-xs transition-colors ${
+                          className: `p-2 rounded-xl border flex items-center justify-between gap-2 text-xs transition-all ${
                             isChecked
                               ? 'bg-emerald-50/50 border-emerald-200'
-                              : 'bg-white border-slate-200 hover:border-slate-300'
+                              : 'bg-rose-50/90 border-rose-300 ring-1 ring-rose-200 hover:border-rose-400 shadow-2xs'
                           }`,
                           children: [
                             /*#__PURE__*/_jsxs("div", {
@@ -8018,7 +8062,7 @@ function AttendanceCalendarModal({
                               children: [
                                 /*#__PURE__*/_jsx("div", {
                                   className: `w-6 h-6 rounded-lg flex items-center justify-center font-bold text-[10px] flex-shrink-0 ${
-                                    isChecked ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-400'
+                                    isChecked ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white font-black'
                                   }`,
                                   children: isChecked ? /*#__PURE__*/_jsx(Icon.CheckSimple, { className: "w-3.5 h-3.5" }) : "✕"
                                 }),
@@ -8026,11 +8070,21 @@ function AttendanceCalendarModal({
                                   className: "min-w-0",
                                   children: [
                                     /*#__PURE__*/_jsxs("div", {
-                                      className: "font-bold text-slate-900 truncate",
-                                      children: [t.name, " (", t.class_level, ")"]
+                                      className: `font-bold truncate flex items-center gap-1.5 ${
+                                        isChecked ? 'text-slate-900' : 'text-rose-950 font-black'
+                                      }`,
+                                      children: [
+                                        t.name, " (", t.class_level, ")",
+                                        !isChecked && /*#__PURE__*/_jsx("span", {
+                                          className: "px-1.5 py-0.2 rounded text-[10px] font-bold bg-rose-200 text-rose-800 border border-rose-300",
+                                          children: "ยังไม่เช็ค"
+                                        })
+                                      ]
                                     }),
                                     /*#__PURE__*/_jsx("div", {
-                                      className: "text-[10px] text-slate-500 truncate",
+                                      className: `text-[10px] truncate ${
+                                        isChecked ? 'text-slate-500' : 'text-rose-700/80 font-semibold'
+                                      }`,
                                       children: t.department
                                     })
                                   ]
@@ -8072,31 +8126,13 @@ function AttendanceCalendarModal({
                                     isLoadingPhotoId === sess.id ? "กำลังโหลด..." : "ดูรูป"
                                   ]
                                 }),
-                                isChecked ? (
-                                  /*#__PURE__*/_jsxs("button", {
-                                    type: "button",
-                                    onClick: () => onSelectClassForCheckin(t, selectedDateStr),
-                                    className: "px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-lg text-xs font-bold cursor-pointer flex items-center gap-1 shadow-2xs transition-colors",
-                                    title: "ดูรายชื่อและแก้ไขการเช็คชื่อ",
-                                    children: [/*#__PURE__*/_jsx(Icon.Edit, { className: "w-3 h-3 text-slate-600" }), "แก้ไข"]
-                                  })
-                                ) : (
-                                  isPastDate && !isAdminLoggedIn ? /*#__PURE__*/_jsxs("button", {
-                                    type: "button",
-                                    onClick: () => {
-                                      alert('การเช็คชื่อย้อนหลัง สงวนสิทธิ์เฉพาะผู้ดูแลระบบ (Admin) เท่านั้น\nกรุณาเข้าสู่ระบบด้วยรหัสผ่านแอดมิน');
-                                      if (onOpenAdminLogin) onOpenAdminLogin();
-                                    },
-                                    className: "px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-500 border border-slate-300 rounded-lg text-xs font-bold cursor-pointer flex items-center gap-1 shadow-2xs transition-colors",
-                                    title: "เฉพาะผู้ดูแลระบบ (Admin) จึงจะเช็คชื่อย้อนหลังได้",
-                                    children: [/*#__PURE__*/_jsx(Icon.Lock, { className: "w-3 h-3 text-slate-400" }), "ย้อนหลัง (Admin)"]
-                                  }) : /*#__PURE__*/_jsxs("button", {
-                                    type: "button",
-                                    onClick: () => onSelectClassForCheckin(t, selectedDateStr),
-                                    className: "px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold cursor-pointer shadow-2xs flex items-center gap-1 transition-colors",
-                                    children: [/*#__PURE__*/_jsx(Icon.CheckSimple, { className: "w-3 h-3 text-white" }), isPastDate ? "เช็คย้อนหลัง" : "เช็คชื่อ"]
-                                  })
-                                )
+                                isAdminLoggedIn && isChecked && /*#__PURE__*/_jsxs("button", {
+                                  type: "button",
+                                  onClick: () => onSelectClassForCheckin(t, selectedDateStr),
+                                  className: "px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-lg text-xs font-bold cursor-pointer flex items-center gap-1 shadow-2xs transition-colors",
+                                  title: "ดูรายชื่อและแก้ไขการเช็คชื่อ (สิทธิ์แอดมิน)",
+                                  children: [/*#__PURE__*/_jsx(Icon.Edit, { className: "w-3 h-3 text-slate-600" }), "แก้ไข (Admin)"]
+                                })
                               ]
                             })
                           ]
@@ -8129,6 +8165,14 @@ function AttendanceCalendarModal({
                 className: "max-h-[60vh] overflow-hidden rounded-xl bg-black flex items-center justify-center",
                 children: /*#__PURE__*/_jsx("img", {
                   src: viewingPhotoUrl,
+                  referrerPolicy: "no-referrer",
+                  onError: (e) => {
+                    const match = (viewingPhotoUrl || '').match(/\/d\/([a-zA-Z0-9_-]+)/);
+                    if (match && match[1]) {
+                      const fb = `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1200`;
+                      if (e.target.src !== fb) e.target.src = fb;
+                    }
+                  },
                   alt: "หลักฐานเข้าแถว",
                   className: "max-h-[60vh] w-auto object-contain rounded-xl"
                 })
@@ -10853,6 +10897,7 @@ function TeacherCheckinModal({
   academicYear,
   semester,
   isAdminLoggedIn = false,
+  loggedInTeacher = null,
   allowOffHoursCheckin = false,
   specialHolidays = [],
   compensatoryDays = [],
@@ -10874,7 +10919,11 @@ function TeacherCheckinModal({
   const timeStatus = getCheckinTimeStatus(specialHolidays, compensatoryDays, isAdminLoggedIn || allowOffHoursCheckin);
   const [step, setStep] = useState(() => {
     if (initialTeacher) {
-      return 'checkin_sheet';
+      const isTeacherSelf = loggedInTeacher && normalizeTeacherName(loggedInTeacher.name) === normalizeTeacherName(initialTeacher.name);
+      if (isAdminLoggedIn || isTeacherSelf) {
+        return 'checkin_sheet';
+      }
+      return 'enter_pin';
     }
     return 'select_teacher';
   });
@@ -11599,9 +11648,24 @@ function TeacherCheckinModal({
     }
     // 1. ตรวจสอบเงื่อนไขเวลา: บล็อกเฉพาะการเข้าแถวหน้าเสาธงในวันปัจจุบันนอกเวลา 07:35 - 08:20
     if (checkinMode === 'assembly' && !isPastDate && !isAdminLoggedIn) {
-      const liveTimeStatus = getCheckinTimeStatus(specialHolidays, compensatoryDays, isAdminLoggedIn || allowOffHoursCheckin);
+      // ตรวจสอบสดตรงกับฐานข้อมูล Supabase ป้องกันการแฮกหรือแก้ State ในหน้าเบราว์เซอร์
+      let liveAllowOffHours = false;
+      try {
+        const { data: dbSetting } = await dbAssembly
+          .from('system_settings')
+          .select('value')
+          .eq('key', 'allow_off_hours_checkin')
+          .maybeSingle();
+        if (dbSetting && dbSetting.value === 'true') {
+          liveAllowOffHours = true;
+        }
+      } catch (dbErr) {
+        console.warn('Live verify off-hours checkin error:', dbErr);
+      }
+
+      const liveTimeStatus = getCheckinTimeStatus(specialHolidays, compensatoryDays, liveAllowOffHours);
       if (!liveTimeStatus.allowed) {
-        alert(`ไม่สามารถบันทึกการเช็คชื่อเข้าแถวสำหรับวันนี้ได้: ${liveTimeStatus.label}\n\n${liveTimeStatus.subtext}`);
+        alert(`⛔ ระบบปฏิเสธการบันทึกข้อมูล:\n${liveTimeStatus.label}\n\nการเช็คชื่อนอกเวลาต้องได้รับการปลดล็อกอย่างเป็นทางการจากผู้ดูแลระบบในฐานข้อมูลส่วนกลางเท่านั้น`);
         return;
       }
     }
@@ -11670,6 +11734,9 @@ function TeacherCheckinModal({
         try {
           gasUrl = localStorage.getItem('google_drive_webhook_url') || '';
         } catch (_) {}
+        if (!gasUrl) {
+          gasUrl = 'https://script.google.com/macros/s/AKfycby_jkcCC9jsKVVGshmrdKUYJguo2D-ZWNt9tAJVHFiQjqDtkMr0GAt_sFT5SX--oVHJEg/exec';
+        }
 
         if (gasUrl) {
           try {
@@ -12136,7 +12203,12 @@ function TeacherCheckinModal({
                     setDbTeacherRooms(group.rooms);
                     setPinInput('');
                     setPinError('');
-                    setStep('enter_pin');
+                    const isSelf = loggedInTeacher && normalizeTeacherName(loggedInTeacher.name) === group.normName;
+                    if (isAdminLoggedIn || isSelf) {
+                      setStep('checkin_sheet');
+                    } else {
+                      setStep('enter_pin');
+                    }
                   },
                   className: "p-3 sm:p-4 bg-white hover:bg-emerald-50/80 active:bg-emerald-100 hover:border-emerald-500 border border-slate-200 rounded-xl sm:rounded-2xl text-left transition-all cursor-pointer flex flex-col justify-between gap-2.5 group active:scale-[0.99] shadow-xs",
                   children: [
@@ -12216,7 +12288,12 @@ function TeacherCheckinModal({
                             setDbTeacherRooms(group.rooms);
                             setPinInput('');
                             setPinError('');
-                            setStep('enter_pin');
+                            const isSelf = loggedInTeacher && normalizeTeacherName(loggedInTeacher.name) === normalizeTeacherName(rm.name);
+                            if (isAdminLoggedIn || isSelf) {
+                              setStep('checkin_sheet');
+                            } else {
+                              setStep('enter_pin');
+                            }
                           },
                           className: "px-2 py-0.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 active:bg-emerald-200 border border-emerald-200 text-emerald-900 text-[11px] sm:text-xs font-bold transition-all flex items-center gap-1 cursor-pointer",
                           children: [
