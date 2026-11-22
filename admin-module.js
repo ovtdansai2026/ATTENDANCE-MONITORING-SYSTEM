@@ -363,8 +363,8 @@ function AdminLineSettingsTab({
                     /*#__PURE__*/_jsxs("div", {
                       className: "text-xs",
                       children: [
-                        /*#__PURE__*/_jsx("span", { className: "font-bold text-slate-800 block", children: "ส่งรายงานอัตโนมัติเมื่อถึงเวลาตัดรอบ (08:20 น.)" }),
-                        /*#__PURE__*/_jsx("span", { className: "text-slate-500 text-[11px]", children: "ระบบจะสรุปและส่งเข้า LINE กลุ่มครูอัตโนมัติเวลา 08:20 น. (เช็คตามปฏิทิน: ส่งเฉพาะวันเรียนปกติ ยกเว้นวันหยุดเสาร์-อาทิตย์และวันหยุดพิเศษ)" })
+                        /*#__PURE__*/_jsx("span", { className: "font-bold text-slate-800 block", children: "ส่งรายงานอัตโนมัติเมื่อถึงเวลาตัดรอบ (08:25 น.)" }),
+                        /*#__PURE__*/_jsx("span", { className: "text-slate-500 text-[11px]", children: "ระบบจะสรุปและส่งเข้า LINE กลุ่มครูอัตโนมัติเวลา 08:25 น. (เช็คตามปฏิทิน: ส่งเฉพาะวันเรียนปกติ ยกเว้นวันหยุดเสาร์-อาทิตย์และวันหยุดพิเศษ)" })
                       ]
                     })
                   ]
@@ -477,7 +477,7 @@ function AdminLineSettingsTab({
                               })
                             ]
                           }),
-                          /*#__PURE__*/_jsx("span", { className: "text-[10px] text-slate-400 font-mono", children: "08:20" })
+                          /*#__PURE__*/_jsx("span", { className: "text-[10px] text-slate-400 font-mono", children: "08:25" })
                         ]
                       }),
 
@@ -616,7 +616,7 @@ function AdminLineSettingsTab({
                             className: "bg-white p-3 rounded-2xl rounded-tl-sm shadow-xs border border-slate-200 text-slate-800 text-[11px] leading-relaxed whitespace-pre-wrap font-sans relative",
                             children: [
                               reportData.textMessage,
-                              /*#__PURE__*/_jsx("div", { className: "text-[9px] text-slate-400 text-right mt-1 font-mono", children: "08:20 น. ✓✓" })
+                              /*#__PURE__*/_jsx("div", { className: "text-[9px] text-slate-400 text-right mt-1 font-mono", children: "08:25 น. ✓✓" })
                             ]
                           })
                         ) : (
@@ -8240,7 +8240,7 @@ function dailyAutoBackupTrigger() {
                                 }),
                                 /*#__PURE__*/_jsx(InfoTooltip, {
                                   title: "Admin Bypass เช็คชื่อนอกเวลา",
-                                  text: "เมื่อเปิดใช้งาน คุณครูสามารถเช็คชื่อและส่งภาพถ่ายได้ตลอดเวลาโดยไม่มีการล็อกปุ่มสีเทา ไม่จำกัดเฉพาะ 07:35 - 08:20 น."
+                                  text: "เมื่อเปิดใช้งาน คุณครูสามารถเช็คชื่อและส่งภาพถ่ายได้ตลอดเวลาโดยไม่มีการล็อกปุ่มสีเทา ไม่จำกัดเฉพาะ 07:35 - 08:25 น."
                                 })
                               ]
                             }),
@@ -8276,7 +8276,7 @@ function dailyAutoBackupTrigger() {
                             /*#__PURE__*/_jsx("span", { children: "สถานะปัจจุบัน:" }),
                             /*#__PURE__*/_jsx("strong", {
                               className: localAllowOffHours ? "text-emerald-700 font-bold" : "text-slate-600 font-bold",
-                              children: localAllowOffHours ? "🟢 ปลดล็อกอยู่ (คุณครูเช็คชื่อได้ตลอดเวลา)" : "🔒 บังคับเวลาปกติ (เปิดระบบ 07:35 - 08:20 น.)"
+                              children: localAllowOffHours ? "🟢 ปลดล็อกอยู่ (คุณครูเช็คชื่อได้ตลอดเวลา)" : "🔒 บังคับเวลาปกติ (เปิดระบบ 07:35 - 08:25 น.)"
                             })
                           ]
                         }),

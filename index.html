@@ -634,7 +634,7 @@ function convertDrivePhotoUrl(url) {
 }
 
 // Client-side image compression
-function compressImage(file, maxWidth = 1200, maxHeight = 1200, quality = 0.7) {
+function compressImage(file, maxWidth = 900, maxHeight = 900, quality = 0.60) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -808,7 +808,7 @@ function formatThaiDateLong(date = new Date()) {
   return `วัน${dayName}ที่ ${day} ${monthName} ${yearTh}`;
 }
 
-// Time Window Checker for Teacher Check-in (07:35 - 08:20 น. on normal school days)
+// Time Window Checker for Teacher Check-in (07:35 - 08:25 น. on normal school days)
 function getCheckinTimeStatus(specialHolidays = [], compensatoryDays = [], adminOverride = false) {
   if (adminOverride) {
     return {
@@ -827,7 +827,7 @@ function getCheckinTimeStatus(specialHolidays = [], compensatoryDays = [], admin
   const dateStr = formatLocalDate(now);
   const curMinutes = now.getHours() * 60 + now.getMinutes();
   const startMinutes = 7 * 60 + 35; // 07:35 = 455
-  const endMinutes = 8 * 60 + 20;   // 08:20 = 500
+  const endMinutes = 8 * 60 + 25;   // 08:25 = 505
 
   const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
   const isCompensatory = (compensatoryDays || []).includes(dateStr);
@@ -855,7 +855,7 @@ function getCheckinTimeStatus(specialHolidays = [], compensatoryDays = [], admin
       status: 'TOO_EARLY',
       badgeColor: 'amber',
       label: 'ยังไม่ถึงเวลาเช็คชื่อ',
-      subtext: `เปิดระบบช่วง 07:35 - 08:20 น. (อีกประมาณ ${diff} นาที)`,
+      subtext: `เปิดระบบช่วง 07:35 - 08:25 น. (อีกประมาณ ${diff} นาที)`,
       isSchoolDay: true,
       currentTimeStr: timeFormatted
     };
@@ -867,7 +867,7 @@ function getCheckinTimeStatus(specialHolidays = [], compensatoryDays = [], admin
       status: 'CLOSED',
       badgeColor: 'slate',
       label: 'หมดเวลาเช็คชื่อแล้ว',
-      subtext: 'ระบบตัดรอบเวลา 08:20 น. (เปิด 07:35 - 08:20 น.)',
+      subtext: 'ระบบตัดรอบเวลา 08:25 น. (เปิด 07:35 - 08:25 น.)',
       isSchoolDay: true,
       currentTimeStr: timeFormatted
     };
@@ -879,7 +879,7 @@ function getCheckinTimeStatus(specialHolidays = [], compensatoryDays = [], admin
     status: 'OPEN',
     badgeColor: 'emerald',
     label: 'เปิดรับเช็คชื่อ',
-    subtext: `เปิดถึง 08:20 น. (เหลือเวลาอีก ${remaining} นาที)`,
+    subtext: `เปิดถึง 08:25 น. (เหลือเวลาอีก ${remaining} นาที)`,
     isSchoolDay: true,
     currentTimeStr: timeFormatted
   };
@@ -1028,7 +1028,7 @@ function generateDailyLineReport({
   // Text message
   let text = `🏛️ *รายงานผลการเข้าแถวหน้าเสาธง วก.ด่านซ้าย*\n`;
   text += `📅 ${dateFormatted} • ภาคเรียนที่ ${semester}/${academicYear}\n`;
-  text += `⏰ สรุปยอดตัดรอบเวลา 08:20 น.\n`;
+  text += `⏰ สรุปยอดตัดรอบเวลา 08:25 น.\n`;
   text += `────────────────────\n`;
   text += `👥 ยอดนักเรียนทั้งหมด: ${totalStudents} คน\n`;
   if (checkedCount === 0) {
@@ -1122,7 +1122,7 @@ function generateDailyLineReport({
             },
             {
               type: "text",
-              text: "ตัดรอบ 08:20 น.",
+              text: "ตัดรอบ 08:25 น.",
               color: "#ffffff",
               size: "xxs",
               align: "end"
@@ -2981,7 +2981,7 @@ useEffect(() => {
     }
   }, [loggedInTeacher]);
 
-  // LINE Auto-send at 08:20 Cut-off on School Days (Excluding Weekends & Special Holidays)
+  // LINE Auto-send at 08:25 Cut-off on School Days (Excluding Weekends & Special Holidays)
   useEffect(() => {
     if (!lineSettings?.autoSendOnCutoff || !lineSettings?.channelAccessToken || !lineSettings?.destinationId) return;
 
@@ -2999,10 +2999,10 @@ useEffect(() => {
       // Do NOT send on holidays or weekends
       if (!isSchoolDay) return;
 
-      // Check if current time is within cutoff window (08:20 - 09:30 น.)
+      // Check if current time is within cutoff window (08:25 - 09:30 น.)
       const curHour = now.getHours();
       const curMin = now.getMinutes();
-      const isCutoffTime = (curHour === 8 && curMin >= 20) || (curHour > 8 && curHour <= 9);
+      const isCutoffTime = (curHour === 8 && curMin >= 25) || (curHour > 8 && curHour <= 9);
 
       if (!isCutoffTime) return;
 
@@ -3025,7 +3025,7 @@ useEffect(() => {
           forceMock: false
         });
 
-        console.log('⏰ กำลังส่งรายงานสรุปยอดการเข้าแถวอัตโนมัติ (ตัดรอบ 08:20 น.) เข้า LINE...');
+        console.log('⏰ กำลังส่งรายงานสรุปยอดการเข้าแถวอัตโนมัติ (ตัดรอบ 08:25 น.) เข้า LINE...');
         const res = await fetch('/api/line-notify', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -3039,12 +3039,12 @@ useEffect(() => {
         });
         const json = await res.json().catch(() => ({}));
         if (res.ok && json.success) {
-          console.log('✅ ส่งรายงานอัตโนมัติ 08:20 น. เข้า LINE เรียบร้อยแล้ว');
+          console.log('✅ ส่งรายงานอัตโนมัติ 08:25 น. เข้า LINE เรียบร้อยแล้ว');
         } else {
-          console.warn('⚠️ ส่งรายงานอัตโนมัติ 08:20 น. ล้มเหลว:', json.error || res.status);
+          console.warn('⚠️ ส่งรายงานอัตโนมัติ 08:25 น. ล้มเหลว:', json.error || res.status);
         }
       } catch (err) {
-        console.error('Error auto-sending 08:20 LINE report:', err);
+        console.error('Error auto-sending 08:25 LINE report:', err);
       }
     };
 
@@ -4473,8 +4473,8 @@ useEffect(() => {
                           /*#__PURE__*/_jsx("span", {
                             className: currentCheckinTimeStatus.allowed ? 'text-emerald-200' : 'text-rose-200',
                             children: currentCheckinTimeStatus.allowed
-                              ? (allowOffHoursCheckin ? '⚡ ปลดล็อกเช็คชื่อนอกเวลา (เช็คชื่อได้ตลอดเวลา)' : 'เปิดระบบเช็คชื่อเข้าแถว (07:35 - 08:20 น.)')
-                              : (currentCheckinTimeStatus.label || 'เลยเวลา 08:20 น. ระงับการเช็คชื่อแล้ว')
+                              ? (allowOffHoursCheckin ? '⚡ ปลดล็อกเช็คชื่อนอกเวลา (เช็คชื่อได้ตลอดเวลา)' : 'เปิดระบบเช็คชื่อเข้าแถว (07:35 - 08:25 น.)')
+                              : (currentCheckinTimeStatus.label || 'เลยเวลา 08:25 น. ระงับการเช็คชื่อแล้ว')
                           })
                         ]
                       })
@@ -4850,7 +4850,7 @@ useEffect(() => {
               /*#__PURE__*/_jsxs("div", {
                 className: "grid grid-cols-1 sm:grid-cols-3 gap-3",
                 children: [
-                  /* Action Card 1: เช็คชื่อเข้าแถว (บล็อกนอกเวลา 07:35 - 08:20 น. ตามเงื่อนไขเวลา) */
+                  /* Action Card 1: เช็คชื่อเข้าแถว (บล็อกนอกเวลา 07:35 - 08:25 น. ตามเงื่อนไขเวลา) */
                   /*#__PURE__*/_jsxs("button", {
                     type: "button",
                     onClick: () => {
@@ -4903,7 +4903,7 @@ useEffect(() => {
                               className: "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-white/20 backdrop-blur-xs text-white border border-white/30 shadow-2xs",
                               children: [
                                 /*#__PURE__*/_jsx("span", { className: "w-2 h-2 rounded-full bg-emerald-300 animate-pulse" }),
-                                "เปิดเช็คชื่อ (07:35 - 08:20 น.)"
+                                "เปิดเช็คชื่อ (07:35 - 08:25 น.)"
                               ]
                             })
                           ) : (
@@ -4911,7 +4911,7 @@ useEffect(() => {
                               className: "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-black/25 backdrop-blur-xs text-amber-200 border border-white/20 shadow-2xs",
                               children: [
                                 /*#__PURE__*/_jsx(Icon.Clock, { className: "w-3 h-3 text-amber-300" }),
-                                "ปิดตามเวลา • 07:35 - 08:20 น."
+                                "ปิดตามเวลา • 07:35 - 08:25 น."
                               ]
                             })
                           )
@@ -6842,7 +6842,7 @@ useEffect(() => {
         }
       }),
 
-      // Time Restriction Modal (07:35 - 08:20 Cut-off Policy)
+      // Time Restriction Modal (07:35 - 08:25 Cut-off Policy)
       isTimeRestrictionModalOpen && /*#__PURE__*/_jsx(TimeRestrictionModal, {
         timeStatus: currentCheckinTimeStatus,
         isAdminLoggedIn: isAdminLoggedIn,
@@ -6939,7 +6939,7 @@ function DashboardInlineCalendar({
   const selectedDateSessions = sessionsByDate[selectedDateStr] || [];
   const selectedDateCheckedRoomsCount = useMemo(() => {
     return (teachers || []).filter(t => {
-      return selectedDateSessions.some(s => {
+      const hasSess = selectedDateSessions.some(s => {
         const isNameMatch = normalizeTeacherName(s.teacher_name) === normalizeTeacherName(t.name);
         if (!isNameMatch) return false;
         const sLevel = String(s.class_level || '').replace(/\s+/g, '');
@@ -6950,8 +6950,13 @@ function DashboardInlineCalendar({
         if (sDept && tDept && !sDept.includes(tDept) && !tDept.includes(sDept)) return false;
         return true;
       }) || selectedDateSessions.some(s => normalizeTeacherName(s.teacher_name) === normalizeTeacherName(t.name));
+      const hasDaily = !hasSess && (dailyAttendance || []).some(d => 
+        d.check_date === selectedDateStr && 
+        normalizeTeacherName(d.teacher_name) === normalizeTeacherName(t.name)
+      );
+      return hasSess || hasDaily;
     }).length;
-  }, [teachers, selectedDateSessions]);
+  }, [teachers, selectedDateSessions, dailyAttendance, selectedDateStr]);
   const selectedDateObj = new Date(selectedDateStr + 'T00:00:00');
   const selectedDayOfWeek = (selectedDateObj.getDay() + 6) % 7;
   const selectedIsWeekend = selectedDayOfWeek >= 5;
@@ -7334,6 +7339,7 @@ function DashboardInlineCalendar({
 function AttendanceCalendarModal({
   teachers,
   sessions,
+  dailyAttendance = [],
   academicYear,
   semester,
   isAdminLoggedIn,
@@ -7408,7 +7414,7 @@ function AttendanceCalendarModal({
   const selectedDateSessions = sessionsByDate[selectedDateStr] || [];
   const selectedDateCheckedRoomsCount = useMemo(() => {
     return (teachers || []).filter(t => {
-      return selectedDateSessions.some(s => {
+      const hasSess = selectedDateSessions.some(s => {
         const isNameMatch = normalizeTeacherName(s.teacher_name) === normalizeTeacherName(t.name);
         if (!isNameMatch) return false;
         const sLevel = String(s.class_level || '').replace(/\s+/g, '');
@@ -7419,8 +7425,13 @@ function AttendanceCalendarModal({
         if (sDept && tDept && !sDept.includes(tDept) && !tDept.includes(sDept)) return false;
         return true;
       }) || selectedDateSessions.some(s => normalizeTeacherName(s.teacher_name) === normalizeTeacherName(t.name));
+      const hasDaily = !hasSess && (dailyAttendance || []).some(d => 
+        d.check_date === selectedDateStr && 
+        normalizeTeacherName(d.teacher_name) === normalizeTeacherName(t.name)
+      );
+      return hasSess || hasDaily;
     }).length;
-  }, [teachers, selectedDateSessions]);
+  }, [teachers, selectedDateSessions, dailyAttendance, selectedDateStr]);
   const selectedDateObj = new Date(selectedDateStr + 'T00:00:00');
   const selectedDayOfWeek = (selectedDateObj.getDay() + 6) % 7;
   const selectedIsWeekend = selectedDayOfWeek >= 5;
@@ -7547,7 +7558,7 @@ function AttendanceCalendarModal({
     }
   };
 
-  // จัดเรียงครูที่ยังไม่เช็คชื่อขึ้นมาก่อนด้านบน และเน้นสีแดงชัดเจน
+  // จัดเรียงครูที่ยังไม่เช็คชื่อขึ้นมาก่อนด้านบน และเน้นสีแดงชัดเจน (สอดคล้องกับหน้าแอดมิน 100%)
   const sortedTeachersWithStatus = useMemo(() => {
     return (teachers || []).map(t => {
       const sess = selectedDateSessions.find(s => {
@@ -7561,7 +7572,11 @@ function AttendanceCalendarModal({
         if (sDept && tDept && !sDept.includes(tDept) && !tDept.includes(sDept)) return false;
         return true;
       }) || selectedDateSessions.find(s => normalizeTeacherName(s.teacher_name) === normalizeTeacherName(t.name));
-      return { teacher: t, sess, isChecked: Boolean(sess) };
+      const dailyForTeacher = !sess ? (dailyAttendance || []).find(d => 
+        d.check_date === selectedDateStr && 
+        normalizeTeacherName(d.teacher_name) === normalizeTeacherName(t.name)
+      ) : null;
+      return { teacher: t, sess, dailyForTeacher, isChecked: Boolean(sess || dailyForTeacher) };
     }).sort((a, b) => {
       // 1. ยังไม่เช็คชื่อ (isChecked === false) ให้อยู่ด้านบนก่อนคนเช็คแล้ว (isChecked === true)
       if (a.isChecked !== b.isChecked) {
@@ -9317,7 +9332,7 @@ function AdvisorDirectoryModal({
 }
 
 // ==========================================
-// MODAL: แจ้งเตือนช่วงเวลาเช็คชื่อ & ตัดรอบ (07:35 - 08:20 น.)
+// MODAL: แจ้งเตือนช่วงเวลาเช็คชื่อ & ตัดรอบ (07:35 - 08:25 น.)
 // ==========================================
 function TimeRestrictionModal({
   timeStatus,
@@ -9397,7 +9412,7 @@ function TimeRestrictionModal({
                     /*#__PURE__*/_jsx(Icon.Info, { className: "w-4 h-4 text-rose-800 flex-shrink-0 mt-0.5" }),
                     /*#__PURE__*/_jsx("span", {
                       className: "leading-relaxed font-medium",
-                      children: timeStatus?.subtext || "ระบบเช็คชื่อเปิดเฉพาะช่วง 07:35 - 08:20 น. ของวันเรียนปกติ"
+                      children: timeStatus?.subtext || "ระบบเช็คชื่อเปิดเฉพาะช่วง 07:35 - 08:25 น. ของวันเรียนปกติ"
                     })
                   ]
                 }),
@@ -9409,14 +9424,14 @@ function TimeRestrictionModal({
                       className: "p-2 rounded-xl bg-white border border-slate-100",
                       children: [
                         /*#__PURE__*/_jsx("span", { className: "text-slate-400 block", children: "ช่วงเวลาเช็คชื่อ" }),
-                        /*#__PURE__*/_jsx("strong", { className: "text-emerald-700 font-bold", children: "07:35 - 08:20 น." })
+                        /*#__PURE__*/_jsx("strong", { className: "text-emerald-700 font-bold", children: "07:35 - 08:25 น." })
                       ]
                     }),
                     /*#__PURE__*/_jsxs("div", {
                       className: "p-2 rounded-xl bg-white border border-slate-100",
                       children: [
                         /*#__PURE__*/_jsx("span", { className: "text-slate-400 block", children: "เวลาตัดรอบสรุปยอด" }),
-                        /*#__PURE__*/_jsx("strong", { className: "text-rose-700 font-bold", children: "08:20 น. ตรง" })
+                        /*#__PURE__*/_jsx("strong", { className: "text-rose-700 font-bold", children: "08:25 น. ตรง" })
                       ]
                     })
                   ]
@@ -9428,7 +9443,7 @@ function TimeRestrictionModal({
             /*#__PURE__*/_jsx("p", {
               className: "text-xs text-slate-500 leading-relaxed text-center px-2",
               children: isClosed 
-                ? "เมื่อเลยเวลา 08:20 น. ระบบจะตัดรอบเพื่อรวบรวมข้อมูลสรุปรายงานส่งเข้ากลุ่ม LINE ผู้บริหารและครูอย่างเป็นทางการ"
+                ? "เมื่อเลยเวลา 08:25 น. ระบบจะตัดรอบเพื่อรวบรวมข้อมูลสรุปรายงานส่งเข้ากลุ่ม LINE ผู้บริหารและครูอย่างเป็นทางการ"
                 : isEarly 
                 ? "กรุณารอจนถึงเวลา 07:35 น. เมื่อเริ่มกิจกรรมเข้าแถวหน้าเสาธง ระบบจะเปิดให้บันทึกโดยอัตโนมัติ"
                 : "เปิดรับการเช็คชื่อเฉพาะวันที่มีการเรียนการสอนตามปฏิทินวิทยาลัย"
@@ -11454,7 +11469,7 @@ function TeacherCheckinModal({
     if (!file) return;
     setIsCapturingPhoto(true);
     try {
-      const compressed = await compressImage(file, 1024, 1024, 0.68);
+      const compressed = await compressImage(file, 900, 900, 0.60);
       const targetRoomLevel = capturingTargetRoom || (teacherRooms.length === 1 ? teacherRooms[0]?.class_level : selectedTeacher?.class_level);
       if (targetRoomLevel) {
         setRoomPhotos(prev => ({ ...prev, [targetRoomLevel]: compressed }));
@@ -11646,7 +11661,7 @@ function TeacherCheckinModal({
       alert('⚠️ ไม่อนุญาตให้บันทึกการเช็คชื่อย้อนหลัง:\nการเช็คชื่อหรือแก้ไขข้อมูลย้อนหลังสงวนสิทธิ์เฉพาะผู้ดูแลระบบ (Admin) เท่านั้น');
       return;
     }
-    // 1. ตรวจสอบเงื่อนไขเวลา: บล็อกเฉพาะการเข้าแถวหน้าเสาธงในวันปัจจุบันนอกเวลา 07:35 - 08:20
+    // 1. ตรวจสอบเงื่อนไขเวลา: บล็อกเฉพาะการเข้าแถวหน้าเสาธงในวันปัจจุบันนอกเวลา 07:35 - 08:25
     if (checkinMode === 'assembly' && !isPastDate && !isAdminLoggedIn) {
       // ตรวจสอบสดตรงกับฐานข้อมูล Supabase ป้องกันการแฮกหรือแก้ State ในหน้าเบราว์เซอร์
       let liveAllowOffHours = false;
@@ -11794,7 +11809,8 @@ function TeacherCheckinModal({
         } catch (apiErr) {
           console.warn('Google Drive API upload fallback:', apiErr);
         }
-        return imgStr;
+        // ป้องกันไม่ให้คืนค่า Base64 ลงฐานข้อมูลเด็ดขาด เพื่อตัดปัญหา Egress พุ่งชนเพดาน 5 GB
+        return '';
       };
 
       const activeYearStr = String(academicYear || '2569');
